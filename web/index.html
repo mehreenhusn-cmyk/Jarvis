@@ -27,7 +27,7 @@ select{max-width:48%;padding:6px;border-radius:8px;border:1px solid var(--line);
 <div id="pair"><p>Termux mein jo 6-digit <b>PAIRING CODE</b> dikha, wo yahan daalo:</p>
 <input id="code" inputmode="numeric" maxlength="6" placeholder="123456"><p><button id="go">Pair karo</button></p><p id="pe" class="bad"></p></div>
 <div id="set" hidden><p><b>API key daalo</b>: copy karke paste karo. Jarvis khud pehchanega kis company ki hai aur check karega.</p>
-<input id="key" placeholder="key yahan paste karo" autocomplete="off"><p><button id="kp">📋 Clipboard se paste</button> <button id="kc">Check karo</button></p><p id="kr"></p><div id="kl"></div><h4>🧠 Jarvis ko ye yaad hai</h4><div id="ml"></div></div>
+<input id="key" placeholder="key yahan paste karo" autocomplete="off"><p><button id="kp">📋 Clipboard se paste</button> <button id="kc">Check karo</button></p><p id="kr"></p><div id="kl"></div><h4>🧠 Jarvis ko ye yaad hai</h4><div id="ml"></div><h4>💰 Hisab (baaki)</h4><div id="ll"></div></div>
 <div id="chat" hidden>
 <div class="bar"><select id="lang"><option value="hi-IN">Bolna: Hindi/Hinglish</option><option value="en-IN">Bolna: English</option></select>
 <select id="voice"></select><label><input type="checkbox" id="say"> bolkar jawab</label><b id="ms" class="ok">Mic band</b>
@@ -135,6 +135,13 @@ async function mem(){
   a.forEach(m=>{const r=document.createElement('div');r.className='kr';const l=document.createElement('span');l.textContent='#'+m.id+' '+m.text;
     const b=document.createElement('button');b.textContent='hatao';b.onclick=async()=>{await api('/memory/delete',{id:m.id});mem();};r.append(l,b);L.appendChild(r);});
 }
+async function led(){
+  const {d}=await api('/ledger');const L=$('ll');L.textContent='';const a=d.items||[];
+  if(!a.length){L.textContent='Koi hisab nahi. Chat mein likho: Faisal ko 5000 dene hain, 15 Nov ko';return;}
+  a.forEach(m=>{const r=document.createElement('div');r.className='kr';const l=document.createElement('span');l.textContent=m.text;
+    const b=document.createElement('button');b.textContent='chuka';b.onclick=async()=>{await api('/ledger/paid',{id:m.id});led();};r.append(l,b);L.appendChild(r);});
+  const t=document.createElement('b');t.textContent='Total dena ₹'+d.dena+' | lena ₹'+d.lena;L.appendChild(t);
+}
 async function addKey(){
   const k=$('key').value.trim();if(!k)return;$('kr').className='';$('kr').textContent='⏳ check ho raha hai...';
   try{const {d}=await api('/keys',{key:k});
@@ -144,6 +151,6 @@ async function addKey(){
 }
 $('kc').onclick=addKey;$('key').onpaste=()=>setTimeout(addKey,150);
 $('kp').onclick=async()=>{try{$('key').value=await navigator.clipboard.readText();addKey();}catch(e){$('kr').textContent='Clipboard allow nahi hua, box mein long-press karke paste karo';}};
-$('gear').onclick=()=>{if(!token)return;$('set').hidden=!$('set').hidden;$('chat').hidden=!$('set').hidden;if(!$('set').hidden){keys();mem();}};
+$('gear').onclick=()=>{if(!token)return;$('set').hidden=!$('set').hidden;$('chat').hidden=!$('set').hidden;if(!$('set').hidden){keys();mem();led();}};
 show();ping();setInterval(ping,5000);setInterval(()=>{if(token)checkDue();},10000);if(token)history();
 </script></body></html>

@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import memory, remind, tts
+import autostart, ledger, memory, remind, tts
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -45,6 +45,7 @@ def db():
     c.execute("CREATE TABLE IF NOT EXISTS messages(id INTEGER PRIMARY KEY, device INT, role TEXT, content TEXT, ts REAL)")
     memory.init(c)
     remind.init(c)
+    ledger.init(c)
     return c
 
 
@@ -188,6 +189,10 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/history":
             rows = db().execute("SELECT role, content FROM messages WHERE device=? ORDER BY id DESC LIMIT 50", (dev,)).fetchall()
             return self.send(200, {"messages": [{"role": r, "content": c} for r, c in reversed(rows)]})
+        if self.path == "/ledger":
+            r = ledger.rows(db(), dev)
+            dn, ln = ledger.totals(r)
+            return self.send(200, {"items": [{"id": i, "text": ledger.line(i, w, a, d, du)} for i, w, a, d, du in r], "dena": dn, "lena": ln})
         if self.path == "/memory":
             return self.send(200, {"memories": [{"id": i, "text": t} for i, t in memory.rows(db(), dev)]})
         self.send(404, {"error": "not found"})
@@ -234,6 +239,11 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, {"ok": True})
         if self.path == "/due":  # page har 10 sec poochta hai: kisi reminder ka time hua?
             return self.send(200, {"due": remind.due(db(), dev, str(data.get("now", "")))})
+        if self.path == "/ledger/paid":
+            c = db()
+            c.execute("UPDATE ledger SET paid=1 WHERE id=? AND device=?", (int(data.get("id") or 0), dev))
+            c.commit()
+            return self.send(200, {"ok": True})
         if self.path == "/memory/delete":
             c = db()
             c.execute("DELETE FROM memories WHERE id=? AND device=?", (int(data.get("id") or 0), dev))
@@ -258,8 +268,11 @@ class H(BaseHTTPRequestHandler):
             c.commit()
             style = str(data.get("style", ""))
             mem = memory.handle(c, dev, msg, style == "hindi")  # yaad rakho / bhool jao / kya yaad hai
+            now = str(data.get("now", ""))
+            if mem is None:  # hisab: "Faisal ko 5000 dene hain"
+                mem = ledger.handle(c, dev, msg, style == "hindi", ask, now)
             if mem is None:  # reminder: "kal 9 baje chai yaad dilana"
-                mem = remind.handle(c, dev, msg, style == "hindi", ask, str(data.get("now", "")))
+                mem = remind.handle(c, dev, msg, style == "hindi", ask, now)
             if mem is not None:
                 c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", mem, time.time()))
                 c.commit()
@@ -278,6 +291,7 @@ class H(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     load_env()
     host, port = os.environ.get("HOST", "127.0.0.1"), int(os.environ.get("PORT", "8787"))
+    autostart.ensure(os.path.dirname(HERE))
     new_code()
     print(f"Jarvis chal raha hai: http://{host}:{port}  provider={','.join(names())}", flush=True)
     ThreadingHTTPServer((host, port), H).serve_forever()

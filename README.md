@@ -43,7 +43,7 @@ consent/legal ka mamla hai, abhi nahi. Agar Hussain "aur gehra" kahe to Gehra sl
 5. Hussain se kam se kam Termux commands maango. Jo pehle chal chuka wo dobara mat batao.
 6. Memory mein password/OTP/PIN/CVV kabhi save mat karo (`memory.py` mein rok hai). Secrets (keys, GitHub token) kabhi chat, code ya Git mein nahi. Keys sirf `backend/keys.json`/`.env` (dono gitignored).
 7. Hussain ka **OWL1 trading repo bilkul alag** hai. Kabhi mat chhuo.
-8. Har part ke baad agle 4-5 parts (files + lines) table mein dikhao taaki Hussain chun ya jod sake.
+8. Har part ke baad Hussain ko table mein batao: agle parts ki files + lines, aur **ab tak kul kitni files/lines hui aur kitni baaki** (Section 7). README ka status update karo.
 9. Galtiyan jo ho chuki: GitHub se download kiya `Jarvis-main.zip` Downloads mein mat chhodo (sync.sh sirf `Jarvis_part*.zip` uthata hai). Chrome page translate na kare (`notranslate` laga hai).
 
 ## 5. Setup aur auto-update (phone, Termux)
@@ -51,6 +51,7 @@ Ek baar: `pkg install git python unzip && termux-setup-storage`, `pip install ed
 Phir roz bas: **`cd ~/Jarvis && bash run.sh`** (Termux khula rakho). Ye server chalata hai aur Downloads mein naya `Jarvis_part*.zip` aate hi
 update + GitHub push + server restart khud karta hai. Page `/status` ke `boot` number se restart pehchan ke khud reload hota hai; pair dobara nahi karna padta (token DB mein hai).
 Chrome: **http://127.0.0.1:8787**, pehli baar 6-digit code, phir ⚙ se key paste. Bina key test: `.env` mein `PROVIDER=mock`.
+**Auto-start (Part 11):** ek baar `python backend/app.py` ya `bash run.sh` chalne ke baad Termux kholte hi Jarvis khud chalta hai (copy-paste nahi). Band karna ho: `.env` mein `JARVIS_NO_AUTOSTART=1`.
 Purane tareeke: `python backend/app.py` (sirf server), `bash sync.sh once` (sirf zip kholo + push).
 
 ## 6. Status (15 Nov 2026)  🟢 phone par chala  🟡 bana, phone par test baaki  ⚪ shuru nahi
@@ -66,27 +67,30 @@ Purane tareeke: `python backend/app.py` (sirf server), `bash sync.sh once` (sirf
 | 8 | Iron Man Hindi-dub wala Jarvis: default awaaz Madhur, jawab shuddh Hindi (Devanagari), "sir" kehta hai. Hindi awaaz = Hindi style, English awaaz = Hinglish | 🟡 sunna baaki |
 | 9 | **Memory** (`backend/memory.py`): chat mein "yaad rakho: ...", "kya yaad hai", "sudhaar 3: ...", "bhool jao 3"; ⚙ mein list + hatao. Jo yaad hai wo AI ko har chat mein diya jaata hai. Password/OTP/PIN kabhi save nahi | 🟡 logic check hua (regex/DB), phone par chat se test baaki |
 | 10 | **Reminders** (`backend/remind.py`): "kal subah 10 baje Faisal ko 5000 dene yaad dilana" (tareekh AI se, phone ke time se), "reminders dikhao", "reminder hatao 2". Page khula ho to ⏰ message + awaaz + vibrate. **`run.sh`:** zip download > auto update + push + restart + page auto-refresh | 🟡 logic check hua (nakli AI jawab se), phone par test baaki. Reminder tabhi aata hai jab page khula ho; band app mein notification APK (Part 17) se |
+| 11 | **Hisab/ledger** (`backend/ledger.py`): "Faisal ko 5000 dene hain, 15 Nov ko yaad dilana" > entry + due date par subah 9 baje reminder; "hisab dikhao" (total dena/lena), "paid 3", "hisab hatao 3"; ⚙ mein list + "chuka" button. Sirf likhai-padhai, asli payment nahi. **Auto-start** (`backend/autostart.py`): server pehli baar chalne par `~/.bashrc` mein 2 line + `~/.termux/boot/jarvis.sh` bana deta hai, to Termux kholte hi Jarvis chalu (phone restart par bhi, agar Termux:Boot app install ho) | 🟡 logic check hua (nakli AI jawab, nakli HOME), phone par test baaki |
 | 8+ | Neeche roadmap | ⚪ |
 
-## 7. Roadmap: kul ~25 parts (andaza), har part < 350 lines
-| Stage | Part | Kya | Lines (andaza) |
-|---|---|---|---|
-| A. Browser Jarvis poora (Termux) | 11 | Finance ledger: kisko dena/lena, amount, due date, total | ~150 |
-| | 12 | Termux:Boot auto-start + privacy: "stop listening" status | ~60 |
-| | 13 | Internet search + link/PDF samjhana | ~120 |
-| | 14 | Subah ka briefing (reminders + baaki dues) | ~80 |
-| B. Asli APK | 15 | Flutter/WebView APK shell + GitHub Actions build | ~150 |
-| | 16 | APK build fixes (1-3 round, error screenshot se) | ~50 |
-| | 17 | App band ho tab bhi notification (reminders) | ~150 |
-| C. Android powers | 18 | Contacts + call history metadata ("Faisal se last baat kab hui") | ~200 |
-| | 19 | People profiles (dost ka naam, notes) | ~150 |
-| | 20 | Location (permission ke saath) | ~120 |
-| | 21 | Camera se surroundings samajhna | ~200 |
-| | 22 | Screen/app samajhna (AccessibilityService) | ~300 |
-| | 23 | Phone slow kyun hai (diagnostics) | ~150 |
-| D. Aakhri | 24 | "Hey Jarvis" wake word (Android par uncertain, pehle test) | ~150 |
-| | 25 | Security audit + final polish | ~100 |
-Stage A ke baad (Part 14 tak) Jarvis roz kaam ka ho jata hai. Stage B/C Android-only cheezein hain, yahi sabse risky hain (build errors, permissions).
+## 7. Roadmap: kul ~25 parts, har part < 350 lines (andaza, files aur lines)
+Ab tak (Part 1-11): **~16 files, ~870 lines** code (app.py 297, index.html 156, ledger 85, remind 70, memory 58, tts 35, autostart 27, run.sh 24...).
+| Stage | Part | Kya | Nayi files | Lines |
+|---|---|---|---|---|
+| A. Browser Jarvis (Termux) | 12 | Privacy: "stop listening" + mic/awaaz status bar | 0 (edit) | ~60 |
+| | 13 | Internet search + link/PDF samjhana | 1 | ~120 |
+| | 14 | Subah ka briefing (reminders + baaki dues) | 1 | ~80 |
+| B. Asli APK | 15 | Flutter/WebView APK shell + GitHub Actions build | ~6 | ~150 |
+| | 16 | APK build fixes (1-3 round, error screenshot se) | 0-2 | ~50 |
+| | 17 | App band ho tab bhi notification | 2 | ~150 |
+| C. Android powers | 18 | Contacts + call history metadata | 2 | ~200 |
+| | 19 | People profiles (dost, notes) | 1 | ~150 |
+| | 20 | Location (permission ke saath) | 2 | ~120 |
+| | 21 | Camera se surroundings samajhna | 2 | ~200 |
+| | 22 | Screen/app samajhna (AccessibilityService) | 3 | ~300 |
+| | 23 | Phone slow kyun hai (diagnostics) | 2 | ~150 |
+| D. Aakhri | 24 | "Hey Jarvis" wake word (Android par uncertain, pehle test) | 2 | ~150 |
+| | 25 | Security audit + final polish | 0-1 | ~100 |
+| **Baaki (12-25)** | | | **~26 files** | **~1,980 lines** |
+| **Final total (andaza)** | | | **~42 files** | **~2,800 lines** |
+Part 14 ke baad Jarvis roz kaam ka. Stage B/C Android-only hain, yahi sabse risky (build errors, permissions).
 
 Security vision (lambi): password/OTP/PIN kabhi store nahi; message bhejne/delete/payment se pehle confirmation; mic/camera chhupke nahi;
 call log se sirf metadata (baat-cheet ka content nahi); "stop listening" se mic turant band.
