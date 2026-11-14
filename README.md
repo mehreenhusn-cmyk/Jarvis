@@ -12,6 +12,11 @@ Repo: https://github.com/mehreenhusn-cmyk/Jarvis
 - Hussain ka OWL1 trading repo bilkul alag hai. Usse kabhi mat chhuo.
 - Har part ke baad is README ka "Status" update karo.
 
+## Keys kaise daalein (nano/.env ki zaroorat nahi)
+Chat page > ⚙ > key copy karke paste karo (ya "Clipboard se paste") > green ✅ aaye to save. Keys `backend/keys.json` mein
+rehti hain (gitignored, sirf owner ke liye, **encrypted nahi**; phone ka private storage hai). Keys browser ko wapas nahi bheji jaati.
+`.env` ab optional hai (sirf PROVIDER order ya MODEL_* badalna ho to).
+
 ## Setup (phone, Termux)
 ```
 pkg install git python unzip
@@ -34,7 +39,7 @@ Pehli baar GitHub login: `git config --global credential.helper store`, phir pus
 aur **token** Termux mein hi daalo. Kisi chat mein token mat bhejo. `sync.sh` zip se update nahi
 hota (jaan-boojh ke); wo sirf pehle zip mein tha.
 
-## Status (15 Nov 2026) - Part 1: backend, Part 2: browser chat page, Part 3: voice + multi-provider + home-screen icon
+## Status (15 Nov 2026) - Part 1: backend, Part 2: browser chat page, Part 3: voice + multi-provider + home-screen icon, Part 4: keys app ke andar paste
 | Cheez | Haal |
 |---|---|
 | Chat API (`/chat`, `/history`) | Mock provider ke saath tested: PASS |
@@ -43,6 +48,7 @@ hota (jaan-boojh ke); wo sirf pehle zip mein tha.
 | Offline status (`/status`) | Tested: server band hone par connect fail dikhta hai |
 | Asli AI provider (Groq etc.) | **Abhi test nahi hua, key baaki hai** (sandbox mein internet nahi). Hussain ke phone par pehla test baaki |
 | Chat page `web/index.html` (pair, chat, history, offline status) | **Phone par tested (OnePlus Nord 3): pairing, page, message bhejna, error dikhana sab chala.** Bina key ke ye error aata hai: `GROQ_API_KEY not found` (ye sahi hai) |
+| **Keys app mein paste (⚙ Settings)**: key paste karo, company khud pehchanta hai (gsk_=Groq, sk-or-=OpenRouter, nvapi-=Nvidia, sk-+32hex=DeepSeek, mstrl_/32 akshar=Mistral), asli test karta hai, green ✅ ya red ❌ | Pehchan, save, delete, "key wapas nahi aati", file permission 600: tested (mock key se). **Asli providers se test Hussain ke phone par baaki** |
 | Multi-provider fallback (`PROVIDER=groq,openrouter,...`) | Tested mock se (pehla fail -> agla). Asli keys se **abhi test baaki** |
 | `python backend/check_keys.py` (har key ka OK/FAIL, key print nahi hoti) | Bina key ke tested; asli keys par Hussain chalayega |
 | Voice: mic button (Chrome SpeechRecognition), bolkar jawab (TTS), voice picker, stop button, "Mic CHALU/band" status | JS syntax OK; **phone par test baaki**. Hindi bolne par Chrome Devanagari likhta hai, Jarvis jawab Roman mein deta hai |

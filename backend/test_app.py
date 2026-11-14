@@ -1,9 +1,13 @@
 """Chalao: python backend/test_app.py   (mock provider, internet/API key nahi chahiye)"""
 import json, os, re, subprocess, sys, tempfile, time, urllib.error, urllib.request
 
+import stat
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import app as A
+
 PORT = "8799"
 URL = "http://127.0.0.1:" + PORT
-env = dict(os.environ, PROVIDER="bogus,mock", PORT=PORT, JARVIS_DB=os.path.join(tempfile.mkdtemp(), "t.db"), PYTHONUNBUFFERED="1")
+env = dict(os.environ, PROVIDER="bogus,mock", PORT=PORT, JARVIS_DB=os.path.join(tempfile.mkdtemp(), "t.db"), PYTHONUNBUFFERED="1", JARVIS_KEYS=os.path.join(tempfile.mkdtemp(), "k.json"))
 app = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.py")
 
 
@@ -45,6 +49,14 @@ try:
     check("code dobara use nahi hota", call("/pair", {"code": code})[0] == 403)
     check("chat ka jawab aaya", call("/chat", {"message": "namaste"}, token)[1].get("reply", "").endswith("namaste"))
     check("pehla provider fail to agla chalta hai (fallback)", call("/chat", {"message": "x"}, token)[1].get("via") == "mock")
+    check("key pehchan: groq/openrouter/nvidia/deepseek/mistral", [A.detect(k) for k in ("gsk_a", "sk-or-v1-a", "nvapi-a", "sk-" + "a1" * 16, "mstrl_a", "A" * 32)] == ["groq", "openrouter", "nvidia", "deepseek", "mistral", "mistral"] and A.detect("hello") is None)
+    check("keys bina token band (401)", call("/keys", {"key": "mock_x"})[0] == 401)
+    check("nakli key reject", call("/keys", {"key": "hello"}, token)[1]["ok"] is False)
+    s, r = call("/keys", {"key": "mock_secret123"}, token)
+    check("sahi key save hui (green)", r.get("ok") is True and r["provider"] == "mock" and "secret123" not in json.dumps(r))
+    check("keys list mein key wapas nahi aati", "secret123" not in json.dumps(call("/keys", token=token)[1]))
+    check("keys file sirf owner ke liye (600)", stat.S_IMODE(os.stat(env["JARVIS_KEYS"]).st_mode) == 0o600)
+    check("key hatane se file se nikli", call("/keys/delete", {"provider": "mock"}, token)[1]["ok"] and "secret123" not in open(env["JARVIS_KEYS"]).read())
     check("khali message reject", call("/chat", {"message": " "}, token)[0] == 400)
     check("history mein 4 message", len(call("/history", token=token)[1]["messages"]) == 4)
 finally:

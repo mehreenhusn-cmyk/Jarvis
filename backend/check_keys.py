@@ -4,7 +4,7 @@ import app
 
 app.load_env()
 for name, (base, key_env, model) in app.PROVIDERS.items():
-    if not app.os.environ.get(key_env):
+    if not app.getkey(name):
         print(f"- {name:10} key .env mein nahi hai (skip)")
         continue
     try:

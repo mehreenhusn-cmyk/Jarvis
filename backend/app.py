@@ -4,6 +4,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
+KEYS = os.environ.get("JARVIS_KEYS") or os.path.join(HERE, "keys.json")  # app se daali keys (gitignored)
 # naam: (base_url, key ka env naam, default model). Sab OpenAI-style API hain.
 PROVIDERS = {
     "groq": ("https://api.groq.com/openai/v1", "GROQ_API_KEY", "llama-3.3-70b-versatile"),
@@ -41,15 +42,53 @@ def new_code():
     print(f"PAIRING CODE: {PAIR['code']}  (10 minute valid, ek baar use)", flush=True)
 
 
+def saved():
+    try:
+        return json.load(open(KEYS))
+    except (OSError, ValueError):
+        return {}
+
+
+def getkey(n):
+    env = os.environ.get(PROVIDERS[n][1], "") if n in PROVIDERS else ""
+    return env or saved().get(n, "")
+
+
+def store(n, key):
+    d = saved()
+    if key:
+        d[n] = key
+    else:
+        d.pop(n, None)
+    with open(KEYS, "w") as f:
+        json.dump(d, f)
+    os.chmod(KEYS, 0o600)
+
+
+def detect(k):
+    """Key ka shuruaat dekh ke company pehchano. Pehchan na ho to None (key kisi aur ko nahi bhejte)."""
+    for pre, n in (("mock_", "mock"), ("gsk_", "groq"), ("sk-or-", "openrouter"), ("nvapi-", "nvidia"), ("mstrl_", "mistral")):
+        if k.startswith(pre):
+            return n
+    if re.fullmatch(r"sk-[0-9a-f]{32}", k):
+        return "deepseek"
+    return "mistral" if re.fullmatch(r"[A-Za-z0-9]{32}", k) else None
+
+
+def mask(k):
+    return k[:4] + "…" + k[-4:] if len(k) > 10 else "…"
+
+
 def names():
-    return [n.strip().lower() for n in os.environ.get("PROVIDER", "groq").split(",") if n.strip()]
+    env = [n.strip().lower() for n in os.environ.get("PROVIDER", "").split(",") if n.strip()]
+    return env or [n for n in [*PROVIDERS, "mock"] if getkey(n)]
 
 
-def call(name, history):
+def call(name, history, key=None):
     if name == "mock":  # sirf testing ke liye
         return "mock jawab: " + history[-1]["content"]
     base, key_env, model = PROVIDERS[name]
-    key = os.environ.get(key_env, "")
+    key = key or getkey(name)
     body = json.dumps({"model": os.environ.get("MODEL_" + name.upper()) or model,
                        "messages": [{"role": "system", "content": SYSTEM}] + history}).encode()
     req = urllib.request.Request(base + "/chat/completions", body, {
@@ -63,20 +102,27 @@ def call(name, history):
         raise RuntimeError("connect nahi hua: " + type(e).__name__)
 
 
+def check(n, k):
+    try:
+        call(n, [{"role": "user", "content": "Ek shabd mein jawab do: OK"}], k)
+    except RuntimeError as e:
+        return str(e)
+
+
 def ask(history):
     """PROVIDER=groq,openrouter,... : pehla jo chale uska jawab. Return (jawab, provider)."""
     errs = []
     for n in names():
         if n != "mock" and n not in PROVIDERS:
             errs.append(f"{n}: naam galat")
-        elif n != "mock" and not os.environ.get(PROVIDERS[n][1]):
-            errs.append(f"{n}: key .env mein nahi")
+        elif n != "mock" and not getkey(n):
+            errs.append(f"{n}: key nahi")
         else:
             try:
                 return call(n, history), n
             except RuntimeError as e:
                 errs.append(f"{n}: {e}")
-    raise RuntimeError(" | ".join(errs) or "koi provider set nahi")
+    raise RuntimeError(" | ".join(errs) or "koi key nahi - upar ⚙ Settings mein key paste karo")
 
 
 class H(BaseHTTPRequestHandler):
@@ -121,11 +167,13 @@ class H(BaseHTTPRequestHandler):
             self.end_headers()
             return self.wfile.write(page)
         if self.path == "/status":
-            ok = any(n == "mock" or bool(os.environ.get(PROVIDERS.get(n, ("", "X"))[1], "")) for n in names())
+            ok = any(n == "mock" or bool(getkey(n)) for n in names())
             return self.send(200, {"ok": True, "provider": ",".join(names()), "configured": ok})
         dev = self.device()
         if dev is None:
             return self.send(401, {"error": "pehle pair karo"})
+        if self.path == "/keys":  # keys kabhi wapas nahi bhejte, sirf masked
+            return self.send(200, {"providers": [{"name": n, "saved": bool(getkey(n)), "masked": mask(getkey(n)) if getkey(n) else ""} for n in PROVIDERS]})
         if self.path == "/history":
             rows = db().execute("SELECT role, content FROM messages WHERE device=? ORDER BY id DESC LIMIT 50", (dev,)).fetchall()
             return self.send(200, {"messages": [{"role": r, "content": c} for r, c in reversed(rows)]})
@@ -154,6 +202,23 @@ class H(BaseHTTPRequestHandler):
         dev = self.device()
         if dev is None:
             return self.send(401, {"error": "pehle pair karo"})
+        if self.path == "/keys":
+            k = str(data.get("key", "")).strip()
+            n = detect(k)
+            if not n:
+                return self.send(200, {"ok": False, "error": "Ye key kis company ki hai, pehchana nahi gaya"})
+            err = check(n, k)
+            if err:
+                return self.send(200, {"ok": False, "provider": n, "error": err})
+            store(n, k)
+            return self.send(200, {"ok": True, "provider": n, "masked": mask(k)})
+        if self.path == "/keys/test":
+            n = str(data.get("provider", ""))
+            err = check(n, getkey(n)) if n in PROVIDERS else "naam galat"
+            return self.send(200, {"ok": err is None, "error": err or ""})
+        if self.path == "/keys/delete":
+            store(str(data.get("provider", "")), "")
+            return self.send(200, {"ok": True})
         if self.path == "/chat":
             msg = str(data.get("message", "")).strip()
             if not msg or len(msg) > 4000:

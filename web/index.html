@@ -19,10 +19,15 @@ form{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line)}
 .bar{display:flex;gap:8px;padding:6px 10px;flex-wrap:wrap;align-items:center;font-size:14px;border-bottom:1px solid var(--line)}
 select{max-width:48%;padding:6px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg)}
 #stop{background:#d33}
+#gear{padding:2px 8px;background:none;color:var(--fg);font-size:20px}
+#set{padding:14px;overflow-y:auto;flex:1}#set[hidden]{display:none}
+.kr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0}.kr button{padding:4px 10px;font-size:14px}
 </style></head><body>
-<header><span>Jarvis</span><span id="st">...</span></header>
+<header><span>Jarvis</span><span><button id="gear">⚙</button> <span id="st">...</span></span></header>
 <div id="pair"><p>Termux mein jo 6-digit <b>PAIRING CODE</b> dikha, wo yahan daalo:</p>
 <input id="code" inputmode="numeric" maxlength="6" placeholder="123456"><p><button id="go">Pair karo</button></p><p id="pe" class="bad"></p></div>
+<div id="set" hidden><p><b>API key daalo</b>: copy karke paste karo. Jarvis khud pehchanega kis company ki hai aur check karega.</p>
+<input id="key" placeholder="key yahan paste karo" autocomplete="off"><p><button id="kp">📋 Clipboard se paste</button> <button id="kc">Check karo</button></p><p id="kr"></p><div id="kl"></div></div>
 <div id="chat" hidden>
 <div class="bar"><select id="lang"><option value="hi-IN">Bolna: Hindi/Hinglish</option><option value="en-IN">Bolna: English</option></select>
 <select id="voice"></select><label><input type="checkbox" id="say"> bolkar jawab</label><b id="ms" class="ok">Mic band</b></div>
@@ -38,7 +43,7 @@ async function api(path,body){
   return {s:r.status,d};
 }
 function add(role,text){const m=document.createElement('div');m.className='m '+role;m.textContent=text;$('log').appendChild(m);m.scrollIntoView();return m;}
-function show(){$('pair').hidden=!!token;$('chat').hidden=!token;}
+function show(){$('pair').hidden=!!token;$('chat').hidden=!token;if(!token)$('set').hidden=true;}
 async function ping(){
   try{const {d}=await api('/status');
     $('st').textContent=d.configured?'● online':'● online (API key .env mein nahi)';$('st').className=d.configured?'ok':'warn';
@@ -89,5 +94,23 @@ $('say').checked=localStorage.getItem('jsay')=='1';$('lang').value=localStorage.
 $('say').onchange=()=>localStorage.setItem('jsay',$('say').checked?'1':'0');
 $('voice').onchange=()=>localStorage.setItem('jvoice',$('voice').value);
 $('lang').onchange=()=>localStorage.setItem('jlang',$('lang').value);
+function row(p){
+  const r=document.createElement('div');r.className='kr';const l=document.createElement('span');
+  l.textContent=(p.saved?'✅ ':'⬜ ')+p.name+(p.saved?' '+p.masked:'');r.appendChild(l);
+  if(p.saved)[['test',async()=>{l.textContent='⏳ '+p.name;const {d}=await api('/keys/test',{provider:p.name});l.textContent=(d.ok?'✅ ':'❌ ')+p.name+(d.ok?' chal rahi hai':' '+d.error);}],
+    ['hatao',async()=>{await api('/keys/delete',{provider:p.name});keys();}]].forEach(([n,f])=>{const b=document.createElement('button');b.textContent=n;b.onclick=f;r.appendChild(b);});
+  return r;
+}
+async function keys(){const {d}=await api('/keys');$('kl').textContent='';(d.providers||[]).forEach(p=>$('kl').appendChild(row(p)));}
+async function addKey(){
+  const k=$('key').value.trim();if(!k)return;$('kr').className='';$('kr').textContent='⏳ check ho raha hai...';
+  try{const {d}=await api('/keys',{key:k});
+    if(d.ok){$('kr').className='ok';$('kr').textContent='✅ '+d.provider+' ki key sahi hai, save ho gayi ('+d.masked+')';$('key').value='';keys();ping();}
+    else{$('kr').className='bad';$('kr').textContent='❌ '+(d.provider?d.provider+': ':'')+d.error;}
+  }catch(e){$('kr').className='bad';$('kr').textContent='Server se connect nahi hua';}
+}
+$('kc').onclick=addKey;$('key').onpaste=()=>setTimeout(addKey,150);
+$('kp').onclick=async()=>{try{$('key').value=await navigator.clipboard.readText();addKey();}catch(e){$('kr').textContent='Clipboard allow nahi hua, box mein long-press karke paste karo';}};
+$('gear').onclick=()=>{if(!token)return;$('set').hidden=!$('set').hidden;$('chat').hidden=!$('set').hidden;if(!$('set').hidden)keys();};
 show();ping();setInterval(ping,5000);if(token)history();
 </script></body></html>
