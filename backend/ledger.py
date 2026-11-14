@@ -43,23 +43,23 @@ def handle(c, dev, msg, hindi, ask, now):
         k = c.execute(sql, (int(m.group(1)), dev)).rowcount
         c.commit()
         if not k:
-            return say("सर, इस नंबर की एंट्री नहीं मिली।", "Sir, is number ki entry nahi mili.")
-        return say("ठीक है सर, हो गया।", "Theek hai sir, ho gaya.")
+            return say("सर, इस नंबर की एंट्री नहीं मिली।", "Sir, I found no entry with that number.")
+        return say("ठीक है सर, हो गया।", "Okay sir, done.")
     if LIST.search(msg) and len(msg) < 60:
         r = rows(c, dev)
         if not r:
-            return say("सर, कोई हिसाब बाकी नहीं है।", "Sir, koi hisab baaki nahi hai.")
+            return say("सर, कोई हिसाब बाकी नहीं है।", "Sir, there are no pending entries.")
         dn, ln = totals(r)
         return (say("सर, बाकी हिसाब:\n", "Sir, baaki hisab:\n") + "\n".join(line(*x) for x in r)
                 + f"\n{say('कुल देना', 'Total dena')}: {money(dn)} | {say('कुल लेना', 'Total lena')}: {money(ln)}")
     if not ADD.search(msg) or not re.search(r"\d", msg) or len(msg) > 300:
         return None
     if memory.SECRET.search(msg):
-        return say("माफ़ कीजिए सर, पासवर्ड, ओटीपी या पिन मैं सेव नहीं करता।", "Sorry sir, password, OTP ya PIN main save nahi karta.")
+        return say("माफ़ कीजिए सर, पासवर्ड, ओटीपी या पिन मैं सेव नहीं करता।", "Sorry sir, I never save passwords, OTPs or PINs.")
     try:
         n = remind.tm(now)
     except ValueError:
-        return say("सर, फ़ोन का समय नहीं मिला, पेज रीफ़्रेश कीजिए।", "Sir, phone ka time nahi mila, page refresh karo.")
+        return say("सर, फ़ोन का समय नहीं मिला, पेज रीफ़्रेश कीजिए।", "Sir, I could not get the phone time. Please refresh the page.")
     q = (f"Abhi ka local time: {now[:16]}. User ka message: {msg}\n"
          'Sirf ek JSON do: {"who": "naam", "amount": number, "direction": "dena" ya "lena", "due": "YYYY-MM-DD" ya null, "note": "chhota note ya khali"}. '
          '"dena" = user ko dusre ko paise dene hain. "lena" = user ko dusre se paise lene hain. amount sirf number. '
@@ -73,7 +73,7 @@ def handle(c, dev, msg, hindi, ask, now):
             remind.tm(due + " 09:00")
         assert who and a > 0 and dr in ("dena", "lena")
     except (RuntimeError, AttributeError, ValueError, KeyError, TypeError, AssertionError):
-        return say("सर, मैं समझ नहीं पाया। ऐसे लिखिए: 'फ़ैसल को 5000 देने हैं, 15 नवंबर को'", "Sir, samajh nahi aaya. Aise likho: 'Faisal ko 5000 dene hain, 15 Nov ko'")
+        return say("सर, मैं समझ नहीं पाया। ऐसे लिखिए: 'फ़ैसल को 5000 देने हैं, 15 नवंबर को'", "Sir, I could not understand. Try: 'I owe Faisal 5000, due 15 Nov'")
     i = c.execute("INSERT INTO ledger(device, who, amount, dir, due, note, ts) VALUES(?,?,?,?,?,?,?)",
                   (dev, who, a, dr, due, str(j.get("note") or "")[:100], time.time())).lastrowid
     extra = ""
@@ -82,4 +82,4 @@ def handle(c, dev, msg, hindi, ask, now):
                   (dev, f"{who} {'ko dena hai' if dr == 'dena' else 'se lena hai'} {money(a)}", remind.tm(due + " 09:00")))
         extra = say(" रिमाइंडर भी लगा दिया।", " Reminder bhi laga diya.")
     c.commit()
-    return say("ठीक है सर, लिख लिया। ", "Theek hai sir, likh liya. ") + line(i, who, a, dr, due) + extra
+    return say("ठीक है सर, लिख लिया। ", "Okay sir, noted. ") + line(i, who, a, dr, due) + extra

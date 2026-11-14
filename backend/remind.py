@@ -39,18 +39,18 @@ def handle(c, dev, msg, hindi, ask, now):
     if m:
         k = c.execute("DELETE FROM reminders WHERE id=? AND device=?", (int(m.group(1)), dev)).rowcount
         c.commit()
-        return say("ठीक है सर, रिमाइंडर हटा दिया।", "Theek hai sir, reminder hata diya.") if k else say("सर, वो रिमाइंडर नहीं मिला।", "Sir, wo reminder nahi mila.")
+        return say("ठीक है सर, रिमाइंडर हटा दिया।", "Okay sir, reminder removed.") if k else say("सर, वो रिमाइंडर नहीं मिला।", "Sir, I could not find that reminder.")
     if LIST.search(msg) and len(msg) < 60:
         r = c.execute("SELECT id, text, due FROM reminders WHERE device=? AND sent=0 ORDER BY due", (dev,)).fetchall()
         if not r:
-            return say("सर, कोई रिमाइंडर बाकी नहीं है।", "Sir, koi reminder baaki nahi hai.")
-        return say("सर, ये रिमाइंडर बाकी हैं:\n", "Sir, ye reminders baaki hain:\n") + "\n".join(f"#{i} {show(d)} - {t}" for i, t, d in r)
+            return say("सर, कोई रिमाइंडर बाकी नहीं है।", "Sir, you have no pending reminders.")
+        return say("सर, ये रिमाइंडर बाकी हैं:\n", "Sir, these reminders are pending:\n") + "\n".join(f"#{i} {show(d)} - {t}" for i, t, d in r)
     if not ADD.search(msg) or len(msg) > 300:
         return None
     try:
         n = tm(now)
     except ValueError:
-        return say("सर, फ़ोन का समय नहीं मिला, पेज रीफ़्रेश कीजिए।", "Sir, phone ka time nahi mila, page refresh karo.")
+        return say("सर, फ़ोन का समय नहीं मिला, पेज रीफ़्रेश कीजिए।", "Sir, I could not get the phone time. Please refresh the page.")
     q = (f"Abhi ka local time: {now[:16]} ({time.strftime('%A', time.gmtime(n))}). User ka message: {msg}\n"
          'Sirf ek JSON do: {"text": "kya yaad dilana hai, chhota", "when": "YYYY-MM-DD HH:MM"}. '
          "Sirf tareekh ho to 09:00 lo. 'kal', 'shaam', '2 ghante baad' jaise shabd abhi ke time se nikalo. "
@@ -62,9 +62,9 @@ def handle(c, dev, msg, hindi, ask, now):
         text = str(j["text"]).strip()[:200]
         assert text
     except (RuntimeError, AttributeError, ValueError, KeyError, TypeError, AssertionError):
-        return say("सर, मैं समय नहीं समझ पाया। जैसे लिखिए: 'कल सुबह 9 बजे चाय याद दिलाना'", "Sir, time samajh nahi aaya. Aise likho: 'kal subah 9 baje chai yaad dilana'")
+        return say("सर, मैं समय नहीं समझ पाया। जैसे लिखिए: 'कल सुबह 9 बजे चाय याद दिलाना'", "Sir, I could not understand the time. Try: 'remind me tomorrow 9 am to drink tea'")
     if d < n - 60:
-        return say("सर, वो समय तो निकल चुका है।", "Sir, wo time to nikal chuka hai.")
+        return say("सर, वो समय तो निकल चुका है।", "Sir, that time has already passed.")
     i = c.execute("INSERT INTO reminders(device, text, due) VALUES(?,?,?)", (dev, text, d)).lastrowid
     c.commit()
-    return say(f"ठीक है सर, {show(d)} को याद दिलाऊँगा (#{i}): {text}", f"Theek hai sir, {show(d)} ko yaad dilaunga (#{i}): {text}")
+    return say(f"ठीक है सर, {show(d)} को याद दिलाऊँगा (#{i}): {text}", f"Okay sir, I will remind you on {show(d)} (#{i}): {text}")

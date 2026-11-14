@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import autostart, brief, ledger, memory, remind, tts, web
+import autostart, brief, ledger, memory, people, phone, place, remind, tts, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -15,11 +15,10 @@ PROVIDERS = {
     "deepseek": ("https://api.deepseek.com", "DEEPSEEK_API_KEY", "deepseek-chat"),
     "nvidia": ("https://integrate.api.nvidia.com/v1", "NVIDIA_API_KEY", "meta/llama-3.1-70b-instruct"),
 }
-SYSTEM = ("Tum Jarvis ho, Hussain ke personal AI dost. User jis bhasha mein likhe (Hindi, English ya Hinglish) "
-          "usi mein jawab do. Hindi ko bhi Roman script mein likho, Devanagari nahi. Chhote, saaf jawab do. "
-          "Personal baat tabhi yaad rakho jab user ne khud batayi ho. Kuch invent mat karo.")
+SYSTEM = ("You are Jarvis, a calm and polite personal AI assistant. Reply in simple, clear English, in 1 to 3 short sentences. "
+          "Call the user sir. No emoji or markdown. Use personal facts only if the user told you. Never invent facts.")
 # Part 8: Iron Man (Hindi dub) wala Jarvis - shaant, vinamra, "sir" kehne wala. Page tab bhejta hai jab Hindi awaaz chuni ho.
-PERSONA = {"hinglish": SYSTEM, "hindi": (
+PERSONA = {"english": SYSTEM, "hindi": (
     "You are JARVIS, like the calm, polite, witty AI butler from the Hindi dub of Iron Man. Address the user as 'सर'. "
     "Always reply in pure, simple spoken Hindi in Devanagari script (English words only when really needed). "
     "Keep answers short: 1 to 3 sentences, with a light dry wit when it fits. No emoji, markdown, stars or hashes, "
@@ -44,6 +43,7 @@ def db():
     c.execute("CREATE TABLE IF NOT EXISTS devices(id INTEGER PRIMARY KEY, name TEXT, token_hash TEXT UNIQUE, ts REAL)")
     c.execute("CREATE TABLE IF NOT EXISTS messages(id INTEGER PRIMARY KEY, device INT, role TEXT, content TEXT, ts REAL)")
     memory.init(c)
+    people.init(c)
     remind.init(c)
     ledger.init(c)
     return c
@@ -96,7 +96,7 @@ def names():
     return env or [n for n in [*PROVIDERS, "mock"] if getkey(n)]
 
 
-def call(name, history, key=None, style="hinglish", extra=""):
+def call(name, history, key=None, style="english", extra=""):
     if name == "mock":  # sirf testing ke liye
         return "mock jawab: " + history[-1]["content"]
     base, key_env, model = PROVIDERS[name]
@@ -121,7 +121,7 @@ def check(n, k):
         return str(e)
 
 
-def ask(history, style="hinglish", extra=""):
+def ask(history, style="english", extra=""):
     """PROVIDER=groq,openrouter,... : pehla jo chale uska jawab. Return (jawab, provider)."""
     errs = []
     for n in names():
@@ -193,6 +193,8 @@ class H(BaseHTTPRequestHandler):
             r = ledger.rows(db(), dev)
             dn, ln = ledger.totals(r)
             return self.send(200, {"items": [{"id": i, "text": ledger.line(i, w, a, d, du)} for i, w, a, d, du in r], "dena": dn, "lena": ln})
+        if self.path == "/people":
+            return self.send(200, {"people": people.all_people(db(), dev)})
         if self.path == "/memory":
             return self.send(200, {"memories": [{"id": i, "text": t} for i, t in memory.rows(db(), dev)]})
         self.send(404, {"error": "not found"})
@@ -246,6 +248,9 @@ class H(BaseHTTPRequestHandler):
             c.execute("UPDATE ledger SET paid=1 WHERE id=? AND device=?", (int(data.get("id") or 0), dev))
             c.commit()
             return self.send(200, {"ok": True})
+        if self.path == "/people/delete":
+            c = db()
+            return self.send(200, {"ok": bool(people.delete(c, dev, str(data.get("name", ""))))})
         if self.path == "/memory/delete":
             c = db()
             c.execute("DELETE FROM memories WHERE id=? AND device=?", (int(data.get("id") or 0), dev))
@@ -271,6 +276,12 @@ class H(BaseHTTPRequestHandler):
             style = str(data.get("style", ""))
             mem = memory.handle(c, dev, msg, style == "hindi")  # yaad rakho / bhool jao / kya yaad hai
             now = str(data.get("now", ""))
+            if mem is None:  # note about Faisal: ... / who is Faisal
+                mem = people.handle(c, dev, msg, style == "hindi")
+            if mem is None:  # why is my phone slow
+                mem = phone.handle(msg, data.get("phone"), style == "hindi")
+            if mem is None:  # where am I
+                mem = place.handle(msg, data.get("loc"), style == "hindi")
             if mem is None:  # "briefing" / "aaj ka plan"
                 mem = brief.handle(c, dev, msg, style == "hindi", now)
             if mem is None:  # hisab: "Faisal ko 5000 dene hain"
@@ -283,7 +294,7 @@ class H(BaseHTTPRequestHandler):
                 return self.send(200, {"reply": mem, "via": "memory"})
             rows = c.execute("SELECT role, content FROM messages WHERE device=? ORDER BY id DESC LIMIT 10", (dev,)).fetchall()
             try:
-                reply, via = ask([{"role": r, "content": t} for r, t in reversed(rows)], style, memory.context(c, dev) + web.context(msg))
+                reply, via = ask([{"role": r, "content": t} for r, t in reversed(rows)], style, memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + web.context(msg))
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
             c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", reply, time.time()))

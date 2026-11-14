@@ -3,7 +3,7 @@ import re, time
 
 import ledger, remind
 
-TRIG = re.compile(r"briefing|brief karo|aaj ka plan|aaj kya hai|good morning jarvis|ब्रीफिंग|सुप्रभात", re.I)
+TRIG = re.compile(r"briefing|brief karo|aaj ka plan|aaj kya hai|my plan today|good morning jarvis|ब्रीफिंग|सुप्रभात", re.I)
 
 
 def build(c, dev, now, hindi, auto=False):
@@ -22,16 +22,16 @@ def build(c, dev, now, hindi, auto=False):
     say = (lambda hi, ro: hi if hindi else ro)
     out = [say("सुप्रभात सर।", "Suprabhat sir.") + " " + time.strftime("%d %b", time.gmtime(n))]
     if rem:
-        out.append(say("आज के रिमाइंडर:", "Aaj ke reminders:"))
+        out.append(say("आज के रिमाइंडर:", "Today's reminders:"))
         out += [f"- {time.strftime('%H:%M', time.gmtime(d))} {t}" for t, d in rem]
     if near:
         out.append(say("पास की तारीख़ वाला हिसाब:", "Paas ki tareekh wala hisab:"))
         out += ["- " + ledger.line(*x) for x in near]
     if L:
         dn, ln = ledger.totals(L)
-        out.append(f"{say('कुल देना', 'Total dena')}: {ledger.money(dn)} | {say('कुल लेना', 'Total lena')}: {ledger.money(ln)}")
+        out.append(f"{say('कुल देना', 'You owe')}: {ledger.money(dn)} | {say('कुल लेना', 'You get')}: {ledger.money(ln)}")
     if not rem and not near:
-        out.append(say("आज कुछ ज़रूरी बाकी नहीं है।", "Aaj kuch zaroori baaki nahi hai."))
+        out.append(say("आज कुछ ज़रूरी बाकी नहीं है।", "Nothing important is pending today."))
     return "\n".join(out)
 
 

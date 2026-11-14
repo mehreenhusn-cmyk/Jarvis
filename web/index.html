@@ -1,39 +1,47 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="google" content="notranslate"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#2563eb">
+<html lang="en"><head><meta charset="utf-8"><meta name="google" content="notranslate"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#0e1116">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Jarvis</title>
 <style>
-:root{--bg:#f4f5f7;--fg:#15171a;--card:#fff;--me:#d9e8ff;--line:#d5d8dd;color-scheme:light dark}
-@media(prefers-color-scheme:dark){:root{--bg:#0f1114;--fg:#e8eaed;--card:#1a1d21;--me:#1f3550;--line:#2b2f35}}
+:root{--bg:#0e1116;--sf:#161b22;--sf2:#1d242d;--fg:#e6e9ee;--mut:#8b95a3;--ac:#c9a45c;--acd:#2a2417;--me:#233044;--line:#262e38;--ok:#4fb27a;--bad:#e5655f;color-scheme:dark light}
+@media(prefers-color-scheme:light){:root{--bg:#f6f4ef;--sf:#fff;--sf2:#efece5;--fg:#1c2128;--mut:#6b7480;--ac:#8a6a21;--acd:#f3ead4;--me:#e3ebf6;--line:#dcd8cd;--ok:#2e8a57;--bad:#c94741}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:16px system-ui,sans-serif;height:100dvh;display:flex;flex-direction:column}
-header{display:flex;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line);font-weight:600}
-#st{font-weight:400;font-size:14px}.ok{color:#1a9c4a}.warn{color:#c98a00}.bad{color:#d33}
-#pair{padding:20px}#pair input,#chat input{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--fg);font-size:16px}
-button{padding:12px 16px;border:0;border-radius:10px;background:#2563eb;color:#fff;font-size:16px}
-#log{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
-.m{max-width:85%;padding:10px 12px;border-radius:12px;background:var(--card);white-space:pre-wrap;word-wrap:break-word}
-.m.user{align-self:flex-end;background:var(--me)}.m.err{color:#d33}
-#chat{flex:1;display:flex;flex-direction:column;min-height:0}#chat[hidden],#pair[hidden]{display:none}
-form{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line)}
-.bar{display:flex;gap:8px;padding:6px 10px;flex-wrap:wrap;align-items:center;font-size:14px;border-bottom:1px solid var(--line)}
-select{max-width:48%;padding:6px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg)}
-#stop{background:#d33}
-#gear{padding:2px 8px;background:none;color:var(--fg);font-size:20px}
-#set{padding:14px;overflow-y:auto;flex:1}#set[hidden]{display:none}
-.kr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0}.kr button{padding:4px 10px;font-size:14px}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 "Segoe UI",Roboto,system-ui,sans-serif;height:100dvh;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+header{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--sf);border-bottom:1px solid var(--line)}
+.logo{width:34px;height:34px;border-radius:50%;border:2px solid var(--ac);display:grid;place-items:center;color:var(--ac);font-weight:700}
+header b{font-size:17px;letter-spacing:.14em}#st{font-size:12px;color:var(--mut);display:block;letter-spacing:0}.ok{color:var(--ok)}.warn{color:var(--ac)}.bad{color:var(--bad)}
+.sp{flex:1}#gear,#vbtn{width:40px;height:40px;padding:0;border-radius:50%;background:var(--sf2);color:var(--fg);font-size:18px}
+button{padding:11px 16px;border:0;border-radius:12px;background:var(--ac);color:#15120a;font:600 15px inherit;cursor:pointer}
+button.g{background:var(--sf2);color:var(--fg);padding:8px 12px;font-size:14px;font-weight:500}
+input,select{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--sf);color:var(--fg);font-size:16px}
+select{width:auto;max-width:100%;padding:8px 10px;font-size:14px}
+#pair{padding:32px 22px;max-width:420px;margin:auto;text-align:center}#pair h2{font-weight:600;margin:.2em 0}#pair p{color:var(--mut)}#pair input{text-align:center;letter-spacing:.4em;font-size:22px}
+#chat{flex:1;display:flex;flex-direction:column;min-height:0}#chat[hidden],#pair[hidden],#set[hidden],#vp[hidden]{display:none}
+#pv{padding:6px 16px;font-size:12px;color:var(--mut);background:var(--sf);border-bottom:1px solid var(--line)}
+#vp{padding:12px 16px;background:var(--sf);border-bottom:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:14px;color:var(--mut)}
+#log{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.m{max-width:86%;padding:11px 14px;border-radius:16px 16px 16px 4px;background:var(--sf);border:1px solid var(--line);white-space:pre-wrap;word-wrap:break-word}
+.m.user{align-self:flex-end;background:var(--me);border-color:transparent;border-radius:16px 16px 4px 16px}.m.err{color:var(--bad)}
+form{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:var(--sf);border-top:1px solid var(--line);align-items:center}
+form input{border-radius:24px}#mic{width:52px;height:52px;padding:0;border-radius:50%;font-size:22px;flex:none}#send{border-radius:24px}
+#stop{width:40px;height:40px;padding:0;border-radius:50%;background:var(--sf2);color:var(--bad);flex:none}
+#set{flex:1;overflow-y:auto;padding:18px 16px}#set h4{margin:22px 0 8px;color:var(--ac);font-size:13px;letter-spacing:.1em;text-transform:uppercase}
+.card{background:var(--sf);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.kr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;justify-content:space-between}
 </style></head><body>
-<header><span>Jarvis</span><span><button id="gear">⚙</button> <span id="st">...</span></span></header>
-<div id="pair"><p>Termux mein jo 6-digit <b>PAIRING CODE</b> dikha, wo yahan daalo:</p>
-<input id="code" inputmode="numeric" maxlength="6" placeholder="123456"><p><button id="go">Pair karo</button></p><p id="pe" class="bad"></p></div>
-<div id="set" hidden><p><b>API key daalo</b>: copy karke paste karo. Jarvis khud pehchanega kis company ki hai aur check karega.</p>
-<input id="key" placeholder="key yahan paste karo" autocomplete="off"><p><button id="kp">📋 Clipboard se paste</button> <button id="kc">Check karo</button></p><p id="kr"></p><div id="kl"></div><h4>🧠 Jarvis ko ye yaad hai</h4><div id="ml"></div><h4>💰 Hisab (baaki)</h4><div id="ll"></div></div>
-<div id="pv" class="bar"></div><div id="chat" hidden>
-<div class="bar"><select id="lang"><option value="hi-IN">Bolna: Hindi/Hinglish</option><option value="en-IN">Bolna: English</option></select>
-<select id="voice"></select><label><input type="checkbox" id="say"> bolkar jawab</label><b id="ms" class="ok">Mic band</b>
-<label>Gehra <input type="range" id="pt" min="0.5" max="1.5" step="0.05" style="width:70px"></label><label>Speed <input type="range" id="rt" min="0.6" max="1.4" step="0.05" style="width:70px"></label><select id="pre"><option value="">Awaaz style</option><option value="k">Khattar (Hindi dub, gehri)</option><option value="r">Rolex (bahut gehri)</option><option value="n">Normal</option></select><button type="button" id="mon" hidden>🎤 Mic chalu karo</button><button type="button" id="tv" style="padding:6px 10px">🔊 test</button></div>
+<header><div class="logo">J</div><div><b>JARVIS</b><span id="st">...</span></div><span class="sp"></span><button id="vbtn" title="Voice">🔊</button><button id="gear" title="Settings">⚙</button></header>
+<div id="pair"><h2>Welcome, sir</h2><p>Enter the 6-digit pairing code shown in Termux.</p>
+<input id="code" inputmode="numeric" maxlength="6" placeholder="••••••"><p><button id="go">Pair this phone</button></p><p id="pe" class="bad"></p></div>
+<div id="set" hidden><h4>API key</h4><div class="card"><p style="margin-top:0;color:var(--mut)">Paste a key. Jarvis finds the company and checks it.</p>
+<input id="key" placeholder="Paste key here" autocomplete="off"><p><button id="kp">Paste from clipboard</button> <button id="kc" class="g">Check</button></p><p id="kr"></p><div id="kl"></div></div>
+<h4>People</h4><div class="card" id="pl"></div><h4>Memory</h4><div class="card" id="ml"></div><h4>Money ledger</h4><div class="card" id="ll"></div></div>
+<div id="pv"></div><div id="chat" hidden>
+<div id="vp" hidden><select id="lang"><option value="hi-IN">Speak: Hindi</option><option value="en-IN">Speak: English</option></select>
+<select id="voice"></select><select id="pre"><option value="">Voice style</option><option value="k">Khattar (deep, Hindi dub)</option><option value="r">Rolex (very deep)</option><option value="n">Normal</option></select>
+<label><input type="checkbox" id="say" style="width:auto"> Speak replies</label><label>Depth <input type="range" id="pt" min="0.5" max="1.5" step="0.05" style="width:80px;padding:0"></label><label>Speed <input type="range" id="rt" min="0.6" max="1.4" step="0.05" style="width:80px;padding:0"></label>
+<button type="button" id="tv" class="g">Test voice</button><button type="button" id="mon" class="g" hidden>Turn mic on</button><b id="ms" class="ok">Mic off</b></div>
 <div id="log"></div>
-<form id="f"><button type="button" id="mic">🎤</button><input id="msg" autocomplete="off" placeholder="Kuch bolo..."><button>Bhejo</button><button type="button" id="stop">⏹</button></form></div>
+<form id="f"><button type="button" id="stop" title="Stop">⏹</button><input id="msg" autocomplete="off" placeholder="Message Jarvis..."><button id="send">Send</button><button type="button" id="mic" title="Speak">🎤</button></form></div>
 <script>
 const $=id=>document.getElementById(id);
 let token=localStorage.getItem('jtoken')||'';
@@ -49,14 +57,14 @@ let boot='';
 const nowS=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16).replace('T',' ');
 async function checkDue(){
   try{const {s,d}=await api('/due',{now:nowS()});
-    if(s==200)(d.due||[]).forEach(r=>{const t='⏰ Yaad dilana: '+r.text;add('bot',t);speak(t,true);if(navigator.vibrate)navigator.vibrate([300,150,300]);});
+    if(s==200)(d.due||[]).forEach(r=>{const t='⏰ Reminder: '+r.text;add('bot',t);speak(t,true);if(navigator.vibrate)navigator.vibrate([300,150,300]);});
   }catch(e){}
 }
 async function ping(){
   try{const {d}=await api('/status');
     if(boot&&d.boot&&d.boot!==boot){location.reload();return;}boot=d.boot||boot;
-    $('st').textContent=d.configured?'● online':'● online (API key .env mein nahi)';$('st').className=d.configured?'ok':'warn';
-  }catch(e){$('st').textContent='● server offline';$('st').className='bad';}
+    $('st').textContent=d.configured?'● Online':'● Online · no API key yet';$('st').className=d.configured?'ok':'warn';
+  }catch(e){$('st').textContent='● Server offline';$('st').className='bad';}
 }
 async function history(){
   $('log').textContent='';
@@ -64,24 +72,24 @@ async function history(){
 }
 $('go').onclick=async()=>{
   try{const {s,d}=await api('/pair',{code:$('code').value.trim(),name:'phone browser'});
-    if(s==200){token=d.token;localStorage.setItem('jtoken',token);show();history();}else $('pe').textContent=d.error||'pair nahi hua';
-  }catch(e){$('pe').textContent='Server se connect nahi hua. Termux mein app.py chal raha hai?';}
+    if(s==200){token=d.token;localStorage.setItem('jtoken',token);if(window.JarvisApp)JarvisApp.saveToken(token);show();history();}else $('pe').textContent=d.error||'Pairing failed';
+  }catch(e){$('pe').textContent='Cannot reach the server. Is Jarvis running in Termux?';}
 };
 $('f').onsubmit=async e=>{
   e.preventDefault();const t=$('msg').value.trim();if(!t)return;$('msg').value='';
   if(/^(gsk_|sk-or-|nvapi-|mstrl_|sk-[0-9a-f]{32}$)/.test(t)){$('set').hidden=false;$('chat').hidden=true;$('key').value=t;addKey();return;}
-  if(/stop listening|sunna band|listening band|सुनना बंद|mic band karo/i.test(t)){add('user',t);stopAll();add('bot','🔒 Theek hai sir, mic aur awaaz band. Phir chalane ke liye "🎤 Mic chalu karo" dabao.');return;}
+  if(/stop listening|sunna band|सुनना बंद/i.test(t)){add('user',t);stopAll();add('bot','🔒 Done, sir. Mic and voice are off. Tap "Turn mic on" to resume.');return;}
   add('user',t);const w=add('bot','...');
-  try{const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty()});
+  try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:SLOW.test(t)?pinfo():null});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
     if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply);}else{w.className='m err';w.textContent=d.error||'error';}
-  }catch(e){w.className='m err';w.textContent='Server se connect nahi hua.';}
+  }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}
 };
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;
-function micState(on){$('mic').textContent=on?'🎙':'🎤';$('ms').textContent=on?'Mic CHALU':'Mic band';$('ms').className=on?'bad':'ok';pv();}
+function micState(on){$('mic').textContent=on?'🎙':'🎤';$('ms').textContent=on?'Mic ON':'Mic off';$('ms').className=on?'bad':'ok';pv();}
 $('mic').onclick=()=>{
   if(priv)return;
-  if(!SR){add('err','Is browser mein voice input nahi hai. Chrome use karo.');return;}
+  if(!SR){add('err','Voice input is not available here. Use Chrome.');return;}
   if(rec){rec.stop();return;}
   rec=new SR();rec.lang=$('lang').value;rec.interimResults=false;
   rec.onresult=e=>{$('msg').value=e.results[0][0].transcript;$('f').requestSubmit();};
@@ -100,7 +108,7 @@ function loadVoices(){
 }
 async function neural(t,v){
   const r=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text:t,voice:v,pitch:Math.round(($('pt').value-1)*100),rate:Math.round(($('rt').value-1)*100)})});
-  if(!r.ok){let e={};try{e=await r.json()}catch(x){}throw new Error(e.error||'awaaz error');}
+  if(!r.ok){let e={};try{e=await r.json()}catch(x){}throw new Error(e.error||'voice error');}
   if(aud)aud.pause();aud=new Audio(URL.createObjectURL(await r.blob()));aud.playbackRate=+$('rt').value;await aud.play();
 }
 function local(t){
@@ -111,7 +119,7 @@ function local(t){
 async function speak(t,force){
   if(!force&&!$('say').checked)return;const v=$('voice').value;
   if(v.startsWith('neural:')){
-    try{await neural(t,v.slice(7));return;}catch(e){if(!warned){warned=true;add('err','Net-awaaz nahi chali ('+e.message+'). Phone ki awaaz use ho rahi hai.');}}
+    try{await neural(t,v.slice(7));return;}catch(e){if(!warned){warned=true;add('err','Online voice failed ('+e.message+'). Using the phone voice.');}}
   }
   if(window.speechSynthesis)local(t);
 }
@@ -121,43 +129,54 @@ $('say').onchange=()=>localStorage.setItem('jsay',$('say').checked?'1':'0');
 $('voice').onchange=()=>localStorage.setItem('jvoice',$('voice').value);
 $('pt').value=localStorage.getItem('jpt')||'0.7';$('rt').value=localStorage.getItem('jrt')||'0.92';
 $('pt').onchange=()=>localStorage.setItem('jpt',$('pt').value);$('rt').onchange=()=>localStorage.setItem('jrt',$('rt').value);
-$('tv').onclick=()=>speak($('voice').value.includes('hi-IN')?'नमस्ते सर, मैं जार्विस हूँ। बताइए, मैं आपकी क्या सेवा कर सकता हूँ?':'Namaste sir, main Jarvis hoon. Bataiye, kya kaam hai?',true);
+$('tv').onclick=()=>speak($('voice').value.includes('hi-IN')?'नमस्ते सर, मैं जार्विस हूँ। बताइए, मैं आपकी क्या सेवा कर सकता हूँ?':'Hello sir, I am Jarvis. How can I help you?',true);
 $('lang').onchange=()=>localStorage.setItem('jlang',$('lang').value);
 function row(p){
   const r=document.createElement('div');r.className='kr';const l=document.createElement('span');
   l.textContent=(p.saved?'✅ ':'⬜ ')+p.name+(p.saved?' '+p.masked:'');r.appendChild(l);
-  if(p.saved)[['test',async()=>{l.textContent='⏳ '+p.name;const {d}=await api('/keys/test',{provider:p.name});l.textContent=(d.ok?'✅ ':'❌ ')+p.name+(d.ok?' chal rahi hai':' '+d.error);}],
-    ['hatao',async()=>{await api('/keys/delete',{provider:p.name});keys();}]].forEach(([n,f])=>{const b=document.createElement('button');b.textContent=n;b.onclick=f;r.appendChild(b);});
+  if(p.saved)[['Test',async()=>{l.textContent='⏳ '+p.name;const {d}=await api('/keys/test',{provider:p.name});l.textContent=(d.ok?'✅ ':'❌ ')+p.name+(d.ok?' works':' '+d.error);}],
+    ['Remove',async()=>{await api('/keys/delete',{provider:p.name});keys();}]].forEach(([n,f])=>{const b=document.createElement('button');b.textContent=n;b.onclick=f;r.appendChild(b);});
   return r;
 }
 async function keys(){const {d}=await api('/keys');$('kl').textContent='';(d.providers||[]).forEach(p=>$('kl').appendChild(row(p)));}
 async function mem(){
   const {d}=await api('/memory');const L=$('ml');L.textContent='';const a=d.memories||[];
-  if(!a.length)L.textContent='Abhi kuch yaad nahi. Chat mein likho: yaad rakho: ...';
+  if(!a.length)L.textContent='Nothing saved yet. Type in chat: remember this: ...';
   a.forEach(m=>{const r=document.createElement('div');r.className='kr';const l=document.createElement('span');l.textContent='#'+m.id+' '+m.text;
-    const b=document.createElement('button');b.textContent='hatao';b.onclick=async()=>{await api('/memory/delete',{id:m.id});mem();};r.append(l,b);L.appendChild(r);});
+    const b=document.createElement('button');b.textContent='Remove';b.onclick=async()=>{await api('/memory/delete',{id:m.id});mem();};r.append(l,b);L.appendChild(r);});
 }
+async function ppl(){
+  const {d}=await api('/people');const L=$('pl');L.textContent='';const a=d.people||[];
+  if(!a.length){L.textContent='No people yet. Type in chat: note about Faisal: old friend';return;}
+  a.forEach(p=>{const r=document.createElement('div');r.className='kr';const l=document.createElement('span');l.textContent=p.name+': '+p.notes.join('; ');
+    const b=document.createElement('button');b.className='g';b.textContent='Remove';b.onclick=async()=>{await api('/people/delete',{name:p.name});ppl();};r.append(l,b);L.appendChild(r);});
+}
+const SLOW=/phone (?:is )?(?:slow|hang|lag)|why is my phone|phone health|phone check|slow phone|फ़ोन धीमा|फोन धीमा/i;
+const pinfo=()=>{try{return window.JarvisApp&&JarvisApp.phoneInfo?JSON.parse(JarvisApp.phoneInfo()):null}catch(e){return null}};
+const WHERE=/where am i|my location|near me|nearby|around me|nearest|mere paas|मैं कहाँ हूँ|मेरे पास/i;
+const getLoc=()=>new Promise(ok=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>ok({lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy}),()=>ok(null),{enableHighAccuracy:true,timeout:15000}):ok(null));
 async function led(){
   const {d}=await api('/ledger');const L=$('ll');L.textContent='';const a=d.items||[];
-  if(!a.length){L.textContent='Koi hisab nahi. Chat mein likho: Faisal ko 5000 dene hain, 15 Nov ko';return;}
+  if(!a.length){L.textContent='No entries. Type in chat: I owe Faisal 5000, due 15 Nov';return;}
   a.forEach(m=>{const r=document.createElement('div');r.className='kr';const l=document.createElement('span');l.textContent=m.text;
-    const b=document.createElement('button');b.textContent='chuka';b.onclick=async()=>{await api('/ledger/paid',{id:m.id});led();};r.append(l,b);L.appendChild(r);});
-  const t=document.createElement('b');t.textContent='Total dena ₹'+d.dena+' | lena ₹'+d.lena;L.appendChild(t);
+    const b=document.createElement('button');b.textContent='Paid';b.onclick=async()=>{await api('/ledger/paid',{id:m.id});led();};r.append(l,b);L.appendChild(r);});
+  const t=document.createElement('b');t.textContent='You owe ₹'+d.dena+' | You get ₹'+d.lena;L.appendChild(t);
 }
 async function addKey(){
-  const k=$('key').value.trim();if(!k)return;$('kr').className='';$('kr').textContent='⏳ check ho raha hai...';
+  const k=$('key').value.trim();if(!k)return;$('kr').className='';$('kr').textContent='⏳ Checking...';
   try{const {d}=await api('/keys',{key:k});
-    if(d.ok){$('kr').className='ok';$('kr').textContent='✅ '+d.provider+' ki key sahi hai, save ho gayi ('+d.masked+')';$('key').value='';keys();ping();}
+    if(d.ok){$('kr').className='ok';$('kr').textContent='✅ '+d.provider+' key is valid and saved ('+d.masked+')';$('key').value='';keys();ping();}
     else{$('kr').className='bad';$('kr').textContent='❌ '+(d.provider?d.provider+': ':'')+d.error;}
-  }catch(e){$('kr').className='bad';$('kr').textContent='Server se connect nahi hua';}
+  }catch(e){$('kr').className='bad';$('kr').textContent='Cannot reach the server';}
 }
 $('kc').onclick=addKey;$('key').onpaste=()=>setTimeout(addKey,150);
-$('kp').onclick=async()=>{try{$('key').value=await navigator.clipboard.readText();addKey();}catch(e){$('kr').textContent='Clipboard allow nahi hua, box mein long-press karke paste karo';}};
-$('gear').onclick=()=>{if(!token)return;$('set').hidden=!$('set').hidden;$('chat').hidden=!$('set').hidden;if(!$('set').hidden){keys();mem();led();}};
-const sty=()=>$('voice').value.includes('hi-IN')?'hindi':'hinglish';
+$('kp').onclick=async()=>{try{$('key').value=await navigator.clipboard.readText();addKey();}catch(e){$('kr').textContent='Clipboard blocked. Long-press the box and paste.';}};
+$('vbtn').onclick=()=>{$('vp').hidden=!$('vp').hidden;};
+$('gear').onclick=()=>{if(!token)return;$('set').hidden=!$('set').hidden;$('chat').hidden=!$('set').hidden;if(!$('set').hidden){keys();mem();led();ppl();}};
+const sty=()=>$('voice').value.includes('hi-IN')?'hindi':'english';
 let priv=localStorage.getItem('jpriv')=='1';
 function pv(){
-  $('pv').textContent=(priv?'🔒 Privacy mode: mic aur awaaz band':'🟢 Mic: '+(rec?'CHALU':'band')+' · Awaaz: '+($('say').checked?'chalu':'band'))+' · camera/screen: nahi';
+  $('pv').textContent=(priv?'🔒 Privacy mode: mic and voice off':'🟢 Mic: '+(rec?'on':'off')+' · Voice: '+($('say').checked?'on':'off'))+' · Location and phone check: only when you ask';
   $('mon').hidden=!priv;$('mic').disabled=priv;
 }
 function stopAll(){
@@ -169,12 +188,13 @@ $('pre').onchange=()=>{
   const p={k:[0.7,0.92],r:[0.5,0.85],n:[0.95,1]}[$('pre').value];if(!p)return;
   $('pt').value=p[0];$('rt').value=p[1];localStorage.setItem('jpt',p[0]);localStorage.setItem('jrt',p[1]);
   if($('pre').value!='n'){$('voice').value='neural:hi-IN-MadhurNeural';localStorage.setItem('jvoice',$('voice').value);}
-  speak(sty()=='hindi'?'नमस्ते सर, मैं जार्विस हूँ।':'Namaste sir, main Jarvis hoon.',true);
+  speak(sty()=='hindi'?'नमस्ते सर, मैं जार्विस हूँ।':'Hello sir, I am Jarvis.',true);
 };
 async function brief(){
   if(!token||priv)return;const day=nowS().slice(0,10);if(localStorage.getItem('jbrief')==day)return;localStorage.setItem('jbrief',day);
   try{const {s,d}=await api('/brief',{now:nowS(),style:sty(),auto:true});if(s==200&&d.text){add('bot',d.text);speak(d.text);}}catch(e){}
 }
+if(window.JarvisApp&&token)JarvisApp.saveToken(token);
 pv();
 show();ping();setInterval(ping,5000);setInterval(()=>{if(token)checkDue();},10000);if(token)history().then(brief);
 </script></body></html>

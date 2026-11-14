@@ -19,7 +19,7 @@ def rows(c, dev):
 def context(c, dev):
     """AI ko batane ke liye: user ne jo yaad rakhne bola. Isse bahar kuch invent nahi karna."""
     r = rows(c, dev)[-30:]
-    return ("\n\nUser ne ye baatein yaad rakhne ko kahi hain (sirf kaam aaye tab use karo, inse bahar kuch invent mat karo):\n"
+    return ("\n\nThe user asked you to remember these things (use only when useful, never invent beyond them):\n"
             + "\n".join(f"- {t}" for _, t in r)) if r else ""
 
 
@@ -31,28 +31,28 @@ def handle(c, dev, msg, hindi):
     if m:
         t = m.group(1).strip()[:300]
         if SECRET.search(t):
-            return say("माफ़ कीजिए सर, पासवर्ड, ओटीपी या पिन मैं कभी सेव नहीं करता।", "Sorry sir, password, OTP ya PIN main kabhi save nahi karta.")
+            return say("माफ़ कीजिए सर, पासवर्ड, ओटीपी या पिन मैं कभी सेव नहीं करता।", "Sorry sir, I never save passwords, OTPs or PINs.")
         if len(rows(c, dev)) >= 100:
-            return say("सर, याददाश्त भर गई है। पहले कुछ हटाइए।", "Sir, memory full hai (100). Pehle kuch hatao.")
+            return say("सर, याददाश्त भर गई है। पहले कुछ हटाइए।", "Sir, memory is full (100). Please remove something first.")
         n = c.execute("INSERT INTO memories(device, text, ts) VALUES(?,?,?)", (dev, t, time.time())).lastrowid
         c.commit()
-        return say(f"ठीक है सर, याद रख लिया (#{n}): {t}", f"Theek hai sir, yaad rakh liya (#{n}): {t}")
+        return say(f"ठीक है सर, याद रख लिया (#{n}): {t}", f"Okay sir, saved (#{n}): {t}")
     m = DEL.match(msg)
     if m:
         k = c.execute("DELETE FROM memories WHERE id=? AND device=?", (int(m.group(1)), dev)).rowcount
         c.commit()
-        return say("ठीक है सर, भूल गया।", "Theek hai sir, bhool gaya.") if k else say("सर, इस नंबर की कोई याद नहीं मिली।", "Sir, is number ki koi yaad nahi mili.")
+        return say("ठीक है सर, भूल गया।", "Okay sir, forgotten.") if k else say("सर, इस नंबर की कोई याद नहीं मिली।", "Sir, I found no memory with that number.")
     m = UPD.match(msg)
     if m:
         t = m.group(2).strip()[:300]
         if SECRET.search(t):
-            return say("माफ़ कीजिए सर, पासवर्ड, ओटीपी या पिन मैं सेव नहीं करता।", "Sorry sir, password, OTP ya PIN main save nahi karta.")
+            return say("माफ़ कीजिए सर, पासवर्ड, ओटीपी या पिन मैं सेव नहीं करता।", "Sorry sir, I never save passwords, OTPs or PINs.")
         k = c.execute("UPDATE memories SET text=? WHERE id=? AND device=?", (t, int(m.group(1)), dev)).rowcount
         c.commit()
-        return say("ठीक है सर, सुधार दिया।", "Theek hai sir, sudhaar diya.") if k else say("सर, इस नंबर की कोई याद नहीं मिली।", "Sir, is number ki koi yaad nahi mili.")
+        return say("ठीक है सर, सुधार दिया।", "Okay sir, updated.") if k else say("सर, इस नंबर की कोई याद नहीं मिली।", "Sir, I found no memory with that number.")
     if LIST.search(msg) and len(msg) < 60:
         r = rows(c, dev)
         if not r:
-            return say("सर, अभी मुझे कुछ याद रखने को नहीं कहा गया।", "Sir, abhi tak kuch yaad rakhne ko nahi kaha.")
-        return say("सर, मुझे ये याद है:\n", "Sir, mujhe ye yaad hai:\n") + "\n".join(f"#{i} {t}" for i, t in r)
+            return say("सर, अभी मुझे कुछ याद रखने को नहीं कहा गया।", "Sir, you have not asked me to remember anything yet.")
+        return say("सर, मुझे ये याद है:\n", "Sir, I remember this:\n") + "\n".join(f"#{i} {t}" for i, t in r)
     return None

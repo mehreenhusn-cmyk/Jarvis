@@ -1,6 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # Downloads mein Jarvis_part*.zip aaye to repo mein kholta hai aur GitHub par push karta hai.
-# Use:  bash sync.sh once  (ek baar)   |   bash sync.sh watch  (har 10 sec check)
+# Safe: wahi zip dobara (same content) ya purana part aaye to skip (purani files wapas nahi aati). Kuch naya na ho to commit nahi.
+# (Ye file scripts/sync.sh mein rakhi hai; server start par khud ./sync.sh ban jati hai.)
 REPO="$(cd "$(dirname "$0")" && pwd)"
 DL="${JARVIS_DL:-$HOME/storage/downloads}"
 DONE="$HOME/.jarvis_done"; mkdir -p "$DONE"
@@ -10,14 +11,23 @@ main() {
   [ -d "$DL" ] || { echo "Downloads nahi mila. Pehle: termux-setup-storage"; return 1; }
   while :; do
     for z in "$DL"/Jarvis_part*.zip; do
-      echo "[sync] $(basename "$z")"
+      b="$(basename "$z")"
+      h="$(sha256sum "$z" | cut -d' ' -f1)"
+      n="$(echo "$b" | sed -n 's/^Jarvis_part\([0-9][0-9]*\).*/\1/p')"
+      last="$(ls "$DONE" | sed -n 's/.*Jarvis_part\([0-9][0-9]*\).*/\1/p' | sort -n | tail -1)"
+      if sha256sum "$DONE"/*.zip </dev/null 2>/dev/null | grep -q "$h"; then
+        echo "[sync] $b pehle ho chuka hai, skip (dobara push nahi)"; mv "$z" "$DONE/dup_$b"; continue
+      fi
+      if [ -n "$n" ] && [ -n "$last" ] && [ "$n" -lt "$last" ]; then
+        echo "[sync] $b purana part hai (part $last tak ho chuka), skip"; mv "$z" "$DONE/old_$b"; continue
+      fi
+      echo "[sync] $b"
       unzip -oq "$z" -x sync.sh -d "$REPO" || { echo "[sync] unzip fail"; continue; }
-      mv "$z" "$DONE/"
+      mv "$z" "$DONE/$b"
       cd "$REPO" && git add -A
-      if git diff --cached --quiet; then echo "[sync] kuch naya nahi"; continue; fi
-      git commit -qm "Update from $(basename "$z")"
-      git pull --rebase -q origin main
-      git push -q origin HEAD && echo "[sync] GitHub par push ho gaya" || echo "[sync] push fail (token/net check karo)"
+      if git diff --cached --quiet; then echo "[sync] repo mein kuch naya nahi (commit nahi)"; else git commit -qm "Update from $b"; fi
+      git pull --rebase -q origin main 2>/dev/null
+      git push -q origin HEAD && echo "[sync] GitHub par push ho gaya / pehle se up-to-date" || echo "[sync] push fail (token/net check karo)"
     done
     [ "$1" = "watch" ] || return 0
     sleep 10

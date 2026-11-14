@@ -14,7 +14,7 @@ def speak(text, voice, pitch=-8, rate=-6):
         raise RuntimeError("awaaz ka naam galat")
     text = re.sub(r"[*_`#]", "", text).strip()[:600]
     if not text:
-        raise RuntimeError("bolne ke liye text nahi")
+        raise RuntimeError("no text to speak")
     fd, path = tempfile.mkstemp(suffix=".mp3")
     os.close(fd)
     try:
@@ -25,9 +25,9 @@ def speak(text, voice, pitch=-8, rate=-6):
             r = subprocess.run(base, capture_output=True, timeout=40)
         err = r.stderr.decode(errors="ignore")
         if "No module named" in err:
-            raise RuntimeError("edge-tts install nahi hai: Termux mein chalao  pip install edge-tts")
+            raise RuntimeError("edge-tts is not installed. Run in Termux: pip install edge-tts")
         if r.returncode != 0 or os.path.getsize(path) < 100:
-            raise RuntimeError("awaaz nahi bani (internet check karo): " + err.strip()[-120:])
+            raise RuntimeError("voice failed (check internet): " + err.strip()[-120:])
         return open(path, "rb").read()
     except subprocess.TimeoutExpired:
         raise RuntimeError("awaaz banne mein bahut der lagi")
