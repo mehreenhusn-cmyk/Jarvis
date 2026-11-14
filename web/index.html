@@ -30,7 +30,8 @@ select{max-width:48%;padding:6px;border-radius:8px;border:1px solid var(--line);
 <input id="key" placeholder="key yahan paste karo" autocomplete="off"><p><button id="kp">📋 Clipboard se paste</button> <button id="kc">Check karo</button></p><p id="kr"></p><div id="kl"></div></div>
 <div id="chat" hidden>
 <div class="bar"><select id="lang"><option value="hi-IN">Bolna: Hindi/Hinglish</option><option value="en-IN">Bolna: English</option></select>
-<select id="voice"></select><label><input type="checkbox" id="say"> bolkar jawab</label><b id="ms" class="ok">Mic band</b></div>
+<select id="voice"></select><label><input type="checkbox" id="say"> bolkar jawab</label><b id="ms" class="ok">Mic band</b>
+<label>Gehra <input type="range" id="pt" min="0.5" max="1.5" step="0.05" style="width:70px"></label><label>Speed <input type="range" id="rt" min="0.6" max="1.4" step="0.05" style="width:70px"></label><button type="button" id="tv" style="padding:6px 10px">🔊 test</button></div>
 <div id="log"></div>
 <form id="f"><button type="button" id="mic">🎤</button><input id="msg" autocomplete="off" placeholder="Kuch bolo..."><button>Bhejo</button><button type="button" id="stop">⏹</button></form></div>
 <script>
@@ -78,23 +79,39 @@ $('mic').onclick=()=>{
   rec.onend=()=>{rec=null;micState(false);};
   micState(true);rec.start();
 };
-$('stop').onclick=()=>{if(rec)rec.abort();speechSynthesis.cancel();micState(false);};
+$('stop').onclick=()=>{if(rec)rec.abort();speechSynthesis.cancel();if(aud)aud.pause();micState(false);};
+const NV=[['en-GB-RyanNeural','Jarvis British (Ryan)'],['en-IN-PrabhatNeural','Indian male (Prabhat)'],['hi-IN-MadhurNeural','Hindi male (Madhur)'],['en-IN-NeerjaNeural','Indian female (Neerja)'],['hi-IN-SwaraNeural','Hindi female (Swara)']];
+let aud=null,warned=false;
 function loadVoices(){
   const rk=v=>{const l=v.lang.replace('_','-').toLowerCase();return l=='en-in'?0:l=='hi-in'?1:l.startsWith('en')?2:3;};
   const vs=speechSynthesis.getVoices().sort((a,b)=>rk(a)-rk(b));
-  $('voice').innerHTML=vs.map(v=>`<option value="${v.name}">${v.name} (${v.lang})</option>`).join('');
-  $('voice').value=localStorage.getItem('jvoice')||(vs[0]?vs[0].name:'');
+  $('voice').innerHTML=NV.map(([id,n])=>`<option value="neural:${id}">⭐ ${n} (net)</option>`).join('')+vs.map(v=>`<option value="${v.name}">${v.name} (${v.lang})</option>`).join('');
+  $('voice').value=localStorage.getItem('jvoice')||'neural:en-GB-RyanNeural';
 }
-function speak(t){
-  if(!$('say').checked||!window.speechSynthesis)return;
-  speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);
-  const v=speechSynthesis.getVoices().find(x=>x.name==$('voice').value);
+async function neural(t,v){
+  const r=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text:t,voice:v})});
+  if(!r.ok){let e={};try{e=await r.json()}catch(x){}throw new Error(e.error||'awaaz error');}
+  if(aud)aud.pause();aud=new Audio(URL.createObjectURL(await r.blob()));aud.playbackRate=+$('rt').value;await aud.play();
+}
+function local(t){
+  speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.pitch=+$('pt').value;u.rate=+$('rt').value;
+  const v=speechSynthesis.getVoices().find(x=>x.name==$('voice').value)||speechSynthesis.getVoices().find(x=>/en.GB|en.IN/i.test(x.lang));
   if(v){u.voice=v;u.lang=v.lang;}else u.lang='en-IN';speechSynthesis.speak(u);
+}
+async function speak(t,force){
+  if(!force&&!$('say').checked)return;const v=$('voice').value;
+  if(v.startsWith('neural:')){
+    try{await neural(t,v.slice(7));return;}catch(e){if(!warned){warned=true;add('err','Net-awaaz nahi chali ('+e.message+'). Phone ki awaaz use ho rahi hai.');}}
+  }
+  if(window.speechSynthesis)local(t);
 }
 if(window.speechSynthesis){speechSynthesis.onvoiceschanged=loadVoices;loadVoices();}
 $('say').checked=localStorage.getItem('jsay')=='1';$('lang').value=localStorage.getItem('jlang')||'hi-IN';
 $('say').onchange=()=>localStorage.setItem('jsay',$('say').checked?'1':'0');
 $('voice').onchange=()=>localStorage.setItem('jvoice',$('voice').value);
+$('pt').value=localStorage.getItem('jpt')||'0.8';$('rt').value=localStorage.getItem('jrt')||'0.95';
+$('pt').onchange=()=>localStorage.setItem('jpt',$('pt').value);$('rt').onchange=()=>localStorage.setItem('jrt',$('rt').value);
+$('tv').onclick=()=>speak('Namaste, main Jarvis hoon. Bataiye, kya kaam hai?',true);
 $('lang').onchange=()=>localStorage.setItem('jlang',$('lang').value);
 function row(p){
   const r=document.createElement('div');r.className='kr';const l=document.createElement('span');

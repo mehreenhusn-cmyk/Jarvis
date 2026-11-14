@@ -2,6 +2,8 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import tts
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
 KEYS = os.environ.get("JARVIS_KEYS") or os.path.join(HERE, "keys.json")  # app se daali keys (gitignored)
@@ -219,6 +221,16 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/keys/delete":
             store(str(data.get("provider", "")), "")
             return self.send(200, {"ok": True})
+        if self.path == "/tts":  # Part 7: neural awaaz (mp3)
+            try:
+                audio = tts.speak(str(data.get("text", "")), str(data.get("voice", "")))
+            except RuntimeError as e:
+                return self.send(502, {"error": str(e)})
+            self.send_response(200)
+            self.send_header("Content-Type", "audio/mpeg")
+            self.send_header("Content-Length", str(len(audio)))
+            self.end_headers()
+            return self.wfile.write(audio)
         if self.path == "/chat":
             msg = str(data.get("message", "")).strip()
             if not msg or len(msg) > 4000:
