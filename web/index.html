@@ -60,6 +60,7 @@ $('go').onclick=async()=>{
 };
 $('f').onsubmit=async e=>{
   e.preventDefault();const t=$('msg').value.trim();if(!t)return;$('msg').value='';
+  if(/^(gsk_|sk-or-|nvapi-|mstrl_|sk-[0-9a-f]{32}$)/.test(t)){$('set').hidden=false;$('chat').hidden=true;$('key').value=t;addKey();return;}
   add('user',t);const w=add('bot','...');
   try{const {s,d}=await api('/chat',{message:t});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
@@ -79,7 +80,8 @@ $('mic').onclick=()=>{
 };
 $('stop').onclick=()=>{if(rec)rec.abort();speechSynthesis.cancel();micState(false);};
 function loadVoices(){
-  const vs=speechSynthesis.getVoices().sort((a,b)=>/en-IN|hi-IN/.test(b.lang)-/en-IN|hi-IN/.test(a.lang));
+  const rk=v=>{const l=v.lang.replace('_','-').toLowerCase();return l=='en-in'?0:l=='hi-in'?1:l.startsWith('en')?2:3;};
+  const vs=speechSynthesis.getVoices().sort((a,b)=>rk(a)-rk(b));
   $('voice').innerHTML=vs.map(v=>`<option value="${v.name}">${v.name} (${v.lang})</option>`).join('');
   $('voice').value=localStorage.getItem('jvoice')||(vs[0]?vs[0].name:'');
 }
