@@ -45,8 +45,16 @@ async function api(path,body){
 }
 function add(role,text){const m=document.createElement('div');m.className='m '+role;m.textContent=text;$('log').appendChild(m);m.scrollIntoView();return m;}
 function show(){$('pair').hidden=!!token;$('chat').hidden=!token;if(!token)$('set').hidden=true;}
+let boot='';
+const nowS=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16).replace('T',' ');
+async function checkDue(){
+  try{const {s,d}=await api('/due',{now:nowS()});
+    if(s==200)(d.due||[]).forEach(r=>{const t='⏰ Yaad dilana: '+r.text;add('bot',t);speak(t,true);if(navigator.vibrate)navigator.vibrate([300,150,300]);});
+  }catch(e){}
+}
 async function ping(){
   try{const {d}=await api('/status');
+    if(boot&&d.boot&&d.boot!==boot){location.reload();return;}boot=d.boot||boot;
     $('st').textContent=d.configured?'● online':'● online (API key .env mein nahi)';$('st').className=d.configured?'ok':'warn';
   }catch(e){$('st').textContent='● server offline';$('st').className='bad';}
 }
@@ -63,7 +71,7 @@ $('f').onsubmit=async e=>{
   e.preventDefault();const t=$('msg').value.trim();if(!t)return;$('msg').value='';
   if(/^(gsk_|sk-or-|nvapi-|mstrl_|sk-[0-9a-f]{32}$)/.test(t)){$('set').hidden=false;$('chat').hidden=true;$('key').value=t;addKey();return;}
   add('user',t);const w=add('bot','...');
-  try{const {s,d}=await api('/chat',{message:t,style:$('voice').value.includes('hi-IN')?'hindi':'hinglish'});
+  try{const {s,d}=await api('/chat',{message:t,now:nowS(),style:$('voice').value.includes('hi-IN')?'hindi':'hinglish'});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
     if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply);}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Server se connect nahi hua.';}
@@ -137,5 +145,5 @@ async function addKey(){
 $('kc').onclick=addKey;$('key').onpaste=()=>setTimeout(addKey,150);
 $('kp').onclick=async()=>{try{$('key').value=await navigator.clipboard.readText();addKey();}catch(e){$('kr').textContent='Clipboard allow nahi hua, box mein long-press karke paste karo';}};
 $('gear').onclick=()=>{if(!token)return;$('set').hidden=!$('set').hidden;$('chat').hidden=!$('set').hidden;if(!$('set').hidden){keys();mem();}};
-show();ping();setInterval(ping,5000);if(token)history();
+show();ping();setInterval(ping,5000);setInterval(()=>{if(token)checkDue();},10000);if(token)history();
 </script></body></html>

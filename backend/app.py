@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import memory, tts
+import memory, remind, tts
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -26,6 +26,7 @@ PERSONA = {"hinglish": SYSTEM, "hindi": (
     "because your reply will be spoken aloud. Remember personal things only if the user told you. Never invent facts.")}
 FILES = {"/": ("index.html", "text/html; charset=utf-8"), "/manifest.webmanifest": ("manifest.webmanifest", "application/manifest+json"),
          "/icon-192.png": ("icon-192.png", "image/png"), "/icon-512.png": ("icon-512.png", "image/png")}
+BOOT = str(int(time.time()))  # server ka restart pehchanne ke liye: page khud refresh hota hai
 PAIR = {"code": "", "exp": 0, "fails": 0, "lock": 0}
 
 
@@ -43,6 +44,7 @@ def db():
     c.execute("CREATE TABLE IF NOT EXISTS devices(id INTEGER PRIMARY KEY, name TEXT, token_hash TEXT UNIQUE, ts REAL)")
     c.execute("CREATE TABLE IF NOT EXISTS messages(id INTEGER PRIMARY KEY, device INT, role TEXT, content TEXT, ts REAL)")
     memory.init(c)
+    remind.init(c)
     return c
 
 
@@ -177,7 +179,7 @@ class H(BaseHTTPRequestHandler):
             return self.wfile.write(page)
         if self.path == "/status":
             ok = any(n == "mock" or bool(getkey(n)) for n in names())
-            return self.send(200, {"ok": True, "provider": ",".join(names()), "configured": ok})
+            return self.send(200, {"ok": True, "provider": ",".join(names()), "configured": ok, "boot": BOOT})
         dev = self.device()
         if dev is None:
             return self.send(401, {"error": "pehle pair karo"})
@@ -230,6 +232,8 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/keys/delete":
             store(str(data.get("provider", "")), "")
             return self.send(200, {"ok": True})
+        if self.path == "/due":  # page har 10 sec poochta hai: kisi reminder ka time hua?
+            return self.send(200, {"due": remind.due(db(), dev, str(data.get("now", "")))})
         if self.path == "/memory/delete":
             c = db()
             c.execute("DELETE FROM memories WHERE id=? AND device=?", (int(data.get("id") or 0), dev))
@@ -254,6 +258,8 @@ class H(BaseHTTPRequestHandler):
             c.commit()
             style = str(data.get("style", ""))
             mem = memory.handle(c, dev, msg, style == "hindi")  # yaad rakho / bhool jao / kya yaad hai
+            if mem is None:  # reminder: "kal 9 baje chai yaad dilana"
+                mem = remind.handle(c, dev, msg, style == "hindi", ask, str(data.get("now", "")))
             if mem is not None:
                 c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", mem, time.time()))
                 c.commit()
