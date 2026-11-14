@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import tts
+import memory, tts
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -42,6 +42,7 @@ def db():
     c = sqlite3.connect(DB)
     c.execute("CREATE TABLE IF NOT EXISTS devices(id INTEGER PRIMARY KEY, name TEXT, token_hash TEXT UNIQUE, ts REAL)")
     c.execute("CREATE TABLE IF NOT EXISTS messages(id INTEGER PRIMARY KEY, device INT, role TEXT, content TEXT, ts REAL)")
+    memory.init(c)
     return c
 
 
@@ -92,13 +93,13 @@ def names():
     return env or [n for n in [*PROVIDERS, "mock"] if getkey(n)]
 
 
-def call(name, history, key=None, style="hinglish"):
+def call(name, history, key=None, style="hinglish", extra=""):
     if name == "mock":  # sirf testing ke liye
         return "mock jawab: " + history[-1]["content"]
     base, key_env, model = PROVIDERS[name]
     key = key or getkey(name)
     body = json.dumps({"model": os.environ.get("MODEL_" + name.upper()) or model,
-                       "messages": [{"role": "system", "content": PERSONA.get(style, SYSTEM)}] + history}).encode()
+                       "messages": [{"role": "system", "content": PERSONA.get(style, SYSTEM) + extra}] + history}).encode()
     req = urllib.request.Request(base + "/chat/completions", body, {
         "Authorization": "Bearer " + key, "Content-Type": "application/json", "User-Agent": "jarvis/0.1"})
     try:
@@ -117,7 +118,7 @@ def check(n, k):
         return str(e)
 
 
-def ask(history, style="hinglish"):
+def ask(history, style="hinglish", extra=""):
     """PROVIDER=groq,openrouter,... : pehla jo chale uska jawab. Return (jawab, provider)."""
     errs = []
     for n in names():
@@ -127,7 +128,7 @@ def ask(history, style="hinglish"):
             errs.append(f"{n}: key nahi")
         else:
             try:
-                return call(n, history, None, style), n
+                return call(n, history, None, style, extra), n
             except RuntimeError as e:
                 errs.append(f"{n}: {e}")
     raise RuntimeError(" | ".join(errs) or "koi key nahi - upar ⚙ Settings mein key paste karo")
@@ -185,6 +186,8 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/history":
             rows = db().execute("SELECT role, content FROM messages WHERE device=? ORDER BY id DESC LIMIT 50", (dev,)).fetchall()
             return self.send(200, {"messages": [{"role": r, "content": c} for r, c in reversed(rows)]})
+        if self.path == "/memory":
+            return self.send(200, {"memories": [{"id": i, "text": t} for i, t in memory.rows(db(), dev)]})
         self.send(404, {"error": "not found"})
 
     def do_POST(self):
@@ -227,9 +230,14 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/keys/delete":
             store(str(data.get("provider", "")), "")
             return self.send(200, {"ok": True})
+        if self.path == "/memory/delete":
+            c = db()
+            c.execute("DELETE FROM memories WHERE id=? AND device=?", (int(data.get("id") or 0), dev))
+            c.commit()
+            return self.send(200, {"ok": True})
         if self.path == "/tts":  # Part 7: neural awaaz (mp3)
             try:
-                audio = tts.speak(str(data.get("text", "")), str(data.get("voice", "")))
+                audio = tts.speak(str(data.get("text", "")), str(data.get("voice", "")), data.get("pitch", -8), data.get("rate", -6))
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
             self.send_response(200)
@@ -244,9 +252,15 @@ class H(BaseHTTPRequestHandler):
             c = db()
             c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "user", msg, time.time()))
             c.commit()
+            style = str(data.get("style", ""))
+            mem = memory.handle(c, dev, msg, style == "hindi")  # yaad rakho / bhool jao / kya yaad hai
+            if mem is not None:
+                c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", mem, time.time()))
+                c.commit()
+                return self.send(200, {"reply": mem, "via": "memory"})
             rows = c.execute("SELECT role, content FROM messages WHERE device=? ORDER BY id DESC LIMIT 10", (dev,)).fetchall()
             try:
-                reply, via = ask([{"role": r, "content": t} for r, t in reversed(rows)], str(data.get("style", "")))
+                reply, via = ask([{"role": r, "content": t} for r, t in reversed(rows)], style, memory.context(c, dev))
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
             c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", reply, time.time()))

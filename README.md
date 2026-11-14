@@ -28,13 +28,18 @@ Chrome / home-screen icon  --->  Python server (Termux, 127.0.0.1:8787)  --->  A
 - **OpenJarvis** (github.com/open-jarvis/OpenJarvis) ka poora install nahi kiya (Rust extension, bhaari dependencies). Sirf idea liye:
   bearer-token auth, memory (`memory/`), scheduler (`scheduler/`), speech options. Koi file copy nahi hui (copy ho to NOTICE mein credit).
 
+**Awaaz ka target (Hussain ne video bhej ke bataya):** Iron Man ki Hindi dub jaisi gehri, bharosemand, shaant mardana awaaz
+(video: "Ironman hindi voice by Rajesh Khattar"). Free edge-tts mein kisi ek actor ki exact awaaz nahi milti; hum Madhur (Hindi male)
++ Gehra slider (pitch kam) + thodi dheemi speed se kareeb jaate hain. Kisi asli actor ki awaaz clone karna (voice cloning) alag, bhaari aur
+consent/legal ka mamla hai, abhi nahi. Agar Hussain "aur gehra" kahe to Gehra slider/default (`index.html` mein `pt`) kam karo.
+
 ## 4. RULES (zaroori)
 1. **Har part mein 350 se kam lines (code).** Naye files tabhi jab sach mein zaroorat ho. Part ke baad README update karo.
 2. Hussain ko **Roman Hinglish** mein simple samjhao (Devanagari nahi). Files aur lines **table** mein batao. Wo dictation se likhta hai, galat spelling normal hai.
 3. Output: **ek hi zip** `Jarvis_partN.zip`, usme sirf **badli hui/nayi files** (poora repo nahi). Phone ke Downloads mein save, phir `bash sync.sh once` GitHub par push kar deta hai.
 4. Test: bas syntax check, test file tabhi jab sach mein zaroorat ho (limit bachane ke liye). Jo test nahi hua use "tested" mat likho.
 5. Hussain se kam se kam Termux commands maango. Jo pehle chal chuka wo dobara mat batao.
-6. Secrets (keys, GitHub token) kabhi chat, code ya Git mein nahi. Keys sirf `backend/keys.json`/`.env` (dono gitignored).
+6. Memory mein password/OTP/PIN/CVV kabhi save mat karo (`memory.py` mein rok hai). Secrets (keys, GitHub token) kabhi chat, code ya Git mein nahi. Keys sirf `backend/keys.json`/`.env` (dono gitignored).
 7. Hussain ka **OWL1 trading repo bilkul alag** hai. Kabhi mat chhuo.
 8. Har part ke baad agle 4-5 parts (files + lines) table mein dikhao taaki Hussain chun ya jod sake.
 9. Galtiyan jo ho chuki: GitHub se download kiya `Jarvis-main.zip` Downloads mein mat chhodo (sync.sh sirf `Jarvis_part*.zip` uthata hai). Chrome page translate na kare (`notranslate` laga hai).
@@ -55,15 +60,15 @@ Bina key test: `.env` mein `PROVIDER=mock`.
 | 3 | Mic (Hindi/English bolna, Chrome likhta hai), bolkar jawab, stop button | 🟢 mic chala; awaaz robot jaisi lagi |
 | 3 | Home-screen icon (Add to Home screen) | 🟡 |
 | 4-5 | Keys app mein paste, green tick, 5 providers + fallback | 🟢 OpenRouter ✅ aur chat jawab aaya; baaki providers 🟡 |
-| 6 | Awaaz tune: gehra (pitch) + speed slider, test button | 🟡 phone par dekhna baaki |
-| 7 | Neural awaaz via `backend/tts.py` (`pip install edge-tts`; Termux par pakka nahi); fail ho to phone ki awaaz | 🟡 |
-| 8 | **Iron Man Hindi-dub wala Jarvis:** default awaaz Madhur (Hindi male, thodi gehri+dheemi), jawab shuddh Hindi (Devanagari), "sir" kehta hai, chhote jawab. Hindi awaaz chuno to Hindi style, English awaaz chuno to Hinglish | 🟡 awaaz dub jaisi lagti hai ya nahi, Hussain sunke batayega |
+| 6 | Awaaz tune: Gehra (pitch) + Speed slider (ab net-awaaz par bhi chalte hain), 🔊 test | 🟡 phone par sunna baaki |
+| 7 | Neural awaaz `backend/tts.py` (edge-tts) | 🟡 `pip install edge-tts` Hussain ke phone par ho gaya; sunna baaki |
+| 8 | Iron Man Hindi-dub wala Jarvis: default awaaz Madhur, jawab shuddh Hindi (Devanagari), "sir" kehta hai. Hindi awaaz = Hindi style, English awaaz = Hinglish | 🟡 sunna baaki |
+| 9 | **Memory** (`backend/memory.py`): chat mein "yaad rakho: ...", "kya yaad hai", "sudhaar 3: ...", "bhool jao 3"; ⚙ mein list + hatao. Jo yaad hai wo AI ko har chat mein diya jaata hai. Password/OTP/PIN kabhi save nahi | 🟡 logic check hua (regex/DB), phone par chat se test baaki |
 | 8+ | Neeche roadmap | ⚪ |
 
 ## 7. Roadmap (har part < 350 lines, Hussain ke "approve" ke baad)
 | Part | Kya | Files | Lines (andaza) |
 |---|---|---|---|
-| 9 | **Memory:** "yaad rakho", dekho, sudharo, delete (kabhi kuch invent nahi) | `backend/memory.py` (naya), `app.py`, `index.html` | ~140 |
 | 10 | **Reminders:** "Faisal ko 5000 dene hain 15 Nov ko yaad dilana", page khula ho to notification | `backend/remind.py` (naya), `index.html` | ~110 |
 | 11 | **Finance ledger:** kisko dena/lena, amount, due date, total | `backend/ledger.py`, `index.html` | ~150 |
 | 12 | **Auto-start:** Termux:Boot se server khud chalu, wake-lock | `start.sh` | ~20 |

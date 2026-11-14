@@ -27,7 +27,7 @@ select{max-width:48%;padding:6px;border-radius:8px;border:1px solid var(--line);
 <div id="pair"><p>Termux mein jo 6-digit <b>PAIRING CODE</b> dikha, wo yahan daalo:</p>
 <input id="code" inputmode="numeric" maxlength="6" placeholder="123456"><p><button id="go">Pair karo</button></p><p id="pe" class="bad"></p></div>
 <div id="set" hidden><p><b>API key daalo</b>: copy karke paste karo. Jarvis khud pehchanega kis company ki hai aur check karega.</p>
-<input id="key" placeholder="key yahan paste karo" autocomplete="off"><p><button id="kp">📋 Clipboard se paste</button> <button id="kc">Check karo</button></p><p id="kr"></p><div id="kl"></div></div>
+<input id="key" placeholder="key yahan paste karo" autocomplete="off"><p><button id="kp">📋 Clipboard se paste</button> <button id="kc">Check karo</button></p><p id="kr"></p><div id="kl"></div><h4>🧠 Jarvis ko ye yaad hai</h4><div id="ml"></div></div>
 <div id="chat" hidden>
 <div class="bar"><select id="lang"><option value="hi-IN">Bolna: Hindi/Hinglish</option><option value="en-IN">Bolna: English</option></select>
 <select id="voice"></select><label><input type="checkbox" id="say"> bolkar jawab</label><b id="ms" class="ok">Mic band</b>
@@ -89,7 +89,7 @@ function loadVoices(){
   $('voice').value=localStorage.getItem('jvoice')||'neural:hi-IN-MadhurNeural';
 }
 async function neural(t,v){
-  const r=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text:t,voice:v})});
+  const r=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text:t,voice:v,pitch:Math.round(($('pt').value-1)*100),rate:Math.round(($('rt').value-1)*100)})});
   if(!r.ok){let e={};try{e=await r.json()}catch(x){}throw new Error(e.error||'awaaz error');}
   if(aud)aud.pause();aud=new Audio(URL.createObjectURL(await r.blob()));aud.playbackRate=+$('rt').value;await aud.play();
 }
@@ -121,6 +121,12 @@ function row(p){
   return r;
 }
 async function keys(){const {d}=await api('/keys');$('kl').textContent='';(d.providers||[]).forEach(p=>$('kl').appendChild(row(p)));}
+async function mem(){
+  const {d}=await api('/memory');const L=$('ml');L.textContent='';const a=d.memories||[];
+  if(!a.length)L.textContent='Abhi kuch yaad nahi. Chat mein likho: yaad rakho: ...';
+  a.forEach(m=>{const r=document.createElement('div');r.className='kr';const l=document.createElement('span');l.textContent='#'+m.id+' '+m.text;
+    const b=document.createElement('button');b.textContent='hatao';b.onclick=async()=>{await api('/memory/delete',{id:m.id});mem();};r.append(l,b);L.appendChild(r);});
+}
 async function addKey(){
   const k=$('key').value.trim();if(!k)return;$('kr').className='';$('kr').textContent='⏳ check ho raha hai...';
   try{const {d}=await api('/keys',{key:k});
@@ -130,6 +136,6 @@ async function addKey(){
 }
 $('kc').onclick=addKey;$('key').onpaste=()=>setTimeout(addKey,150);
 $('kp').onclick=async()=>{try{$('key').value=await navigator.clipboard.readText();addKey();}catch(e){$('kr').textContent='Clipboard allow nahi hua, box mein long-press karke paste karo';}};
-$('gear').onclick=()=>{if(!token)return;$('set').hidden=!$('set').hidden;$('chat').hidden=!$('set').hidden;if(!$('set').hidden)keys();};
+$('gear').onclick=()=>{if(!token)return;$('set').hidden=!$('set').hidden;$('chat').hidden=!$('set').hidden;if(!$('set').hidden){keys();mem();}};
 show();ping();setInterval(ping,5000);if(token)history();
 </script></body></html>
