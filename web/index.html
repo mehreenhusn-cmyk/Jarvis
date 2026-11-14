@@ -41,7 +41,7 @@ form input{border-radius:24px}#mic{width:52px;height:52px;padding:0;border-radiu
 <label><input type="checkbox" id="say" style="width:auto"> Speak replies</label><label>Depth <input type="range" id="pt" min="0.5" max="1.5" step="0.05" style="width:80px;padding:0"></label><label>Speed <input type="range" id="rt" min="0.6" max="1.4" step="0.05" style="width:80px;padding:0"></label>
 <button type="button" id="tv" class="g">Test voice</button><button type="button" id="mon" class="g" hidden>Turn mic on</button><b id="ms" class="ok">Mic off</b></div>
 <div id="log"></div>
-<form id="f"><button type="button" id="stop" title="Stop">⏹</button><input id="msg" autocomplete="off" placeholder="Message Jarvis..."><button id="send">Send</button><button type="button" id="mic" title="Speak">🎤</button></form></div>
+<form id="f"><button type="button" id="stop" title="Stop">⏹</button><input id="msg" autocomplete="off" placeholder="Message Jarvis..."><button id="send">Send</button><button type="button" id="cam" title="Camera" class="g" style="width:44px;height:44px;border-radius:50%;padding:0;flex:none">📷</button><button type="button" id="mic" title="Speak">🎤</button><input type="file" id="pic" accept="image/*" capture="environment" hidden></form></div>
 <script>
 const $=id=>document.getElementById(id);
 let token=localStorage.getItem('jtoken')||'';
@@ -63,7 +63,7 @@ async function checkDue(){
 async function ping(){
   try{const {d}=await api('/status');
     if(boot&&d.boot&&d.boot!==boot){location.reload();return;}boot=d.boot||boot;
-    $('st').textContent=d.configured?'● Online':'● Online · no API key yet';$('st').className=d.configured?'ok':'warn';
+    $('st').textContent=(d.configured?'● Online':'● Online · no API key yet')+(d.sync?' · Update: '+d.sync.split('|').join(' · '):'');$('st').className=d.configured?'ok':'warn';
   }catch(e){$('st').textContent='● Server offline';$('st').className='bad';}
 }
 async function history(){
@@ -79,12 +79,13 @@ $('f').onsubmit=async e=>{
   e.preventDefault();const t=$('msg').value.trim();if(!t)return;$('msg').value='';
   if(/^(gsk_|sk-or-|nvapi-|mstrl_|sk-[0-9a-f]{32}$)/.test(t)){$('set').hidden=false;$('chat').hidden=true;$('key').value=t;addKey();return;}
   if(/stop listening|sunna band|सुनना बंद/i.test(t)){add('user',t);stopAll();add('bot','🔒 Done, sir. Mic and voice are off. Tap "Turn mic on" to resume.');return;}
-  add('user',t);const w=add('bot','...');
-  try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:SLOW.test(t)?pinfo():null});
+  const vm=viaMic;viaMic=false;add('user',t);const w=add('bot','...');
+  try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:SLOW.test(t)?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
-    if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply);}else{w.className='m err';w.textContent=d.error||'error';}
+    if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply,vm);}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}
 };
+let viaMic=false;
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;
 function micState(on){$('mic').textContent=on?'🎙':'🎤';$('ms').textContent=on?'Mic ON':'Mic off';$('ms').className=on?'bad':'ok';pv();}
 $('mic').onclick=()=>{
@@ -92,7 +93,7 @@ $('mic').onclick=()=>{
   if(!SR){add('err','Voice input is not available here. Use Chrome.');return;}
   if(rec){rec.stop();return;}
   rec=new SR();rec.lang=$('lang').value;rec.interimResults=false;
-  rec.onresult=e=>{$('msg').value=e.results[0][0].transcript;$('f').requestSubmit();};
+  rec.onresult=e=>{$('msg').value=e.results[0][0].transcript;viaMic=true;$('f').requestSubmit();};
   rec.onerror=e=>add('err','Mic error: '+e.error);
   rec.onend=()=>{rec=null;micState(false);};
   micState(true);rec.start();
@@ -153,8 +154,23 @@ async function ppl(){
 }
 const SLOW=/phone (?:is )?(?:slow|hang|lag)|why is my phone|phone health|phone check|slow phone|फ़ोन धीमा|फोन धीमा/i;
 const pinfo=()=>{try{return window.JarvisApp&&JarvisApp.phoneInfo?JSON.parse(JarvisApp.phoneInfo()):null}catch(e){return null}};
+const CALLQ=/missed calls?|who called|recent calls|call history|call log|मिस्ड कॉल|किसका कॉल/i,CNQ=/^\s*(?:find contact|contact number of|contact for|contact)\s+(.{1,40}?)\s*\??\s*$/i;
+const bridge=(f,a)=>{try{return window.JarvisApp&&JarvisApp[f]?JSON.parse(JarvisApp[f](a)):null}catch(e){return null}};
 const WHERE=/where am i|my location|near me|nearby|around me|nearest|mere paas|मैं कहाँ हूँ|मेरे पास/i;
 const getLoc=()=>new Promise(ok=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>ok({lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy}),()=>ok(null),{enableHighAccuracy:true,timeout:15000}):ok(null));
+async function shrink(file){
+  const im=await createImageBitmap(file);const k=Math.min(1,1024/Math.max(im.width,im.height));
+  const cv=document.createElement('canvas');cv.width=Math.round(im.width*k);cv.height=Math.round(im.height*k);
+  cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);return cv.toDataURL('image/jpeg',0.7);
+}
+$('cam').onclick=()=>{if(priv){add('err','Privacy mode is on. Tap "Turn mic on" first.');return;}$('pic').click();};
+$('pic').onchange=async()=>{
+  const f=$('pic').files[0];$('pic').value='';if(!f)return;
+  const q=$('msg').value.trim();$('msg').value='';add('user','📷 '+(q||'What do you see?'));const w=add('bot','Looking...');
+  try{const {s,d}=await api('/see',{image:await shrink(f),question:q,style:sty()});
+    if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply);}else{w.className='m err';w.textContent=d.error||'error';}
+  }catch(e){w.className='m err';w.textContent='Could not send the photo.';}
+};
 async function led(){
   const {d}=await api('/ledger');const L=$('ll');L.textContent='';const a=d.items||[];
   if(!a.length){L.textContent='No entries. Type in chat: I owe Faisal 5000, due 15 Nov';return;}
@@ -176,7 +192,7 @@ $('gear').onclick=()=>{if(!token)return;$('set').hidden=!$('set').hidden;$('chat
 const sty=()=>$('voice').value.includes('hi-IN')?'hindi':'english';
 let priv=localStorage.getItem('jpriv')=='1';
 function pv(){
-  $('pv').textContent=(priv?'🔒 Privacy mode: mic and voice off':'🟢 Mic: '+(rec?'on':'off')+' · Voice: '+($('say').checked?'on':'off'))+' · Location and phone check: only when you ask';
+  $('pv').textContent=(priv?'🔒 Privacy mode: mic and voice off':'🟢 Mic: '+(rec?'on':'off')+' · Voice: '+($('say').checked?'on':'off'))+' · Camera, location and phone check: only when you ask';
   $('mon').hidden=!priv;$('mic').disabled=priv;
 }
 function stopAll(){

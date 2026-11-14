@@ -31,7 +31,7 @@ Chrome or Android app  -->  Python server in Termux (127.0.0.1:8787)  -->  AI pr
    The app text is also simple English. Show files and lines in a table. He dictates by voice, so spelling mistakes are normal.
 3. Output is **one zip**, `Jarvis_partN.zip`, with only the changed or new files. He only downloads it. `run.sh` checks Downloads every
    5 seconds, unzips it, pushes to GitHub, restarts the server, and the page reloads by itself. The zip moves from Downloads to `~/.jarvis_done`,
-   so it is normal that it disappears from Downloads. The same zip twice is skipped by content (`scripts/sync.sh`). Name zips exactly `Jarvis_partN.zip`; a wrong name like `part114` once blocked all later zips (fixed in the catch-up zip, no number rule any more).
+   so it is normal that it disappears from Downloads (the Files app may still show an empty ghost entry). The app header shows the result of the last update. The same zip twice is skipped by content (`scripts/sync.sh`). Name zips exactly `Jarvis_partN.zip`; a wrong name like `part114` once blocked all later zips (fixed in the catch-up zip, no number rule any more).
    Never change `run.sh` or `sync.sh` through a zip (running scripts). If you must, ask him to run `bash run.sh` once.
 4. Only a syntax check unless a test is really needed. Never write "tested" for something that was not tested.
 5. Ask him for as few Termux commands as possible. When he names the next parts, start building at once.
@@ -59,22 +59,24 @@ Auto-start (Part 11): Termux starts Jarvis when opened. Turn off with `JARVIS_NO
 | 16 | **Android app shell** (`android/`, `.github/workflows/apk.yml`): WebView of the Termux page, mic permission. Build: GitHub > Actions > Build APK > run > download `Jarvis-apk` | Built, never built yet |
 | 20 | **People profiles** (`backend/people.py`): "note about Faisal: old friend", "who is Faisal", "my people", "forget person Faisal"; Settings > People list. When you name a saved person in chat, the AI gets those notes. No passwords or OTPs | Built, logic checked with a fake database only |
 | 21 | **Location** (`backend/place.py`): only when you ask ("where am I", "near me"), the page sends the phone position for that one message. Never stored. Place name comes from OpenStreetMap over the internet. App asks for location permission | Built, not tested on phone |
+| 19 | **Calls and contacts** (`backend/calls.py` + `ContactsInfo.java`): in the Android app only, "missed calls", "recent calls today", "call history this week", "contact Faisal". Reads names, numbers and times only when you ask; the permission is asked at that moment. The answer is made on the phone (no AI sees it) and is NOT saved in chat history | Built, logic checked with fake data; app side not compiled |
+| 3b | **Voice in, voice out:** when you speak to the mic, the reply is spoken even if "Speak replies" is off | Built |
+| 22 | **Camera** (`backend/see.py`): tap the camera button, take one photo, a vision AI describes it (groq, openrouter, mistral or nvidia). Photo is sent to the AI over the internet, not saved. Model names can change: set `MODEL_VISION_GROQ` etc. in `.env` if a model stops working. In the app the button opens the Android picker | Built, never tried with a real photo or key; app side not compiled |
+| - | **Update status in the app header** (`~/.jarvis_last`, written by `sync.sh`): shows the last zip, time and result (pushed / skipped / PUSH FAILED). Note: the Android Files app can keep showing zips that Termux already moved away; those entries are empty ghosts | Built |
 | 24 | **Phone check** (`backend/phone.py` + `PhoneInfo.java`): ask "why is my phone slow". Jarvis reads numbers only (RAM, storage, battery, heat, battery saver, days since restart) and gives simple advice. In Chrome only RAM and storage are checked | Built, rules checked with fake numbers; app side not compiled |
 | - | **Catch-up zip** `Jarvis_part_24.zip`: Parts 15-21 and 24 were never pushed because of the `part114` zip name; this zip carries all of them plus the sync fix | Pushed? Check GitHub |
 | 17 | Build log is now saved on every run (artifact `build-log`). Real fixes need that log from the first build | Prepared; waiting for the first build |
 | 18 | **Reminder notifications with the app closed:** `NotifyService.java` checks `/due` every 30 sec and shows a phone notification. The page hands the pairing token to the app. Termux must stay running | Built, never compiled or run |
 
 ## 7. Roadmap (about 26 parts, each under 350 lines; sizes are estimates)
-Done so far (1-18, 20, 21, 24): about 31 files, about 1,900 lines of code. Part 19 was skipped on purpose for now.
+Done so far (1-22, 24): about 34 files, about 2,250 lines of code. Known limit: Android WebView has no speech recognition, so the mic button works in Chrome only; the app needs a small speech bridge (planned with Part 25). 
 | Part | What | New files | Lines |
 |---|---|---|---|
-| 19 | Contacts and call history (metadata only, skipped for now) | 2 | ~200 |
-| 22 | Camera: understand surroundings | 2 | ~200 |
 | 23 | Screen and app understanding | 3 | ~300 |
 | 25 | "Hey Jarvis" wake word (uncertain on Android, test first) | 2 | ~150 |
 | 26 | Security check and final polish | 0-1 | ~100 |
-| **Remaining (19, 22, 23, 25, 26)** | | **~10 files** | **~950 lines** |
-| **Final total** | | **~41 files** | **~2,850 lines** |
+| **Remaining (23, 25, 26)** | | **~6 files** | **~550 lines** |
+| **Final total** | | **~40 files** | **~2,800 lines** |
 
 Safety rules for later parts: ask before sending a message, deleting or paying; never use mic or camera secretly; call log is metadata only;
 "stop listening" turns the mic off at once.

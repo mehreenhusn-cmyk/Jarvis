@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import autostart, brief, ledger, memory, people, phone, place, remind, tts, web
+import autostart, brief, calls, ledger, memory, people, phone, place, remind, see, tts, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -137,6 +137,14 @@ def ask(history, style="english", extra=""):
     raise RuntimeError(" | ".join(errs) or "koi key nahi - upar ⚙ Settings mein key paste karo")
 
 
+def sync_note():
+    """Last zip update, written by sync.sh: 'name|time|result'."""
+    try:
+        return open(os.path.expanduser("~/.jarvis_last")).read().strip()[:120]
+    except OSError:
+        return ""
+
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -157,9 +165,9 @@ class H(BaseHTTPRequestHandler):
                            (hashlib.sha256(m.group(1).encode()).hexdigest(),)).fetchone()
         return row[0] if row else None
 
-    def body(self):
+    def body(self, lim=20000):
         n = int(self.headers.get("Content-Length") or 0)
-        if n > 20000:
+        if n > lim:
             return None
         try:
             return json.loads(self.rfile.read(n) or b"{}")
@@ -180,7 +188,7 @@ class H(BaseHTTPRequestHandler):
             return self.wfile.write(page)
         if self.path == "/status":
             ok = any(n == "mock" or bool(getkey(n)) for n in names())
-            return self.send(200, {"ok": True, "provider": ",".join(names()), "configured": ok, "boot": BOOT})
+            return self.send(200, {"ok": True, "provider": ",".join(names()), "configured": ok, "boot": BOOT, "sync": sync_note()})
         dev = self.device()
         if dev is None:
             return self.send(401, {"error": "pehle pair karo"})
@@ -200,7 +208,7 @@ class H(BaseHTTPRequestHandler):
         self.send(404, {"error": "not found"})
 
     def do_POST(self):
-        data = self.body()
+        data = self.body(1500000 if self.path == "/see" and self.headers.get("Authorization") else 20000)
         if not isinstance(data, dict):
             return self.send(400, {"error": "galat request"})
         if self.path == "/pair":
@@ -266,6 +274,15 @@ class H(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(audio)))
             self.end_headers()
             return self.wfile.write(audio)
+        if self.path == "/see":
+            try:
+                ans, via = see.look(data.get("image"), data.get("question"), data.get("style") == "hindi", PROVIDERS, getkey, names())
+            except RuntimeError as e:
+                return self.send(502, {"error": str(e)})
+            c = db()
+            c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", "(photo) " + ans, time.time()))
+            c.commit()
+            return self.send(200, {"reply": ans, "via": via})
         if self.path == "/chat":
             msg = str(data.get("message", "")).strip()
             if not msg or len(msg) > 4000:
@@ -276,6 +293,8 @@ class H(BaseHTTPRequestHandler):
             style = str(data.get("style", ""))
             mem = memory.handle(c, dev, msg, style == "hindi")  # yaad rakho / bhool jao / kya yaad hai
             now = str(data.get("now", ""))
+            if mem is None:  # missed calls / contact Faisal (made here, no AI)
+                mem = calls.handle(msg, data.get("calls"), data.get("contact"), style == "hindi")
             if mem is None:  # note about Faisal: ... / who is Faisal
                 mem = people.handle(c, dev, msg, style == "hindi")
             if mem is None:  # why is my phone slow
@@ -289,7 +308,8 @@ class H(BaseHTTPRequestHandler):
             if mem is None:  # reminder: "kal 9 baje chai yaad dilana"
                 mem = remind.handle(c, dev, msg, style == "hindi", ask, now)
             if mem is not None:
-                c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", mem, time.time()))
+                keep = "(call and contact info was shown, not saved)" if calls.private(msg) else mem
+                c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", keep, time.time()))
                 c.commit()
                 return self.send(200, {"reply": mem, "via": "memory"})
             rows = c.execute("SELECT role, content FROM messages WHERE device=? ORDER BY id DESC LIMIT 10", (dev,)).fetchall()

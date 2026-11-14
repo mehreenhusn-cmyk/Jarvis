@@ -5,6 +5,9 @@ import android.app.Activity;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.webkit.ValueCallback;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
@@ -16,6 +19,7 @@ import android.webkit.WebViewClient;
 public class MainActivity extends Activity {
     static final String URL = "http://127.0.0.1:8787";
     WebView web;
+    ValueCallback<Uri[]> picker;
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -37,10 +41,27 @@ public class MainActivity extends Activity {
         });
         web.setWebChromeClient(new WebChromeClient() {
             @Override public void onGeolocationPermissionsShowPrompt(String o, android.webkit.GeolocationPermissions.Callback cb) { cb.invoke(o, true, false); }
+            @Override public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams p) {
+                if (picker != null) picker.onReceiveValue(null);
+                picker = cb;
+                try { startActivityForResult(p.createIntent(), 7); } catch (Exception e) { picker = null; return false; }
+                return true;
+            }
             @Override public void onPermissionRequest(PermissionRequest r) { r.grant(r.getResources()); }
         });
         // Part 18: the page gives us the pairing token, so the background service can check reminders.
         web.addJavascriptInterface(new Object() {
+            boolean allowed(String perm, int code) {
+                if (checkSelfPermission(perm) == PackageManager.PERMISSION_GRANTED) return true;
+                runOnUiThread(() -> requestPermissions(new String[]{perm}, code));
+                return false;
+            }
+            @JavascriptInterface public String calls(int days) {
+                return allowed(Manifest.permission.READ_CALL_LOG, 2) ? ContactsInfo.calls(MainActivity.this, days) : "{\"perm\":false}";
+            }
+            @JavascriptInterface public String contact(String name) {
+                return allowed(Manifest.permission.READ_CONTACTS, 3) ? ContactsInfo.find(MainActivity.this, name) : "{\"perm\":false}";
+            }
             @JavascriptInterface public String phoneInfo() { return PhoneInfo.json(MainActivity.this); }
             @JavascriptInterface public void saveToken(String t) {
                 getSharedPreferences("j", 0).edit().putString("token", t).apply();
@@ -48,6 +69,11 @@ public class MainActivity extends Activity {
             }
         }, "JarvisApp");
         web.loadUrl(URL);
+    }
+
+    @Override protected void onActivityResult(int req, int res, Intent data) {
+        if (req == 7 && picker != null) { picker.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(res, data)); picker = null; }
+        else super.onActivityResult(req, res, data);
     }
 
     @Override public void onBackPressed() { if (web.canGoBack()) web.goBack(); else super.onBackPressed(); }
