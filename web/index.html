@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="google" content="notranslate">
+<html lang="en"><head><meta charset="utf-8"><meta name="google" content="notranslate"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#2563eb">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Jarvis</title>
 <style>
@@ -15,13 +15,19 @@ button{padding:12px 16px;border:0;border-radius:10px;background:#2563eb;color:#f
 .m{max-width:85%;padding:10px 12px;border-radius:12px;background:var(--card);white-space:pre-wrap;word-wrap:break-word}
 .m.user{align-self:flex-end;background:var(--me)}.m.err{color:#d33}
 #chat{flex:1;display:flex;flex-direction:column;min-height:0}#chat[hidden],#pair[hidden]{display:none}
-form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
+form{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line)}
+.bar{display:flex;gap:8px;padding:6px 10px;flex-wrap:wrap;align-items:center;font-size:14px;border-bottom:1px solid var(--line)}
+select{max-width:48%;padding:6px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg)}
+#stop{background:#d33}
 </style></head><body>
 <header><span>Jarvis</span><span id="st">...</span></header>
 <div id="pair"><p>Termux mein jo 6-digit <b>PAIRING CODE</b> dikha, wo yahan daalo:</p>
 <input id="code" inputmode="numeric" maxlength="6" placeholder="123456"><p><button id="go">Pair karo</button></p><p id="pe" class="bad"></p></div>
-<div id="chat" hidden><div id="log"></div>
-<form id="f"><input id="msg" autocomplete="off" placeholder="Kuch bolo..."><button>Bhejo</button></form></div>
+<div id="chat" hidden>
+<div class="bar"><select id="lang"><option value="hi-IN">Bolna: Hindi/Hinglish</option><option value="en-IN">Bolna: English</option></select>
+<select id="voice"></select><label><input type="checkbox" id="say"> bolkar jawab</label><b id="ms" class="ok">Mic band</b></div>
+<div id="log"></div>
+<form id="f"><button type="button" id="mic">🎤</button><input id="msg" autocomplete="off" placeholder="Kuch bolo..."><button>Bhejo</button><button type="button" id="stop">⏹</button></form></div>
 <script>
 const $=id=>document.getElementById(id);
 let token=localStorage.getItem('jtoken')||'';
@@ -52,8 +58,36 @@ $('f').onsubmit=async e=>{
   add('user',t);const w=add('bot','...');
   try{const {s,d}=await api('/chat',{message:t});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
-    if(s==200)w.textContent=d.reply;else{w.className='m err';w.textContent=d.error||'error';}
+    if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply);}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Server se connect nahi hua.';}
 };
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;
+function micState(on){$('mic').textContent=on?'🎙':'🎤';$('ms').textContent=on?'Mic CHALU':'Mic band';$('ms').className=on?'bad':'ok';}
+$('mic').onclick=()=>{
+  if(!SR){add('err','Is browser mein voice input nahi hai. Chrome use karo.');return;}
+  if(rec){rec.stop();return;}
+  rec=new SR();rec.lang=$('lang').value;rec.interimResults=false;
+  rec.onresult=e=>{$('msg').value=e.results[0][0].transcript;$('f').requestSubmit();};
+  rec.onerror=e=>add('err','Mic error: '+e.error);
+  rec.onend=()=>{rec=null;micState(false);};
+  micState(true);rec.start();
+};
+$('stop').onclick=()=>{if(rec)rec.abort();speechSynthesis.cancel();micState(false);};
+function loadVoices(){
+  const vs=speechSynthesis.getVoices().sort((a,b)=>/en-IN|hi-IN/.test(b.lang)-/en-IN|hi-IN/.test(a.lang));
+  $('voice').innerHTML=vs.map(v=>`<option value="${v.name}">${v.name} (${v.lang})</option>`).join('');
+  $('voice').value=localStorage.getItem('jvoice')||(vs[0]?vs[0].name:'');
+}
+function speak(t){
+  if(!$('say').checked||!window.speechSynthesis)return;
+  speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);
+  const v=speechSynthesis.getVoices().find(x=>x.name==$('voice').value);
+  if(v){u.voice=v;u.lang=v.lang;}else u.lang='en-IN';speechSynthesis.speak(u);
+}
+if(window.speechSynthesis){speechSynthesis.onvoiceschanged=loadVoices;loadVoices();}
+$('say').checked=localStorage.getItem('jsay')=='1';$('lang').value=localStorage.getItem('jlang')||'hi-IN';
+$('say').onchange=()=>localStorage.setItem('jsay',$('say').checked?'1':'0');
+$('voice').onchange=()=>localStorage.setItem('jvoice',$('voice').value);
+$('lang').onchange=()=>localStorage.setItem('jlang',$('lang').value);
 show();ping();setInterval(ping,5000);if(token)history();
 </script></body></html>

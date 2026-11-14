@@ -15,6 +15,8 @@ PROVIDERS = {
 SYSTEM = ("Tum Jarvis ho, Hussain ke personal AI dost. User jis bhasha mein likhe (Hindi, English ya Hinglish) "
           "usi mein jawab do. Hindi ko bhi Roman script mein likho, Devanagari nahi. Chhote, saaf jawab do. "
           "Personal baat tabhi yaad rakho jab user ne khud batayi ho. Kuch invent mat karo.")
+FILES = {"/": ("index.html", "text/html; charset=utf-8"), "/manifest.webmanifest": ("manifest.webmanifest", "application/manifest+json"),
+         "/icon-192.png": ("icon-192.png", "image/png"), "/icon-512.png": ("icon-512.png", "image/png")}
 PAIR = {"code": "", "exp": 0, "fails": 0, "lock": 0}
 
 
@@ -39,17 +41,16 @@ def new_code():
     print(f"PAIRING CODE: {PAIR['code']}  (10 minute valid, ek baar use)", flush=True)
 
 
-def ask(history):
-    name = os.environ.get("PROVIDER", "groq").lower()
+def names():
+    return [n.strip().lower() for n in os.environ.get("PROVIDER", "groq").split(",") if n.strip()]
+
+
+def call(name, history):
     if name == "mock":  # sirf testing ke liye
         return "mock jawab: " + history[-1]["content"]
-    if name not in PROVIDERS:
-        raise RuntimeError("PROVIDER galat hai: " + name)
     base, key_env, model = PROVIDERS[name]
     key = os.environ.get(key_env, "")
-    if not key:
-        raise RuntimeError(f"{key_env} .env file mein nahi mili")
-    body = json.dumps({"model": os.environ.get("MODEL", model),
+    body = json.dumps({"model": os.environ.get("MODEL_" + name.upper()) or model,
                        "messages": [{"role": "system", "content": SYSTEM}] + history}).encode()
     req = urllib.request.Request(base + "/chat/completions", body, {
         "Authorization": "Bearer " + key, "Content-Type": "application/json", "User-Agent": "jarvis/0.1"})
@@ -57,9 +58,25 @@ def ask(history):
         with urllib.request.urlopen(req, timeout=60) as r:
             return json.load(r)["choices"][0]["message"]["content"].strip()
     except urllib.error.HTTPError as e:
-        raise RuntimeError(f"provider error {e.code}: {e.read()[:200].decode(errors='ignore')}")
+        raise RuntimeError(f"error {e.code}: {e.read()[:150].decode(errors='ignore')}")
     except Exception as e:
-        raise RuntimeError("provider se connect nahi hua: " + type(e).__name__)
+        raise RuntimeError("connect nahi hua: " + type(e).__name__)
+
+
+def ask(history):
+    """PROVIDER=groq,openrouter,... : pehla jo chale uska jawab. Return (jawab, provider)."""
+    errs = []
+    for n in names():
+        if n != "mock" and n not in PROVIDERS:
+            errs.append(f"{n}: naam galat")
+        elif n != "mock" and not os.environ.get(PROVIDERS[n][1]):
+            errs.append(f"{n}: key .env mein nahi")
+        else:
+            try:
+                return call(n, history), n
+            except RuntimeError as e:
+                errs.append(f"{n}: {e}")
+    raise RuntimeError(" | ".join(errs) or "koi provider set nahi")
 
 
 class H(BaseHTTPRequestHandler):
@@ -92,17 +109,20 @@ class H(BaseHTTPRequestHandler):
             return None
 
     def do_GET(self):
-        if self.path in ("/", "/index.html"):
-            page = open(os.path.join(HERE, "..", "web", "index.html"), "rb").read()
+        if self.path in FILES:
+            fn, ctype = FILES[self.path]
+            try:
+                page = open(os.path.join(HERE, "..", "web", fn), "rb").read()
+            except OSError:
+                return self.send(404, {"error": "file nahi mili"})
             self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(page)))
             self.end_headers()
             return self.wfile.write(page)
         if self.path == "/status":
-            name = os.environ.get("PROVIDER", "groq").lower()
-            ok = name == "mock" or bool(os.environ.get(PROVIDERS.get(name, ("", "X"))[1], ""))
-            return self.send(200, {"ok": True, "provider": name, "configured": ok})
+            ok = any(n == "mock" or bool(os.environ.get(PROVIDERS.get(n, ("", "X"))[1], "")) for n in names())
+            return self.send(200, {"ok": True, "provider": ",".join(names()), "configured": ok})
         dev = self.device()
         if dev is None:
             return self.send(401, {"error": "pehle pair karo"})
@@ -143,12 +163,12 @@ class H(BaseHTTPRequestHandler):
             c.commit()
             rows = c.execute("SELECT role, content FROM messages WHERE device=? ORDER BY id DESC LIMIT 10", (dev,)).fetchall()
             try:
-                reply = ask([{"role": r, "content": t} for r, t in reversed(rows)])
+                reply, via = ask([{"role": r, "content": t} for r, t in reversed(rows)])
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
             c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", reply, time.time()))
             c.commit()
-            return self.send(200, {"reply": reply})
+            return self.send(200, {"reply": reply, "via": via})
         self.send(404, {"error": "not found"})
 
 
@@ -156,5 +176,5 @@ if __name__ == "__main__":
     load_env()
     host, port = os.environ.get("HOST", "127.0.0.1"), int(os.environ.get("PORT", "8787"))
     new_code()
-    print(f"Jarvis chal raha hai: http://{host}:{port}  provider={os.environ.get('PROVIDER', 'groq')}", flush=True)
+    print(f"Jarvis chal raha hai: http://{host}:{port}  provider={','.join(names())}", flush=True)
     ThreadingHTTPServer((host, port), H).serve_forever()

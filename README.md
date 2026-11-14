@@ -34,7 +34,7 @@ Pehli baar GitHub login: `git config --global credential.helper store`, phir pus
 aur **token** Termux mein hi daalo. Kisi chat mein token mat bhejo. `sync.sh` zip se update nahi
 hota (jaan-boojh ke); wo sirf pehle zip mein tha.
 
-## Status (15 Nov 2026) - Part 1: backend, Part 2: browser chat page
+## Status (15 Nov 2026) - Part 1: backend, Part 2: browser chat page, Part 3: voice + multi-provider + home-screen icon
 | Cheez | Haal |
 |---|---|
 | Chat API (`/chat`, `/history`) | Mock provider ke saath tested: PASS |
@@ -43,9 +43,13 @@ hota (jaan-boojh ke); wo sirf pehle zip mein tha.
 | Offline status (`/status`) | Tested: server band hone par connect fail dikhta hai |
 | Asli AI provider (Groq etc.) | **Abhi test nahi hua, key baaki hai** (sandbox mein internet nahi). Hussain ke phone par pehla test baaki |
 | Chat page `web/index.html` (pair, chat, history, offline status) | **Phone par tested (OnePlus Nord 3): pairing, page, message bhejna, error dikhana sab chala.** Bina key ke ye error aata hai: `GROQ_API_KEY not found` (ye sahi hai) |
-| Flutter app, voice | Abhi shuru nahi |
+| Multi-provider fallback (`PROVIDER=groq,openrouter,...`) | Tested mock se (pehla fail -> agla). Asli keys se **abhi test baaki** |
+| `python backend/check_keys.py` (har key ka OK/FAIL, key print nahi hoti) | Bina key ke tested; asli keys par Hussain chalayega |
+| Voice: mic button (Chrome SpeechRecognition), bolkar jawab (TTS), voice picker, stop button, "Mic CHALU/band" status | JS syntax OK; **phone par test baaki**. Hindi bolne par Chrome Devanagari likhta hai, Jarvis jawab Roman mein deta hai |
+| Home-screen icon (manifest + icons) | Files serve hoti hain (tested); Chrome menu > "Add to Home screen"/"Install app" **phone par test baaki** |
+| Flutter / asli APK | Abhi shuru nahi |
 
-Provider `PROVIDER=` se chunte hain: groq, openrouter, mistral, deepseek, nvidia. Sab OpenAI-style API
+Providers: groq, openrouter, mistral, deepseek, nvidia. `PROVIDER=` mein comma se order do; pehla fail ho (key nahi / error) to agla chalta hai. Sab OpenAI-style API
 hain isliye ek hi chhota adapter (`ask()` in `backend/app.py`) sab chalata hai. Default model names
 untested guess hain; galat nikle to `MODEL=` se badlo.
 
@@ -65,8 +69,8 @@ Zip audit hua (2,468 files). Poora install **nahi** kiya: Rust extension zaroori
 Apache-2.0: koi file seedhi copy ho to NOTICE mein credit likhna hai (abhi koi copy nahi hui).
 
 ## Aage ka plan (ek-ek part, har part < 350 lines, Hussain ke "approve" ke baad)
-1. ~~Part 2: chat screen~~ browser page se ho gaya (Flutter ki jagah, kyunki Flutter build ke bina turant chalta hai). Flutter app zaroorat par baad mein.
-2. **Part 3:** Push-to-talk, text-to-speech, male/female voice, mic stop button (pehle browser mein try, Android par test ke baad decide).
+1. ~~Part 2/3: chat screen, voice, icon~~ browser page se ho gaya (Flutter ki jagah, kyunki Flutter build ke bina turant chalta hai). Flutter app zaroorat par baad mein.
+2. **Part 3 (done, test baaki):** push-to-talk, text-to-speech, voice picker (male/female Android ki available voices par depend karta hai), mic stop. Hinglish ke liye en-IN voice behtar padti hai.
 3. **Part 4:** Memory (yaad dilao, dekho, sudharo, delete) + simple reminders.
 4. Baad mein: app launch/screen samajhna, contacts/call history, finance ledger, location, wake word ("Hey Jarvis" - Android par uncertain, test ke baad).
 
