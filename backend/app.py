@@ -92,6 +92,13 @@ class H(BaseHTTPRequestHandler):
             return None
 
     def do_GET(self):
+        if self.path in ("/", "/index.html"):
+            page = open(os.path.join(HERE, "..", "web", "index.html"), "rb").read()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(page)))
+            self.end_headers()
+            return self.wfile.write(page)
         if self.path == "/status":
             name = os.environ.get("PROVIDER", "groq").lower()
             ok = name == "mock" or bool(os.environ.get(PROVIDERS.get(name, ("", "X"))[1], ""))

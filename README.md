@@ -20,6 +20,9 @@ cd ~/Jarvis && cp backend/.env.example backend/.env   # phir .env mein apni key 
 python backend/app.py                                  # server start, pairing code dikhega
 python backend/test_app.py                             # self-test (key nahi chahiye)
 ```
+Server chalu rehte hi Chrome mein kholo: **http://127.0.0.1:8787** (chat page). Pehli baar Termux mein
+dikha 6-digit PAIRING CODE wahan daalo. Bina API key ke test: `.env` mein `PROVIDER=mock` (sirf echo karta hai).
+Server tabhi tak chalta hai jab tak Termux khula hai (`termux-wake-lock` se phone sone par bhi chalta rehta hai).
 
 ## Auto-push (download -> GitHub)
 Claude jo `Jarvis_partN.zip` deta hai, usse phone ke Downloads mein save karo. Phir:
@@ -31,7 +34,7 @@ Pehli baar GitHub login: `git config --global credential.helper store`, phir pus
 aur **token** Termux mein hi daalo. Kisi chat mein token mat bhejo. `sync.sh` zip se update nahi
 hota (jaan-boojh ke); wo sirf pehle zip mein tha.
 
-## Status (15 Nov 2026) - Part 1: backend
+## Status (15 Nov 2026) - Part 1: backend, Part 2: browser chat page
 | Cheez | Haal |
 |---|---|
 | Chat API (`/chat`, `/history`) | Mock provider ke saath tested: PASS |
@@ -39,6 +42,7 @@ hota (jaan-boojh ke); wo sirf pehle zip mein tha.
 | SQLite (baat-cheet yaad) | Tested: restart ke baad bhi bachta hai |
 | Offline status (`/status`) | Tested: server band hone par connect fail dikhta hai |
 | Asli AI provider (Groq etc.) | **Abhi test nahi hua** (sandbox mein internet nahi). Hussain ke phone par pehla test baaki |
+| Chat page `web/index.html` (pair, chat, history, offline status) | Backend se serve hona tested; JS syntax check OK; **phone ke browser mein dekhna baaki** |
 | Flutter app, voice | Abhi shuru nahi |
 
 Provider `PROVIDER=` se chunte hain: groq, openrouter, mistral, deepseek, nvidia. Sab OpenAI-style API
@@ -57,11 +61,12 @@ Zip audit hua (2,468 files). Poora install **nahi** kiya: Rust extension zaroori
 | Memory (`memory/`), scheduler (`scheduler/`) | Phase 2 ke liye idea, abhi nahi |
 | Speech options (`speech/`) | Voice part mein dekhenge |
 | agents, tools, evals, channels, server (60k+ lines) | Nahi liya |
+**Abhi tak OpenJarvis ki koi file is repo mein copy nahi hui.** Sab code naya likha gaya hai.
 Apache-2.0: koi file seedhi copy ho to NOTICE mein credit likhna hai (abhi koi copy nahi hui).
 
 ## Aage ka plan (ek-ek part, har part < 350 lines, Hussain ke "approve" ke baad)
-1. **Part 2:** Flutter chat screen + pairing screen + connection status (backend offline dikhana).
-2. **Part 3:** Push-to-talk, text-to-speech, male/female voice, mic stop button.
+1. ~~Part 2: chat screen~~ browser page se ho gaya (Flutter ki jagah, kyunki Flutter build ke bina turant chalta hai). Flutter app zaroorat par baad mein.
+2. **Part 3:** Push-to-talk, text-to-speech, male/female voice, mic stop button (pehle browser mein try, Android par test ke baad decide).
 3. **Part 4:** Memory (yaad dilao, dekho, sudharo, delete) + simple reminders.
 4. Baad mein: app launch/screen samajhna, contacts/call history, finance ledger, location, wake word ("Hey Jarvis" - Android par uncertain, test ke baad).
 

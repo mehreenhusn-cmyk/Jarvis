@@ -35,6 +35,7 @@ def check(name, cond):
 p, code = start()
 try:
     check("status chalta hai", call("/status")[1]["ok"])
+    check("chat page (/) khulta hai", b"Jarvis" in urllib.request.urlopen(URL + "/").read())
     check("bina token chat band (401)", call("/chat", {"message": "hi"})[0] == 401)
     check("galat code band (403)", call("/pair", {"code": "000000" if code != "000000" else "111111"})[0] == 403)
     s, r = call("/pair", {"code": code, "name": "test"})
