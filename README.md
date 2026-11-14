@@ -25,7 +25,7 @@ dikha 6-digit PAIRING CODE wahan daalo. Bina API key ke test: `.env` mein `PROVI
 Server tabhi tak chalta hai jab tak Termux khula hai (`termux-wake-lock` se phone sone par bhi chalta rehta hai).
 
 ## Auto-push (download -> GitHub)
-Claude jo `Jarvis_partN.zip` deta hai, usse phone ke Downloads mein save karo. Phir:
+Claude jo `Jarvis_part*.zip` deta hai, usse phone ke Downloads mein save karo. Phir:
 ```
 bash sync.sh once     # ek baar: zip kholta hai, commit karta hai, GitHub push karta hai
 bash sync.sh watch    # chalu chhod do: har 10 sec mein naya Jarvis*.zip khud push karega
@@ -41,8 +41,8 @@ hota (jaan-boojh ke); wo sirf pehle zip mein tha.
 | Pairing (6-digit code, token) | Tested: PASS (galat code, dobara use, 5 galat par lock) |
 | SQLite (baat-cheet yaad) | Tested: restart ke baad bhi bachta hai |
 | Offline status (`/status`) | Tested: server band hone par connect fail dikhta hai |
-| Asli AI provider (Groq etc.) | **Abhi test nahi hua** (sandbox mein internet nahi). Hussain ke phone par pehla test baaki |
-| Chat page `web/index.html` (pair, chat, history, offline status) | Backend se serve hona tested; JS syntax check OK; **phone ke browser mein dekhna baaki** |
+| Asli AI provider (Groq etc.) | **Abhi test nahi hua, key baaki hai** (sandbox mein internet nahi). Hussain ke phone par pehla test baaki |
+| Chat page `web/index.html` (pair, chat, history, offline status) | **Phone par tested (OnePlus Nord 3): pairing, page, message bhejna, error dikhana sab chala.** Bina key ke ye error aata hai: `GROQ_API_KEY not found` (ye sahi hai) |
 | Flutter app, voice | Abhi shuru nahi |
 
 Provider `PROVIDER=` se chunte hain: groq, openrouter, mistral, deepseek, nvidia. Sab OpenAI-style API
@@ -73,3 +73,7 @@ Apache-2.0: koi file seedhi copy ho to NOTICE mein credit likhna hai (abhi koi c
 ## Security (ab tak)
 Server sirf `127.0.0.1` par sunta hai (phone ke bahar se nahi dikhta). Token ka sirf hash DB mein.
 Pairing code 10 min, ek baar. API keys sirf `.env` mein. Call logs/camera/mic features abhi hain hi nahi.
+
+## Dhyan rakho (galtiyan jo ho chuki)
+- GitHub se download kiya `Jarvis-main.zip` kabhi Downloads mein mat chhodo: `sync.sh` usse bhi utha leta tha aur repo mein nested `Jarvis-main/` folder ban gaya. Ab sirf `Jarvis_part*.zip` uthana hai (sync.sh mein ek `sed` se badla, README ke upar steps dekho).
+- Chrome page ko auto-translate kar deta tha (Hinglish ko English bana deta tha). Ab `notranslate` laga hai.

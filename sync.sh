@@ -1,5 +1,5 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# Downloads mein Jarvis*.zip aaye to repo mein kholta hai aur GitHub par push karta hai.
+# Downloads mein Jarvis_part*.zip aaye to repo mein kholta hai aur GitHub par push karta hai.
 # Use:  bash sync.sh once  (ek baar)   |   bash sync.sh watch  (har 10 sec check)
 REPO="$(cd "$(dirname "$0")" && pwd)"
 DL="${JARVIS_DL:-$HOME/storage/downloads}"
@@ -9,7 +9,7 @@ main() {
   shopt -s nullglob
   [ -d "$DL" ] || { echo "Downloads nahi mila. Pehle: termux-setup-storage"; return 1; }
   while :; do
-    for z in "$DL"/Jarvis*.zip; do
+    for z in "$DL"/Jarvis_part*.zip; do
       echo "[sync] $(basename "$z")"
       unzip -oq "$z" -x sync.sh -d "$REPO" || { echo "[sync] unzip fail"; continue; }
       mv "$z" "$DONE/"
