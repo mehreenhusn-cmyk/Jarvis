@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import autostart, ledger, memory, remind, tts
+import autostart, brief, ledger, memory, remind, tts, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -239,6 +239,8 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, {"ok": True})
         if self.path == "/due":  # page har 10 sec poochta hai: kisi reminder ka time hua?
             return self.send(200, {"due": remind.due(db(), dev, str(data.get("now", "")))})
+        if self.path == "/brief":  # page din mein ek baar apne aap maangta hai
+            return self.send(200, {"text": brief.build(db(), dev, str(data.get("now", "")), data.get("style") == "hindi", bool(data.get("auto")))})
         if self.path == "/ledger/paid":
             c = db()
             c.execute("UPDATE ledger SET paid=1 WHERE id=? AND device=?", (int(data.get("id") or 0), dev))
@@ -269,6 +271,8 @@ class H(BaseHTTPRequestHandler):
             style = str(data.get("style", ""))
             mem = memory.handle(c, dev, msg, style == "hindi")  # yaad rakho / bhool jao / kya yaad hai
             now = str(data.get("now", ""))
+            if mem is None:  # "briefing" / "aaj ka plan"
+                mem = brief.handle(c, dev, msg, style == "hindi", now)
             if mem is None:  # hisab: "Faisal ko 5000 dene hain"
                 mem = ledger.handle(c, dev, msg, style == "hindi", ask, now)
             if mem is None:  # reminder: "kal 9 baje chai yaad dilana"
@@ -279,7 +283,7 @@ class H(BaseHTTPRequestHandler):
                 return self.send(200, {"reply": mem, "via": "memory"})
             rows = c.execute("SELECT role, content FROM messages WHERE device=? ORDER BY id DESC LIMIT 10", (dev,)).fetchall()
             try:
-                reply, via = ask([{"role": r, "content": t} for r, t in reversed(rows)], style, memory.context(c, dev))
+                reply, via = ask([{"role": r, "content": t} for r, t in reversed(rows)], style, memory.context(c, dev) + web.context(msg))
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
             c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", reply, time.time()))
@@ -292,6 +296,7 @@ if __name__ == "__main__":
     load_env()
     host, port = os.environ.get("HOST", "127.0.0.1"), int(os.environ.get("PORT", "8787"))
     autostart.ensure(os.path.dirname(HERE))
+    autostart.refresh_scripts(os.path.dirname(HERE))
     new_code()
     print(f"Jarvis chal raha hai: http://{host}:{port}  provider={','.join(names())}", flush=True)
     ThreadingHTTPServer((host, port), H).serve_forever()

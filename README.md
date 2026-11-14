@@ -38,7 +38,7 @@ consent/legal ka mamla hai, abhi nahi. Agar Hussain "aur gehra" kahe to Gehra sl
 2. Hussain ko **Roman Hinglish** mein simple samjhao (Devanagari nahi). Files aur lines **table** mein batao. Wo dictation se likhta hai, galat spelling normal hai.
 3. Output: **ek hi zip** `Jarvis_partN.zip`, usme sirf **badli hui/nayi files** (poora repo nahi). Hussain bas zip download karta hai (Downloads mein).
    `run.sh` (neeche Section 5) 5 sec mein khud: zip kholta hai, GitHub push karta hai, server restart karta hai, aur page khud refresh hota hai.
-   Hussain ko Termux mein kuch likhna nahi padna chahiye. `sync.sh` aur `run.sh` ko zip se badalna risky hai (chalte script ko badalna): zaroorat ho to Hussain ko ek baar `bash run.sh` dobara chalane ko bolo.
+   Hussain ko Termux mein kuch likhna nahi padna chahiye. Same zip 2 baar download ho jaye to koi dikkat nahi (sync.sh dup skip karta hai). Helper script badalna ho to `scripts/sync.sh` mein rakho (server start par `sync.sh` ban jata hai); `run.sh` ko zip se mat badlo. `sync.sh` aur `run.sh` ko zip se badalna risky hai (chalte script ko badalna): zaroorat ho to Hussain ko ek baar `bash run.sh` dobara chalane ko bolo.
 4. Test: bas syntax check, test file tabhi jab sach mein zaroorat ho (limit bachane ke liye). Jo test nahi hua use "tested" mat likho.
 5. Hussain se kam se kam Termux commands maango. Jo pehle chal chuka wo dobara mat batao.
 6. Memory mein password/OTP/PIN/CVV kabhi save mat karo (`memory.py` mein rok hai). Secrets (keys, GitHub token) kabhi chat, code ya Git mein nahi. Keys sirf `backend/keys.json`/`.env` (dono gitignored).
@@ -68,29 +68,31 @@ Purane tareeke: `python backend/app.py` (sirf server), `bash sync.sh once` (sirf
 | 9 | **Memory** (`backend/memory.py`): chat mein "yaad rakho: ...", "kya yaad hai", "sudhaar 3: ...", "bhool jao 3"; ⚙ mein list + hatao. Jo yaad hai wo AI ko har chat mein diya jaata hai. Password/OTP/PIN kabhi save nahi | 🟡 logic check hua (regex/DB), phone par chat se test baaki |
 | 10 | **Reminders** (`backend/remind.py`): "kal subah 10 baje Faisal ko 5000 dene yaad dilana" (tareekh AI se, phone ke time se), "reminders dikhao", "reminder hatao 2". Page khula ho to ⏰ message + awaaz + vibrate. **`run.sh`:** zip download > auto update + push + restart + page auto-refresh | 🟡 logic check hua (nakli AI jawab se), phone par test baaki. Reminder tabhi aata hai jab page khula ho; band app mein notification APK (Part 17) se |
 | 11 | **Hisab/ledger** (`backend/ledger.py`): "Faisal ko 5000 dene hain, 15 Nov ko yaad dilana" > entry + due date par subah 9 baje reminder; "hisab dikhao" (total dena/lena), "paid 3", "hisab hatao 3"; ⚙ mein list + "chuka" button. Sirf likhai-padhai, asli payment nahi. **Auto-start** (`backend/autostart.py`): server pehli baar chalne par `~/.bashrc` mein 2 line + `~/.termux/boot/jarvis.sh` bana deta hai, to Termux kholte hi Jarvis chalu (phone restart par bhi, agar Termux:Boot app install ho) | 🟡 logic check hua (nakli AI jawab, nakli HOME), phone par test baaki |
+| 12 | **Privacy** (`index.html`): upar status bar (Mic/Awaaz), "stop listening" / "sunna band" likho ya bolo > mic + awaaz band, "🎤 Mic chalu karo" se wapas. **Awaaz style:** Khattar (Hindi dub, gehri) / Rolex (bahut gehri) / Normal, default Khattar jaisi (Madhur + gehra + dheema). Kisi asli actor ki awaaz clone nahi, bas kareeb | 🟡 phone par sunna baaki |
+| 13 | **Internet** (`backend/web.py`): link bhejo to padh ke samjhata hai; "search: ..." se DuckDuckGo se khoj. Sirf padhta hai; phone ke private/local address band; internet ka text "sirf jaankari" mark hota hai (prompt-injection se bachav). PDF ke liye `pkg install poppler` ek baar | 🟡 safety + parsing nakli data se check hua; asli internet/DuckDuckGo test baaki |
+| 14 | **Subah ka briefing** (`backend/brief.py`): "briefing" / "aaj ka plan" likho; din mein pehli baar page khulne par khud (agar kuch ho). Aaj ke reminders + paas ki tareekh wala hisab + total | 🟡 logic check hua |
+| - | **Duplicate zip safe** (`scripts/sync.sh`, server start par `sync.sh` ban jata hai): wahi zip dobara download ho (same content, naam kuch bhi) to skip, GitHub par dobara push nahi; purana part (jaise part 10 jab part 12 ho chuka) skip, taaki purani files wapas na aayein; kuch naya na ho to commit nahi | 🟢 nakli GitHub remote par test hua (11, 11 dobara, 12, purana 10, 12 dobara) |
 | 8+ | Neeche roadmap | ⚪ |
 
-## 7. Roadmap: kul ~25 parts, har part < 350 lines (andaza, files aur lines)
-Ab tak (Part 1-11): **~16 files, ~870 lines** code (app.py 297, index.html 156, ledger 85, remind 70, memory 58, tts 35, autostart 27, run.sh 24...).
+## 7. Roadmap: kul ~26 parts, har part < 350 lines (andaza, files aur lines)
+Ab tak (Part 1-14): **~20 files, ~1,050 lines** code (app.py 302, index.html 180, web 93, ledger 85, test 76, remind 70, memory 58...).
 | Stage | Part | Kya | Nayi files | Lines |
 |---|---|---|---|---|
-| A. Browser Jarvis (Termux) | 12 | Privacy: "stop listening" + mic/awaaz status bar | 0 (edit) | ~60 |
-| | 13 | Internet search + link/PDF samjhana | 1 | ~120 |
-| | 14 | Subah ka briefing (reminders + baaki dues) | 1 | ~80 |
-| B. Asli APK | 15 | Flutter/WebView APK shell + GitHub Actions build | ~6 | ~150 |
-| | 16 | APK build fixes (1-3 round, error screenshot se) | 0-2 | ~50 |
-| | 17 | App band ho tab bhi notification | 2 | ~150 |
-| C. Android powers | 18 | Contacts + call history metadata | 2 | ~200 |
-| | 19 | People profiles (dost, notes) | 1 | ~150 |
-| | 20 | Location (permission ke saath) | 2 | ~120 |
-| | 21 | Camera se surroundings samajhna | 2 | ~200 |
-| | 22 | Screen/app samajhna (AccessibilityService) | 3 | ~300 |
-| | 23 | Phone slow kyun hai (diagnostics) | 2 | ~150 |
-| D. Aakhri | 24 | "Hey Jarvis" wake word (Android par uncertain, pehle test) | 2 | ~150 |
-| | 25 | Security audit + final polish | 0-1 | ~100 |
-| **Baaki (12-25)** | | | **~26 files** | **~1,980 lines** |
-| **Final total (andaza)** | | | **~42 files** | **~2,800 lines** |
-Part 14 ke baad Jarvis roz kaam ka. Stage B/C Android-only hain, yahi sabse risky (build errors, permissions).
+| B. Professional look | 15 | UI polish: naya design (dark/light, chat bubbles, icons, bada mic button, settings tabs) | 1-2 | ~150 |
+| C. Asli APK | 16 | Flutter/WebView APK shell + GitHub Actions build | ~6 | ~150 |
+| | 17 | APK build fixes (1-3 round, error screenshot se) | 0-2 | ~50 |
+| | 18 | App band ho tab bhi notification | 2 | ~150 |
+| D. Android powers | 19 | Contacts + call history metadata | 2 | ~200 |
+| | 20 | People profiles (dost, notes) | 1 | ~150 |
+| | 21 | Location (permission ke saath) | 2 | ~120 |
+| | 22 | Camera se surroundings samajhna | 2 | ~200 |
+| | 23 | Screen/app samajhna (AccessibilityService) | 3 | ~300 |
+| | 24 | Phone slow kyun hai (diagnostics) | 2 | ~150 |
+| E. Aakhri | 25 | "Hey Jarvis" wake word (Android par uncertain, pehle test) | 2 | ~150 |
+| | 26 | Security audit + final polish | 0-1 | ~100 |
+| **Baaki (15-26)** | | | **~24 files** | **~1,870 lines** |
+| **Final total (andaza)** | | | **~44 files** | **~2,900 lines** |
+Asli "professional app" ka matlab: Part 15 (look) + Part 16-18 (APK, home-screen app, notification). Stage C/D Android-only hain, yahi sabse risky (build errors, permissions).
 
 Security vision (lambi): password/OTP/PIN kabhi store nahi; message bhejne/delete/payment se pehle confirmation; mic/camera chhupke nahi;
 call log se sirf metadata (baat-cheet ka content nahi); "stop listening" se mic turant band.

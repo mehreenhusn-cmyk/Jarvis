@@ -25,3 +25,15 @@ def ensure(root):
             os.chmod(p, 0o755)
     except OSError as e:
         print("[autostart] set nahi hua:", e, flush=True)
+
+
+def refresh_scripts(root):
+    """scripts/sync.sh (zip se aayi nayi copy) ko sync.sh bana deta hai, taaki sync.sh khud update ho (Hussain ko command nahi)."""
+    src, dst = os.path.join(root, "scripts", "sync.sh"), os.path.join(root, "sync.sh")
+    try:
+        if os.path.exists(src) and open(src, "rb").read() != open(dst, "rb").read():
+            import shutil
+            shutil.copyfile(src, dst)
+            print("[update] sync.sh nayi version se badal diya", flush=True)
+    except OSError as e:
+        print("[update] sync.sh nahi badla:", e, flush=True)

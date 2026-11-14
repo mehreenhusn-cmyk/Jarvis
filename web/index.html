@@ -28,10 +28,10 @@ select{max-width:48%;padding:6px;border-radius:8px;border:1px solid var(--line);
 <input id="code" inputmode="numeric" maxlength="6" placeholder="123456"><p><button id="go">Pair karo</button></p><p id="pe" class="bad"></p></div>
 <div id="set" hidden><p><b>API key daalo</b>: copy karke paste karo. Jarvis khud pehchanega kis company ki hai aur check karega.</p>
 <input id="key" placeholder="key yahan paste karo" autocomplete="off"><p><button id="kp">📋 Clipboard se paste</button> <button id="kc">Check karo</button></p><p id="kr"></p><div id="kl"></div><h4>🧠 Jarvis ko ye yaad hai</h4><div id="ml"></div><h4>💰 Hisab (baaki)</h4><div id="ll"></div></div>
-<div id="chat" hidden>
+<div id="pv" class="bar"></div><div id="chat" hidden>
 <div class="bar"><select id="lang"><option value="hi-IN">Bolna: Hindi/Hinglish</option><option value="en-IN">Bolna: English</option></select>
 <select id="voice"></select><label><input type="checkbox" id="say"> bolkar jawab</label><b id="ms" class="ok">Mic band</b>
-<label>Gehra <input type="range" id="pt" min="0.5" max="1.5" step="0.05" style="width:70px"></label><label>Speed <input type="range" id="rt" min="0.6" max="1.4" step="0.05" style="width:70px"></label><button type="button" id="tv" style="padding:6px 10px">🔊 test</button></div>
+<label>Gehra <input type="range" id="pt" min="0.5" max="1.5" step="0.05" style="width:70px"></label><label>Speed <input type="range" id="rt" min="0.6" max="1.4" step="0.05" style="width:70px"></label><select id="pre"><option value="">Awaaz style</option><option value="k">Khattar (Hindi dub, gehri)</option><option value="r">Rolex (bahut gehri)</option><option value="n">Normal</option></select><button type="button" id="mon" hidden>🎤 Mic chalu karo</button><button type="button" id="tv" style="padding:6px 10px">🔊 test</button></div>
 <div id="log"></div>
 <form id="f"><button type="button" id="mic">🎤</button><input id="msg" autocomplete="off" placeholder="Kuch bolo..."><button>Bhejo</button><button type="button" id="stop">⏹</button></form></div>
 <script>
@@ -70,15 +70,17 @@ $('go').onclick=async()=>{
 $('f').onsubmit=async e=>{
   e.preventDefault();const t=$('msg').value.trim();if(!t)return;$('msg').value='';
   if(/^(gsk_|sk-or-|nvapi-|mstrl_|sk-[0-9a-f]{32}$)/.test(t)){$('set').hidden=false;$('chat').hidden=true;$('key').value=t;addKey();return;}
+  if(/stop listening|sunna band|listening band|सुनना बंद|mic band karo/i.test(t)){add('user',t);stopAll();add('bot','🔒 Theek hai sir, mic aur awaaz band. Phir chalane ke liye "🎤 Mic chalu karo" dabao.');return;}
   add('user',t);const w=add('bot','...');
-  try{const {s,d}=await api('/chat',{message:t,now:nowS(),style:$('voice').value.includes('hi-IN')?'hindi':'hinglish'});
+  try{const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty()});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
     if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply);}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Server se connect nahi hua.';}
 };
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;
-function micState(on){$('mic').textContent=on?'🎙':'🎤';$('ms').textContent=on?'Mic CHALU':'Mic band';$('ms').className=on?'bad':'ok';}
+function micState(on){$('mic').textContent=on?'🎙':'🎤';$('ms').textContent=on?'Mic CHALU':'Mic band';$('ms').className=on?'bad':'ok';pv();}
 $('mic').onclick=()=>{
+  if(priv)return;
   if(!SR){add('err','Is browser mein voice input nahi hai. Chrome use karo.');return;}
   if(rec){rec.stop();return;}
   rec=new SR();rec.lang=$('lang').value;rec.interimResults=false;
@@ -117,7 +119,7 @@ if(window.speechSynthesis){speechSynthesis.onvoiceschanged=loadVoices;loadVoices
 $('say').checked=localStorage.getItem('jsay')=='1';$('lang').value=localStorage.getItem('jlang')||'hi-IN';
 $('say').onchange=()=>localStorage.setItem('jsay',$('say').checked?'1':'0');
 $('voice').onchange=()=>localStorage.setItem('jvoice',$('voice').value);
-$('pt').value=localStorage.getItem('jpt')||'0.8';$('rt').value=localStorage.getItem('jrt')||'0.95';
+$('pt').value=localStorage.getItem('jpt')||'0.7';$('rt').value=localStorage.getItem('jrt')||'0.92';
 $('pt').onchange=()=>localStorage.setItem('jpt',$('pt').value);$('rt').onchange=()=>localStorage.setItem('jrt',$('rt').value);
 $('tv').onclick=()=>speak($('voice').value.includes('hi-IN')?'नमस्ते सर, मैं जार्विस हूँ। बताइए, मैं आपकी क्या सेवा कर सकता हूँ?':'Namaste sir, main Jarvis hoon. Bataiye, kya kaam hai?',true);
 $('lang').onchange=()=>localStorage.setItem('jlang',$('lang').value);
@@ -152,5 +154,27 @@ async function addKey(){
 $('kc').onclick=addKey;$('key').onpaste=()=>setTimeout(addKey,150);
 $('kp').onclick=async()=>{try{$('key').value=await navigator.clipboard.readText();addKey();}catch(e){$('kr').textContent='Clipboard allow nahi hua, box mein long-press karke paste karo';}};
 $('gear').onclick=()=>{if(!token)return;$('set').hidden=!$('set').hidden;$('chat').hidden=!$('set').hidden;if(!$('set').hidden){keys();mem();led();}};
-show();ping();setInterval(ping,5000);setInterval(()=>{if(token)checkDue();},10000);if(token)history();
+const sty=()=>$('voice').value.includes('hi-IN')?'hindi':'hinglish';
+let priv=localStorage.getItem('jpriv')=='1';
+function pv(){
+  $('pv').textContent=(priv?'🔒 Privacy mode: mic aur awaaz band':'🟢 Mic: '+(rec?'CHALU':'band')+' · Awaaz: '+($('say').checked?'chalu':'band'))+' · camera/screen: nahi';
+  $('mon').hidden=!priv;$('mic').disabled=priv;
+}
+function stopAll(){
+  if(rec)rec.abort();if(window.speechSynthesis)speechSynthesis.cancel();if(aud)aud.pause();
+  $('say').checked=false;localStorage.setItem('jsay','0');priv=true;localStorage.setItem('jpriv','1');micState(false);
+}
+$('mon').onclick=()=>{priv=false;localStorage.setItem('jpriv','0');pv();};$('say').addEventListener('change',pv);
+$('pre').onchange=()=>{
+  const p={k:[0.7,0.92],r:[0.5,0.85],n:[0.95,1]}[$('pre').value];if(!p)return;
+  $('pt').value=p[0];$('rt').value=p[1];localStorage.setItem('jpt',p[0]);localStorage.setItem('jrt',p[1]);
+  if($('pre').value!='n'){$('voice').value='neural:hi-IN-MadhurNeural';localStorage.setItem('jvoice',$('voice').value);}
+  speak(sty()=='hindi'?'नमस्ते सर, मैं जार्विस हूँ।':'Namaste sir, main Jarvis hoon.',true);
+};
+async function brief(){
+  if(!token||priv)return;const day=nowS().slice(0,10);if(localStorage.getItem('jbrief')==day)return;localStorage.setItem('jbrief',day);
+  try{const {s,d}=await api('/brief',{now:nowS(),style:sty(),auto:true});if(s==200&&d.text){add('bot',d.text);speak(d.text);}}catch(e){}
+}
+pv();
+show();ping();setInterval(ping,5000);setInterval(()=>{if(token)checkDue();},10000);if(token)history().then(brief);
 </script></body></html>
