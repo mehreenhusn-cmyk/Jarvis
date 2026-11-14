@@ -56,15 +56,15 @@ Bina key test: `.env` mein `PROVIDER=mock`.
 | 3 | Home-screen icon (Add to Home screen) | 🟡 |
 | 4-5 | Keys app mein paste, green tick, 5 providers + fallback | 🟢 OpenRouter ✅ aur chat jawab aaya; baaki providers 🟡 |
 | 6 | Awaaz tune: gehra (pitch) + speed slider, test button | 🟡 phone par dekhna baaki |
-| 7 | Asli Jarvis awaaz (Edge neural: British Ryan, Indian Prabhat, Hindi Madhur...), `backend/tts.py` | 🟡 `pip install edge-tts` chalna chahiye (Termux par pakka nahi); fail ho to phone ki awaaz par lautta hai |
+| 7 | Neural awaaz via `backend/tts.py` (`pip install edge-tts`; Termux par pakka nahi); fail ho to phone ki awaaz | 🟡 |
+| 8 | **Iron Man Hindi-dub wala Jarvis:** default awaaz Madhur (Hindi male, thodi gehri+dheemi), jawab shuddh Hindi (Devanagari), "sir" kehta hai, chhote jawab. Hindi awaaz chuno to Hindi style, English awaaz chuno to Hinglish | 🟡 awaaz dub jaisi lagti hai ya nahi, Hussain sunke batayega |
 | 8+ | Neeche roadmap | ⚪ |
 
 ## 7. Roadmap (har part < 350 lines, Hussain ke "approve" ke baad)
 | Part | Kya | Files | Lines (andaza) |
 |---|---|---|---|
-| 8 | **Memory:** "yaad rakho", dekho, sudharo, delete (kabhi kuch invent nahi) | `backend/memory.py` (naya), `app.py`, `index.html` | ~140 |
-| 9 | **Reminders:** "Faisal ko 5000 dene hain 15 Nov ko yaad dilana", page khula ho to notification | `backend/remind.py` (naya), `index.html` | ~110 |
-| 10 | **Personality:** Jarvis ka andaaz, Hussain ka naam, chhote jawab, `backend/persona.txt` | `persona.txt`, `app.py` | ~35 |
+| 9 | **Memory:** "yaad rakho", dekho, sudharo, delete (kabhi kuch invent nahi) | `backend/memory.py` (naya), `app.py`, `index.html` | ~140 |
+| 10 | **Reminders:** "Faisal ko 5000 dene hain 15 Nov ko yaad dilana", page khula ho to notification | `backend/remind.py` (naya), `index.html` | ~110 |
 | 11 | **Finance ledger:** kisko dena/lena, amount, due date, total | `backend/ledger.py`, `index.html` | ~150 |
 | 12 | **Auto-start:** Termux:Boot se server khud chalu, wake-lock | `start.sh` | ~20 |
 | Baad mein | Asli APK (Flutter + GitHub build), contacts/call history, location, screen padhna, "Hey Jarvis" wake word (Android par uncertain, pehle test) | - | - |

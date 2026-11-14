@@ -14,8 +14,11 @@ def speak(text, voice):
     fd, path = tempfile.mkstemp(suffix=".mp3")
     os.close(fd)
     try:
-        r = subprocess.run([sys.executable, "-m", "edge_tts", "--voice=" + voice, "--text=" + text, "--write-media=" + path],
-                           capture_output=True, timeout=40)
+        base = [sys.executable, "-m", "edge_tts", "--voice=" + voice, "--text=" + text, "--write-media=" + path]
+        # Jarvis jaisa gehra, shaant andaaz: thoda dheema aur gehra. Na chale to seedhi awaaz.
+        r = subprocess.run(base + ["--rate=-6%", "--pitch=-8Hz"], capture_output=True, timeout=40)
+        if r.returncode != 0 and b"No module named" not in r.stderr:
+            r = subprocess.run(base, capture_output=True, timeout=40)
         err = r.stderr.decode(errors="ignore")
         if "No module named" in err:
             raise RuntimeError("edge-tts install nahi hai: Termux mein chalao  pip install edge-tts")

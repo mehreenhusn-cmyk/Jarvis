@@ -63,7 +63,7 @@ $('f').onsubmit=async e=>{
   e.preventDefault();const t=$('msg').value.trim();if(!t)return;$('msg').value='';
   if(/^(gsk_|sk-or-|nvapi-|mstrl_|sk-[0-9a-f]{32}$)/.test(t)){$('set').hidden=false;$('chat').hidden=true;$('key').value=t;addKey();return;}
   add('user',t);const w=add('bot','...');
-  try{const {s,d}=await api('/chat',{message:t});
+  try{const {s,d}=await api('/chat',{message:t,style:$('voice').value.includes('hi-IN')?'hindi':'hinglish'});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
     if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply);}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Server se connect nahi hua.';}
@@ -80,13 +80,13 @@ $('mic').onclick=()=>{
   micState(true);rec.start();
 };
 $('stop').onclick=()=>{if(rec)rec.abort();speechSynthesis.cancel();if(aud)aud.pause();micState(false);};
-const NV=[['en-GB-RyanNeural','Jarvis British (Ryan)'],['en-IN-PrabhatNeural','Indian male (Prabhat)'],['hi-IN-MadhurNeural','Hindi male (Madhur)'],['en-IN-NeerjaNeural','Indian female (Neerja)'],['hi-IN-SwaraNeural','Hindi female (Swara)']];
+const NV=[['hi-IN-MadhurNeural','Jarvis Hindi (Madhur)'],['en-GB-RyanNeural','Jarvis English (Ryan)'],['en-IN-PrabhatNeural','Indian male (Prabhat)'],['en-IN-NeerjaNeural','Indian female (Neerja)'],['hi-IN-SwaraNeural','Hindi female (Swara)']];
 let aud=null,warned=false;
 function loadVoices(){
   const rk=v=>{const l=v.lang.replace('_','-').toLowerCase();return l=='en-in'?0:l=='hi-in'?1:l.startsWith('en')?2:3;};
   const vs=speechSynthesis.getVoices().sort((a,b)=>rk(a)-rk(b));
   $('voice').innerHTML=NV.map(([id,n])=>`<option value="neural:${id}">⭐ ${n} (net)</option>`).join('')+vs.map(v=>`<option value="${v.name}">${v.name} (${v.lang})</option>`).join('');
-  $('voice').value=localStorage.getItem('jvoice')||'neural:en-GB-RyanNeural';
+  $('voice').value=localStorage.getItem('jvoice')||'neural:hi-IN-MadhurNeural';
 }
 async function neural(t,v){
   const r=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text:t,voice:v})});
@@ -111,7 +111,7 @@ $('say').onchange=()=>localStorage.setItem('jsay',$('say').checked?'1':'0');
 $('voice').onchange=()=>localStorage.setItem('jvoice',$('voice').value);
 $('pt').value=localStorage.getItem('jpt')||'0.8';$('rt').value=localStorage.getItem('jrt')||'0.95';
 $('pt').onchange=()=>localStorage.setItem('jpt',$('pt').value);$('rt').onchange=()=>localStorage.setItem('jrt',$('rt').value);
-$('tv').onclick=()=>speak('Namaste, main Jarvis hoon. Bataiye, kya kaam hai?',true);
+$('tv').onclick=()=>speak($('voice').value.includes('hi-IN')?'नमस्ते सर, मैं जार्विस हूँ। बताइए, मैं आपकी क्या सेवा कर सकता हूँ?':'Namaste sir, main Jarvis hoon. Bataiye, kya kaam hai?',true);
 $('lang').onchange=()=>localStorage.setItem('jlang',$('lang').value);
 function row(p){
   const r=document.createElement('div');r.className='kr';const l=document.createElement('span');

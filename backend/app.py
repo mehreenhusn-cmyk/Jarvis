@@ -18,6 +18,12 @@ PROVIDERS = {
 SYSTEM = ("Tum Jarvis ho, Hussain ke personal AI dost. User jis bhasha mein likhe (Hindi, English ya Hinglish) "
           "usi mein jawab do. Hindi ko bhi Roman script mein likho, Devanagari nahi. Chhote, saaf jawab do. "
           "Personal baat tabhi yaad rakho jab user ne khud batayi ho. Kuch invent mat karo.")
+# Part 8: Iron Man (Hindi dub) wala Jarvis - shaant, vinamra, "sir" kehne wala. Page tab bhejta hai jab Hindi awaaz chuni ho.
+PERSONA = {"hinglish": SYSTEM, "hindi": (
+    "You are JARVIS, like the calm, polite, witty AI butler from the Hindi dub of Iron Man. Address the user as 'सर'. "
+    "Always reply in pure, simple spoken Hindi in Devanagari script (English words only when really needed). "
+    "Keep answers short: 1 to 3 sentences, with a light dry wit when it fits. No emoji, markdown, stars or hashes, "
+    "because your reply will be spoken aloud. Remember personal things only if the user told you. Never invent facts.")}
 FILES = {"/": ("index.html", "text/html; charset=utf-8"), "/manifest.webmanifest": ("manifest.webmanifest", "application/manifest+json"),
          "/icon-192.png": ("icon-192.png", "image/png"), "/icon-512.png": ("icon-512.png", "image/png")}
 PAIR = {"code": "", "exp": 0, "fails": 0, "lock": 0}
@@ -86,13 +92,13 @@ def names():
     return env or [n for n in [*PROVIDERS, "mock"] if getkey(n)]
 
 
-def call(name, history, key=None):
+def call(name, history, key=None, style="hinglish"):
     if name == "mock":  # sirf testing ke liye
         return "mock jawab: " + history[-1]["content"]
     base, key_env, model = PROVIDERS[name]
     key = key or getkey(name)
     body = json.dumps({"model": os.environ.get("MODEL_" + name.upper()) or model,
-                       "messages": [{"role": "system", "content": SYSTEM}] + history}).encode()
+                       "messages": [{"role": "system", "content": PERSONA.get(style, SYSTEM)}] + history}).encode()
     req = urllib.request.Request(base + "/chat/completions", body, {
         "Authorization": "Bearer " + key, "Content-Type": "application/json", "User-Agent": "jarvis/0.1"})
     try:
@@ -111,7 +117,7 @@ def check(n, k):
         return str(e)
 
 
-def ask(history):
+def ask(history, style="hinglish"):
     """PROVIDER=groq,openrouter,... : pehla jo chale uska jawab. Return (jawab, provider)."""
     errs = []
     for n in names():
@@ -121,7 +127,7 @@ def ask(history):
             errs.append(f"{n}: key nahi")
         else:
             try:
-                return call(n, history), n
+                return call(n, history, None, style), n
             except RuntimeError as e:
                 errs.append(f"{n}: {e}")
     raise RuntimeError(" | ".join(errs) or "koi key nahi - upar ⚙ Settings mein key paste karo")
@@ -240,7 +246,7 @@ class H(BaseHTTPRequestHandler):
             c.commit()
             rows = c.execute("SELECT role, content FROM messages WHERE device=? ORDER BY id DESC LIMIT 10", (dev,)).fetchall()
             try:
-                reply, via = ask([{"role": r, "content": t} for r, t in reversed(rows)])
+                reply, via = ask([{"role": r, "content": t} for r, t in reversed(rows)], str(data.get("style", "")))
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
             c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", reply, time.time()))
