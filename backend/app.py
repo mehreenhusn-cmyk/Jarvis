@@ -221,7 +221,10 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/tasks":  # Part 41: the last few tasks and how they ended
             return self.send(200, {"tasks": tasks.recent(db(), dev)})
         if self.path == "/voice":  # Part 51: Tony and JARVIS settings (login needed)
-            return self.send(200, voiceengine.load())
+            s = voiceengine.load()
+            k = getkey("sarvam")
+            s["sarvam_saved"], s["sarvam_masked"] = bool(k), mask(k) if k else ""
+            return self.send(200, s)
         if self.path == "/stats":  # Part 50: system card numbers (login needed)
             return self.send(200, sysinfo.stats())
         if self.path == "/keys":  # keys kabhi wapas nahi bhejte, sirf masked
@@ -336,20 +339,45 @@ class H(BaseHTTPRequestHandler):
             c.commit()
             return self.send(200, {"ok": True})
         if self.path == "/voice/set":  # Part 51: save Tony/JARVIS settings in voice.json
-            return self.send(200, voiceengine.save(data))
-        if self.path == "/tts":  # Part 7: neural awaaz (mp3). Part 51: voice na diya ho to Tony/JARVIS intent se chunta hai
-            txt = str(data.get("text", ""))
+            s = voiceengine.save(data)
+            s["sarvam_saved"] = bool(getkey("sarvam"))
+            return self.send(200, s)
+        if self.path == "/voice/key":  # Part 53: Sarvam voice key. Tested with one short sentence, then saved in keys.json (never sent back)
+            k = str(data.get("key", "")).strip()
+            if not re.fullmatch(r"[A-Za-z0-9_\-]{16,120}", k):
+                return self.send(200, {"ok": False, "error": "That does not look like a Sarvam key"})
+            try:
+                tts.sarvam("Hello sir", k)
+            except RuntimeError as e:
+                return self.send(200, {"ok": False, "error": str(e)})
+            store("sarvam", k)
+            return self.send(200, {"ok": True, "masked": mask(k)})
+        if self.path == "/voice/key/delete":
+            store("sarvam", "")
+            voiceengine.save({"provider": "edge"})
+            return self.send(200, {"ok": True})
+        if self.path == "/tts":  # Part 7: neural awaaz. Part 51: intent se awaaz. Part 53: Sarvam pehle (agar chuna ho), na chale to Edge
+            txt, mime, eng = str(data.get("text", "")), "audio/mpeg", "edge"
             try:
                 if data.get("voice"):
                     audio, who = tts.speak(txt, str(data.get("voice", "")), data.get("pitch", -8), data.get("rate", -6)), "classic"
                 else:
                     v = voiceengine.pick(txt, str(data.get("intent", "")), str(data.get("profile", "")), "english" if data.get("lang") == "english" else "hindi")
-                    audio, who = tts.speak(txt, v["voice"], v["pitch"], v["rate"]), v["profile"]
+                    who, audio = v["profile"], None
+                    if v["provider"] == "sarvam" and who == "jarvis":
+                        try:
+                            audio, mime, eng = tts.sarvam(txt, getkey("sarvam"), v["speaker"], "english" if data.get("lang") == "english" else "hindi", v["rate"]), "audio/wav", "sarvam"
+                        except RuntimeError as e:
+                            eng = "edge-fallback"
+                            self.log_message("Sarvam failed: %s", e)
+                    if audio is None:
+                        audio = tts.speak(txt, v["voice"], v["pitch"], v["rate"])
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
             self.send_response(200)
             self.send_header("X-Voice", who)
-            self.send_header("Content-Type", "audio/mpeg")
+            self.send_header("X-Engine", eng)
+            self.send_header("Content-Type", mime)
             self.send_header("Content-Length", str(len(audio)))
             self.end_headers()
             return self.wfile.write(audio)

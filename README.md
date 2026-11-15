@@ -4,10 +4,10 @@
 > runs out often. This README has the full plan: what we build, why, how, the rules, where we are, and what is next.
 > Read it, then start the next part. Do not ask him to resend the old chat. Repo: https://github.com/mehreenhusn-cmyk/Jarvis
 
-## 0. AT A GLANCE (updated 16 Nov 2026, after Parts 40 and 49a)
+## 0. AT A GLANCE (updated 16 Nov 2026, after Part 53 and the new Chat look)
 **What:** Jarvis, a personal AI assistant on Hussain's phone (Termux server + Android app). **Why:** one app on the phone, no PC, works by download only.
-**Done:** 55 of 57 Parts built (about 4,950 lines of code, 77 files). Part 49 is now split into 49a (clipboard, built) and 49b (notification summary, optional). Only Parts 1 to 26 were partly phone tested; Parts 27 to 40, 41 to 48, 49a, 50, 51, 52, 54, 55 and 56 are built but NOT phone tested. Java is still not compiled: the GitHub Build APK is the first compile test.
-**Pending:** 2 Parts, about 420 lines (about 120 only if needed: Part 53; about 300 optional: Part 49b). All required Parts are built. Part 53 only if the two voices sound too alike. Full table in section 11.6, order in the "Build order" line.
+**Done:** 56 of 57 Parts built (about 4,950 lines of code, 77 files). Part 49 is now split into 49a (clipboard, built) and 49b (notification summary, optional). Only Parts 1 to 26 were partly phone tested; Parts 27 to 40, 41 to 48, 49a, 50, 51, 52, 54, 55 and 56 are built but NOT phone tested. Java is still not compiled: the GitHub Build APK is the first compile test.
+**Pending:** 2 optional Parts, about 370 lines: 49b notification summary (about 290, risky) and Weather on Home (about 80, needs a free weather service). No required Part is left. Next step is the same as before: run **Build APK**, install, test with section 11.8. Part 53 (Sarvam voice) and the new Chat look are built but not phone tested.
 | Group | Parts | Status |
 |---|---|---|
 | Base: server, chat, voice, reminders, app, privacy | 1 to 29 | DONE |
@@ -23,7 +23,8 @@
 | Backup (encrypted file, restore with preview, delete everything) | 47 | BUILT (this zip) |
 | Share to Jarvis, handoff summary, lost-phone card, app lock OFF by default, new neon Home dashboard | 48 | BUILT (this zip) |
 | Two voices (Tony and JARVIS): engine and Settings cards | 51, 52 | BUILT (this zip) |
-| Second voice provider (Google), only if needed | 53 | PENDING |
+| Second voice provider: Sarvam (not Google), Tony hidden, JARVIS only | 53 | BUILT (this zip), not phone tested |
+| Chat screen redesigned in the same neon look as Home (CSS only) | 53b | BUILT (this zip), not rendered, not phone tested |
 | Home tab (orb, today, quick buttons, stats). Redesigned in Part 48 | 56, 48 | BUILT |
 | Offline wake word (Vosk, model downloaded by tap) and Clipboard button | 40, 49a | BUILT (this zip) |
 | Optional: notification summary | 49b | OPTIONAL |
@@ -131,7 +132,7 @@ Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): He
    Termux closing by itself: Android kills it to save battery. Settings > Apps > Termux > Battery > No restriction; keep the Termux notification (wake lock) visible; install the Termux:Boot app for restarts.
 1. Download the zip, wait for "pushed" in the app header, run **Build APK** on GitHub, install it. If the build fails, send `build-log`.
 2. Test Parts 27, 28 and 29 with the list in section 11.8, plus the old cheat sheet. Report what fails with a screenshot.
-3. Parts 30 to 39, 41 to 47, 50, 51, 52, 54, 55 and 56 are BUILT. Download the zip, wait for "pushed", run **Build APK**, install, then test with section 11.8. All required Parts are built; test them with section 11.8. Then 53 only if needed (section 11.6, Build order line). Dual voice: Parts 51 and 52 are built, Part 53 is planned in section 11.6b. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
+3. Parts 30 to 39, 41 to 47, 50, 51, 52, 54, 55 and 56 are BUILT. Download the zip, wait for "pushed", run **Build APK**, install, then test with section 11.8. All required Parts are built; test them with section 11.8. Dual voice: Parts 51, 52 and 53 are built (Sarvam added, Tony hidden), see section 11.6b. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
 
 ## 8. Cheat sheet (type or say)
 | Say or type | What happens |
@@ -296,7 +297,8 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 50 DONE | Live system card (like the PC screenshot): RAM used/free, storage, battery and heat, Jarvis server own memory and CPU, uptime, net online. New `/stats` route, refreshed every 5 s only while the card is open. Honest "not available" if Android blocks a number | sysinfo.py*, app.py, index.html | ~110 | With (Python) | Hussain sees what Jarvis and the phone are using |
 | 51 DONE | Voice Personality Engine, backend: intent classifier (CONVERSATION, INFORMATION, TASK_CONFIRMATION, REMINDER, BRIEFING, ALERT), policy table, JARVIS fallback, two voice profiles, `/tts` takes `intent` or `profile` | voiceengine.py*, tts.py, app.py | ~170 | With | The right voice is chosen by intent, not by keywords |
 | 52 DONE | Voice Personality settings: Tony and JARVIS cards, Auto routing ON, manual override, Test Tony, Test JARVIS, active-voice badge, saved in `voice.json` on the server (survives restart), stop and switch while speaking | index.html, app.py | ~160 | Without (page) plus Python route tests | One clear place to control both voices |
-| 53 | Second voice provider only if the Edge test shows the two voices are too alike: Google Cloud Chirp 3 HD, key kept in `keys.json`, Edge stays as fallback | tts.py, app.py, backend/.env.example | ~120 | With, needs Hussain's key | Two truly different voices |
+| 53 DONE | Second voice provider = **Sarvam Bulbul v3** (changed from Google on 16 Nov 2026: Indian company, Hindi voices). Settings > Voice personality > Voice maker: Edge (free) or Sarvam, speaker list (shubh, rahul, aditya, ratan, amit, rohan), own key saved in `keys.json` under `sarvam` (never sent back, not in the chat key list). Tested with one short sentence before saving. If Sarvam fails, Edge speaks and the badge says so. **Tony is hidden** (page shows JARVIS only; server keeps the Tony profile, every reply is routed to JARVIS). Sarvam has no depth control, so the Depth slider is hidden when Sarvam is on | tts.py, voiceengine.py, app.py, index.html | ~170 | Python route tests with a fake Sarvam; real Sarvam call NOT run | Needs Hussain's Sarvam key |
+| 53b DONE | Chat screen in the neon blue-purple look of Home: gradient own bubbles, Jarvis bubbles with a round J, glowing mic, new input bar. CSS only, no new feature | index.html | ~25 | Page JS syntax only, not rendered | Chat and Home look like one app |
 | 54 DONE | Smart memory: when you say a personal fact ("mere bhatije ka naam Arman hai"), Jarvis answers and shows "Yaad rakhun? Yes / No". Only your own tap on Yes saves it, in the existing `memories` table (limit 100, never passwords, OTPs, PINs). Later "mera bhatija kaun hai" is answered from memory. Needed because today Jarvis saves only after "yaad rakho: ..." | memory.py, app.py, index.html, test_app.py | ~75 | With | Jarvis learns names and facts without typing "yaad rakho" |
 | 56 DONE | Home dashboard (inspired by the PC Jarvis screenshot): a Home tab with the orb, today's reminders and events, phone and server stats, quick buttons. Chat stays the main screen. Phone layout: one column, cards that scroll | index.html, app.py | ~130 | Without (page) | One glance shows the day and the phone |
 | 55 DONE | Conversation mode: after Jarvis finishes speaking, the mic opens by itself, so you can answer without tapping the mic. Visible "Conversation ON" bar. Ends after 2 silent rounds, on "bas" or "stop", or on Stop everything. Works only while the app is open (background listening is tested in Part 39) | index.html, Ears.java, MainActivity | ~80 | Without | Natural back and forth talk |
@@ -315,14 +317,14 @@ Phone brand and Android version are NOT known yet (decision D4).
 Estimates are rough (plus or minus 25 percent). Real numbers go into this table after each Part.
 
 
-**Build order (next first):** all required Parts are built. Next: build the APK and test on the phone (section 11.8). Then 53 only if the two voices sound too alike. Optional: 49b. Ideas not planned yet: weather on Home (needs location and a free weather service), a portrait image for the Home orb.
+**Build order (next first):** all required Parts are built. Next: build the APK and test on the phone (section 11.8), including Part 53 with a Sarvam key. Optional: 49b. Ideas not planned yet: weather on Home (needs location and a free weather service), a portrait image for the Home orb.
 
-### 11.6b Dual voice personality plan (added 15 Nov 2026; Parts 51 and 52 built 16 Nov 2026, Part 53 not built)
+### 11.6b Dual voice personality plan (added 15 Nov 2026; Parts 51, 52 and 53 built 16 Nov 2026; Tony hidden, provider changed to Sarvam)
 Goal: two default voices that switch by themselves. Default from the first start: Tony and JARVIS with Auto routing ON (Hussain asked for this on 16 Nov 2026); the classic voice is only used if he switches it on in Settings. TONY = conversation (confident, witty, Hinglish). JARVIS = information, tasks, reminders, briefings, alerts (calm, deep, precise). No cloning of Rajesh Khattar or Atul Kapoor. Original or licensed voices only.
 **What exists today (read from the repo):** `backend/tts.py` (35 lines) runs `edge_tts` with a fixed list `VOICES` (line 4): en-GB-Ryan, en-IN-Prabhat, hi-IN-Madhur, en-IN-Neerja, hi-IN-Swara. `app.py` route `POST /tts` (line 292) returns mp3. `index.html`: `neural()` (line 147) plays it, `speak()` (156) falls back to the browser voice, `#voice` and `#pre` select a voice and a preset (lines 41 to 42), `stopAll()` (262) stops sound, saved in `localStorage` (`jvoice`). There is no intent routing and no server-side voice settings.
 **Two real profiles today? NO.** Edge has only one Hindi male voice (Madhur). Khattar, Rolex and Jarvis studio are Madhur with different pitch and speed. That is one voice in two moods, not two voices. Prabhat is male but Indian-English and reads Hindi badly.
 **Rules for Parts 51 to 53:** reuse `tts.py` and `/tts`; no second server, no new database table, no new Android permission; keys only in `keys.json`; JARVIS is the fallback when intent is unclear; the voice that speaks is the voice that is shown; if a provider fails, fall back to Edge, then to the browser voice, and show which one spoke.
-**Provider choice:** step 1 (Part 51 and 52) uses Edge only: Tony = Madhur, normal pitch, a little faster; JARVIS = Madhur, lower and slower. Free, but the two will sound related. Step 2 (Part 53), only if Hussain agrees: Google Cloud Chirp 3 HD, which has several male Hindi voices. List price checked 15 Nov 2026: about 30 USD per 1 million characters, and free monthly amounts differ by source, so check the account before using. It needs internet, billing enabled and an API key. Must be tested for Hinglish before it is chosen.
+**Provider choice:** step 1 (Part 51 and 52) uses Edge only: Tony = Madhur, normal pitch, a little faster; JARVIS = Madhur, lower and slower. Free, but the two will sound related. Step 2 (Part 53, built): Sarvam Bulbul v3 instead of Google (Hussain's choice). Endpoint `POST https://api.sarvam.ai/text-to-speech`, header `api-subscription-key`, reply is JSON with base64 wav in `audios`. Needs internet and his own key; pricing and free credit not checked, look at his Sarvam account. Not yet tested with a real key or for Hinglish.
 **Cost and internet:** Edge is free and needs internet. Google is pay as you go (a 200 character reply is about 0.006 USD at list price). Offline fallback is the browser voice, not Tony or JARVIS.
 
 ### 11.7 Order and map of old batches

@@ -1,15 +1,16 @@
 """Voice Personality Engine (Part 51). Do awaazen: TONY (baat-cheet) aur JARVIS (jaankari, kaam, reminder, briefing, alert).
-Awaaz intent se chuni jati hai, keywords se nahi. Na samjhe to JARVIS. Settings voice.json mein (restart ke baad bhi rehti hain).
+Part 53: Tony chhupa diya (sab JARVIS bolta hai, code rehta hai). JARVIS ki awaaz Edge ya Sarvam. Awaaz intent se chuni jati hai, keywords se nahi. Na samjhe to JARVIS. Settings voice.json mein (restart ke baad bhi rehti hain).
 Dono awaazen Edge se hain (free). Hindi mein ek hi mard awaaz hai (Madhur), isliye farq pitch aur speed ka hai. English mein alag awaazen."""
 import json, os, re
 
 FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "voice.json")
 INTENTS = ("CONVERSATION", "INFORMATION", "TASK_CONFIRMATION", "REMINDER", "BRIEFING", "ALERT")
-POLICY = {"CONVERSATION": "tony", "INFORMATION": "jarvis", "TASK_CONFIRMATION": "jarvis", "REMINDER": "jarvis", "BRIEFING": "jarvis", "ALERT": "jarvis"}
+POLICY = {"CONVERSATION": "jarvis", "INFORMATION": "jarvis", "TASK_CONFIRMATION": "jarvis", "REMINDER": "jarvis", "BRIEFING": "jarvis", "ALERT": "jarvis"}
 PROFILES = {
     "tony": {"hindi": "hi-IN-MadhurNeural", "english": "en-IN-PrabhatNeural", "pitch": 0, "rate": 8},
     "jarvis": {"hindi": "hi-IN-MadhurNeural", "english": "en-GB-RyanNeural", "pitch": -14, "rate": -10},
 }
+SPEAKERS = ("shubh", "rahul", "aditya", "ratan", "amit", "rohan")  # Sarvam male voices
 ALERT = re.compile(r"\b(alert|warning|urgent|danger|emergency|low battery)\b|खतरा|khatra|सावधान", re.I)
 
 
@@ -27,7 +28,8 @@ def load():
     except (OSError, ValueError):
         d = {}
     d = d if isinstance(d, dict) else {}
-    s = {"auto": d.get("auto") is not False, "manual": d.get("manual") if d.get("manual") in PROFILES else "jarvis"}
+    s = {"auto": d.get("auto") is not False, "manual": d.get("manual") if d.get("manual") in PROFILES else "jarvis",
+         "provider": "sarvam" if d.get("provider") == "sarvam" else "edge", "speaker": d.get("speaker") if d.get("speaker") in SPEAKERS else "shubh"}
     for p, base in PROFILES.items():
         o = d.get(p) if isinstance(d.get(p), dict) else {}
         s[p] = {"pitch": _n(o.get("pitch"), -50, 50, base["pitch"]), "rate": _n(o.get("rate"), -30, 30, base["rate"])}
@@ -41,6 +43,10 @@ def save(data):
         s["auto"] = data["auto"]
     if data.get("manual") in PROFILES:
         s["manual"] = data["manual"]
+    if data.get("provider") in ("edge", "sarvam"):
+        s["provider"] = data["provider"]
+    if data.get("speaker") in SPEAKERS:
+        s["speaker"] = data["speaker"]
     for p in PROFILES:
         o = data.get(p)
         if isinstance(o, dict):
@@ -73,4 +79,4 @@ def pick(text, intent="", profile="", lang="hindi"):
     s = load()
     it = classify(text, intent)
     name = profile if profile in PROFILES else (POLICY.get(it, "jarvis") if s["auto"] else s["manual"])
-    return {"profile": name, "intent": it, "voice": PROFILES[name]["english" if lang == "english" else "hindi"], "pitch": s[name]["pitch"], "rate": s[name]["rate"]}
+    return {"profile": name, "provider": s["provider"], "speaker": s["speaker"], "intent": it, "voice": PROFILES[name]["english" if lang == "english" else "hindi"], "pitch": s[name]["pitch"], "rate": s[name]["rate"]}

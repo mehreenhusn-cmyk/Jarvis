@@ -49,6 +49,24 @@ body.hm header,body.hm #tabs,body.hm #pv,body.hm #off{background:#070b1a;color:#
 .kr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;justify-content:space-between}
 .bar{height:8px;border-radius:4px;background:var(--sf2);overflow:hidden;flex:1;min-width:80px}.bar i{display:block;height:100%;background:var(--ok)}.bar i.w{background:var(--ac)}.bar i.b{background:var(--bad)}
 .dr{padding:9px 0;border-top:1px solid var(--line)}.dr small{display:block;color:var(--mut);font-size:12px}.chip{display:inline-block;font-size:12px;padding:2px 8px;border-radius:10px;background:var(--sf2);margin:4px 6px 0 0}
+
+/* Part 53b: Chat gets the same neon blue-purple look as Home */
+body.hm #chat{--c1:#35c6ff;--c2:#9b6bff;--sf:rgba(16,24,54,.78);--sf2:rgba(255,255,255,.08);--line:rgba(96,140,255,.22);--fg:#eaf0ff;--mut:#97a6cc;background:radial-gradient(130% 50% at 50% 0,#13205a 0,#070b1a 62%) #070b1a;color:var(--fg)}
+body.hm #vp,body.hm #chat form{background:rgba(7,11,26,.92);border-color:var(--line)}body.hm #vp select,body.hm #vp label{color:var(--mut)}
+body.hm #log{padding:16px 14px;gap:12px}
+body.hm .m{position:relative;max-width:84%;padding:11px 14px 8px;border:1px solid var(--line);background:rgba(16,24,54,.85);border-radius:4px 18px 18px 18px;box-shadow:0 0 18px rgba(53,198,255,.07);line-height:1.5}
+body.hm .m:not(.user):not(.err){margin-left:34px}
+body.hm .m:not(.user):not(.err)::before{content:"J";position:absolute;left:-34px;bottom:0;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:700 13px/1 inherit;color:#06102a;background:linear-gradient(135deg,#35c6ff,#9b6bff);box-shadow:0 0 12px rgba(53,198,255,.5)}
+body.hm .m.user{background:linear-gradient(135deg,#2563eb,#7c4dff);border:0;border-radius:18px 4px 18px 18px;color:#fff;box-shadow:0 4px 18px rgba(124,77,255,.3)}
+body.hm .m.user::after{color:rgba(255,255,255,.75)}
+body.hm .m.err{background:rgba(229,101,95,.12);border-color:rgba(229,101,95,.4);color:#ffb1ad}
+body.hm .ds{background:rgba(255,255,255,.06);border-color:var(--line);color:var(--mut)}
+body.hm #chat form input{background:rgba(255,255,255,.07);border-color:var(--line);color:var(--fg)}body.hm #chat form input:focus{outline:0;border-color:var(--c1);box-shadow:0 0 0 3px rgba(53,198,255,.18)}
+body.hm #send{background:linear-gradient(90deg,#35c6ff,#9b6bff);color:#06102a}
+body.hm #mic{background:radial-gradient(circle,#1b5fd6,#0b2a6b);color:#e4f7ff;box-shadow:0 0 18px rgba(53,198,255,.45)}
+body.hm #chat button.g,body.hm #stop{background:rgba(255,255,255,.08);color:var(--fg);border:1px solid var(--line)}body.hm #stop{color:#ff8a85}
+body.hm .sh button{background:rgba(53,120,255,.14);border:1px solid var(--line);color:var(--fg);border-radius:14px}
+@media(prefers-reduced-motion:no-preference){body.hm .m{animation:mi .18s ease-out}@keyframes mi{from{opacity:0;transform:translateY(6px)}}}
 </style></head><body>
 <header><div class="logo">J</div><div><b>JARVIS</b><span id="st">...</span></div><span class="sp"></span><button id="vbtn" title="Voice">🔊</button><button id="gear" title="Settings">⚙</button></header>
 <div id="tabs" hidden><button type="button" class="g on" data-v="chat">Chat</button><button type="button" class="g" data-v="home">Home</button></div>
@@ -202,33 +220,46 @@ function loadVoices(){
   if(!want||$('voice').value!==want)$('voice').value='neural:hi-IN-MadhurNeural'; // old saved voice no longer in the list
 }
 // Part 52: Tony and JARVIS. The server picks the voice by intent; the badge shows the voice that really spoke.
-let VS={auto:true,manual:'jarvis',tony:{pitch:0,rate:8},jarvis:{pitch:-14,rate:-10}};
+let VS={auto:true,manual:'jarvis',provider:'edge',speaker:'shubh',tony:{pitch:0,rate:8},jarvis:{pitch:-14,rate:-10}};
 const badge=t=>document.querySelectorAll('.vbadge').forEach(b=>b.textContent=t);
 async function engine(t,intent,profile){
   const r=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text:t,intent:intent||'',profile:profile||'',lang:sty()})});
   if(!r.ok){let e={};try{e=await r.json()}catch(x){}throw new Error(e.error||'voice error');}
   const w=r.headers.get('X-Voice')||'';if(aud)aud.pause();if(window.speechSynthesis)speechSynthesis.cancel();
-  aud=new Audio(URL.createObjectURL(await r.blob()));aud.onended=aud.onerror=heardBack;await aud.play();badge('Voice: '+(w=='tony'?'TONY':'JARVIS'));
+  aud=new Audio(URL.createObjectURL(await r.blob()));aud.onended=aud.onerror=heardBack;await aud.play();const en=r.headers.get('X-Engine')||'';badge('Voice: '+(w=='tony'?'TONY':'JARVIS')+(en=='sarvam'?' (Sarvam)':en=='edge-fallback'?' (Edge, Sarvam failed)':' (Edge)'));
 }
 async function voiceSave(p){  // saving stops the voice that is speaking now, so a switch is heard at once
   if(aud)aud.pause();if(window.speechSynthesis)speechSynthesis.cancel();
-  try{const {s,d}=await api('/voice/set',p);if(s==200)VS=d;else add('err','Could not save the voice settings.');}catch(e){add('err','Server offline: voice settings not saved.');}
+  try{const {s,d}=await api('/voice/set',p);if(s==200)VS=Object.assign({},VS,d);else add('err','Could not save the voice settings.');}catch(e){add('err','Server offline: voice settings not saved.');}
   voiceCard();
 }
 async function voiceLoad(){try{const {s,d}=await api('/voice');if(s==200)VS=d;}catch(e){}voiceCard();}
 function voiceCard(){
   const box=$('vcard');if(!box)return;const rows=[],hi=sty()=='hindi';
   const L=(t,c)=>{const l=el('label','');const i=el('input');i.type='checkbox';i.style.width='auto';i.checked=c;l.append(i,' '+t);return [l,i];};
-  const [al,ai]=L('Auto routing: Tony talks, JARVIS informs',VS.auto);ai.onchange=()=>voiceSave({auto:ai.checked});rows.push(al);
-  const [el2,ei]=L('Use Tony and JARVIS (switch off for the classic voice)',localStorage.getItem('jeng')!='0');ei.onchange=()=>{localStorage.setItem('jeng',ei.checked?'1':'0');voiceCard();};rows.push(el2);
-  const PN={tony:['Tony','Conversation: confident, a little faster','नमस्ते सर, मैं टोनी हूँ। बताइए, क्या हाल है?','Hello sir, Tony here. What is up?'],jarvis:['JARVIS','Information, tasks, reminders, briefings, alerts: calm and deep','नमस्ते सर, मैं जार्विस हूँ। सब सिस्टम तैयार हैं।','Good morning sir. All systems are ready.']};
-  ['tony','jarvis'].forEach(k=>{
-    const c=el('div','dr'),on=!VS.auto&&VS.manual==k;c.append(el('b',null,PN[k][0]+(on?' (always on)':'')),el('small',null,PN[k][1]));
+  const [el2,ei]=L('Use the JARVIS voice (switch off for the classic voice)',localStorage.getItem('jeng')!='0');ei.onchange=()=>{localStorage.setItem('jeng',ei.checked?'1':'0');voiceCard();};rows.push(el2);
+  // Tony is hidden (16 Nov 2026). The server still knows the Tony profile; to show it again, use ['tony','jarvis'] below.
+  const PN={tony:['Tony','Conversation: confident, a little faster','नमस्ते सर, मैं टोनी हूँ। बताइए, क्या हाल है?','Hello sir, Tony here. What is up?'],jarvis:['JARVIS','Calm and deep. Used for every reply, task, reminder and alert.','नमस्ते सर, मैं जार्विस हूँ। सब सिस्टम तैयार हैं।','Good morning sir. All systems are ready.']};
+  const sv=VS.provider=='sarvam';
+  ['jarvis'].forEach(k=>{
+    const c=el('div','dr');c.append(el('b',null,PN[k][0]),el('small',null,PN[k][1]));
     const mk=(n,key,lo,hi2)=>{const l=el('label',null,n+' ');const r=el('input');r.type='range';r.min=lo;r.max=hi2;r.step=1;r.value=VS[k][key];r.style.cssText='width:110px;padding:0';r.onchange=()=>voiceSave({[k]:{[key]:+r.value}});l.append(r,' ');return l;};
     const t=el('button','g','Test '+PN[k][0]);t.type='button';t.onclick=()=>speak(hi?PN[k][2]:PN[k][3],true,'',k);
-    const u=el('button','g','Use always');u.type='button';u.disabled=VS.auto;u.onclick=()=>voiceSave({manual:k});
-    c.append(mk('Depth','pitch',-30,10),mk('Speed','rate',-25,20),t,u);rows.push(c);
+    c.append(...(sv?[]:[mk('Depth','pitch',-30,10)]),mk('Speed','rate',-25,20),t);rows.push(c);
   });
+  // Part 53: voice maker. Edge is free. Sarvam is an Indian company; it needs your own key (their free credit may run out).
+  const p=el('div','dr');p.append(el('b',null,'Voice maker'),el('small',null,'Edge is free. Sarvam sounds more natural in Hindi and needs your own Sarvam key. If Sarvam fails, Edge speaks instead.'));
+  const sel=el('select');sel.append(new Option('Edge (free)','edge'),new Option('Sarvam'+(VS.sarvam_saved?'':' (add key first)'),'sarvam'));sel.value=sv?'sarvam':'edge';
+  sel.onchange=()=>{if(sel.value=='sarvam'&&!VS.sarvam_saved){add('err','Add your Sarvam key first.');sel.value='edge';return;}voiceSave({provider:sel.value});};
+  const sp=el('select');[['shubh','Shubh (best for Hindi)'],['rahul','Rahul (deep)'],['aditya','Aditya (clear)'],['ratan','Ratan'],['amit','Amit'],['rohan','Rohan']].forEach(([v,n])=>sp.append(new Option(n,v)));sp.value=VS.speaker||'shubh';sp.onchange=()=>voiceSave({speaker:sp.value});
+  p.append(sel,' ',sp);
+  const ki=el('input');ki.placeholder=VS.sarvam_saved?'Key saved: '+(VS.sarvam_masked||'')+'. Paste a new one to replace.':'Paste your Sarvam key here';ki.autocomplete='off';ki.style.marginTop='8px';
+  const kr=el('small',null,'');const kb=el('button','g','Save key');kb.type='button';
+  kb.onclick=async()=>{const k=ki.value.trim();if(!k)return;kr.className='';kr.textContent='Checking the key...';
+    try{const {d}=await api('/voice/key',{key:k});if(d.ok){await api('/voice/set',{provider:'sarvam'});ki.value='';await voiceLoad();}else{kr.className='bad';kr.textContent='Not saved: '+d.error;}}catch(e){kr.className='bad';kr.textContent='Cannot reach the server';}};
+  p.append(ki,el('br'),kb);
+  if(VS.sarvam_saved){const kd=el('button','g','Remove key');kd.type='button';kd.style.marginLeft='6px';kd.onclick=async()=>{try{await api('/voice/key/delete',{});}catch(e){}await voiceLoad();};p.append(kd);}
+  p.append(kr);rows.push(p);
   const b=el('p','');b.append('Now: ',el('b','vbadge','Voice: -'));rows.push(b);box.replaceChildren(...rows);
 }
 async function neural(t,v){
@@ -545,7 +576,7 @@ async function brief(){
   try{const {s,d}=await api('/brief',{now:nowS(),style:sty(),auto:true});if(s==200&&d.text){add('bot',d.text);speak(d.text,false,'BRIEFING');}}catch(e){}
 }
 // Part 48: Home dashboard (neon look from the reference pictures). Everything shown here is real data from the server or the phone; nothing is made up.
-function go(v){view=v;const t=!!token;document.body.classList.toggle('hm',v=='home');$('chat').hidden=!t||v!='chat';$('set').hidden=!t||v!='set';$('home').hidden=!t||v!='home';$('tabs').hidden=!t;
+function go(v){view=v;const t=!!token;document.body.classList.toggle('hm',v=='home'||v=='chat');$('chat').hidden=!t||v!='chat';$('set').hidden=!t||v!='set';$('home').hidden=!t||v!='home';$('tabs').hidden=!t;
   $('tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
   if(t&&v=='home')homeLoad(true);if(t&&v=='set'){keys();mem();led();ppl();dash();sysCard();bgt();voiceLoad();bkLoad();}}
 $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>go(b.dataset.v));
