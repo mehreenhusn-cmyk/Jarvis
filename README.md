@@ -71,12 +71,13 @@ Everything below is built and pushed. "Phone test" says only what Hussain has al
 | - | Voice presets: Khattar, Rolex, Jarvis studio (Hindi), Jarvis studio (British English), Normal | DONE | Hussain will pick the closest to the movie Jarvis |
 | 27 | Security: WebView permission checks, http only for 127.0.0.1, permissions asked when first used | BUILT | NOT YET (Java not compiled yet) |
 | 28 | Real Stop kept in Java (`Privacy.java`), saved across restarts, restart only by a finger tap | BUILT | NOT YET |
+| 29 | Privacy dashboard in Settings (allowed vs running, last used, activity log), server-offline banner | BUILT | NOT YET |
 Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): Hey Jarvis works only while the app is open; mic in Chrome and in the app use different engines; the real actor's voice cannot be copied, only approached with the free voices; Android Files app may show empty ghost entries for zips that Termux already moved to `~/.jarvis_done`.
 
 ## 7. What to do next
 1. Download the zip, wait for "pushed" in the app header, run **Build APK** on GitHub, install it. If the build fails, send `build-log`.
-2. Test Parts 27 and 28 with the list in section 11.8, plus the old cheat sheet. Report what fails with a screenshot.
-3. Next Part to build after Hussain says OK: **29** (privacy dashboard), then 30 and 31. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
+2. Test Parts 27, 28 and 29 with the list in section 11.8, plus the old cheat sheet. Report what fails with a screenshot.
+3. Next Part to build after Hussain says OK: **30** (command layer), then 31 and 32. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
 
 ## 8. Cheat sheet (type or say)
 | Say or type | What happens |
@@ -131,7 +132,7 @@ Rules for all future work: (1) finish and TEST one batch on the phone before sta
 
 **Not planned:** reading private accounts or sessions of other services; remote phone control; WhatsApp or SMS sending without a confirm tap; payments.
 
-## 11. MASTER PLAN: real phone control (Parts 27 and 28 are built, not phone tested. The rest is plan only)
+## 11. MASTER PLAN: real phone control (Parts 27, 28 and 29 are built, not phone tested. The rest is plan only)
 Audit date: 15 Nov 2026. Written from the real repo files, not from old README claims.
 
 ### 11.1 Goal in simple words
@@ -202,7 +203,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 |---|---|---|---|---|---|
 | 27 DONE | Close WebView and manifest holes: permission checks, local-only http, ask permissions when used | MainActivity, AndroidManifest, res/xml/network_security_config.xml* | ~50 | Without | The page cannot get mic, camera or location by tricks |
 | 28 DONE | Real Stop: one `Privacy.java` holds mic, wake, screen, camera state. Stop cancels all in Java. Voice cannot turn mic back on, only a visible button | Privacy.java*, MainActivity, Ears, index.html | ~140 | Without | "Stop listening completely" really stops everything |
-| 29 | Privacy dashboard: ON/OFF per feature, permission given vs service running, last used, small log (feature and time only), settings buttons, server-offline banner and auto-reconnect | index.html, Privacy.java, app.py, MainActivity | ~140 | Without | One screen shows what Jarvis can do and is doing |
+| 29 DONE | Privacy dashboard: ON/OFF per feature, permission given vs service running, last used, small log (feature and time only), settings buttons, server-offline banner and auto-reconnect | index.html, Privacy.java, app.py, MainActivity | ~140 | Without | One screen shows what Jarvis can do and is doing |
 | 30 | Command layer: Hindi/English/Hinglish grammar plus limited AI fallback, master switch OFF by default | actions.py*, app.py, index.html | ~150 | With | Jarvis understands "WhatsApp kholo" without guessing |
 | 31 | App launch: list launchable apps, fuzzy name, ask when two match, never open unknown | Apps.java*, MainActivity, AndroidManifest, index.html, actions.py | ~110 | Without | "Chrome open karo" works safely |
 | 32 | Better screen reading: visible buttons, fields, scroll areas; remove OTP, card, PIN text before sending; honest message when an app shows nothing | ScreenService, screen.py, screen_service.xml, index.html, MainActivity | ~90 | With (redaction), Java without | Screen help without leaking secrets |
@@ -268,4 +269,7 @@ Every Part is its own zip and its own commit. To undo a Part: GitHub > the commi
 | 28 | BUILT | ~140 | 94 (`Privacy.java` 58 new, `MainActivity` 19, `index.html` 14, `Ears` 3) | NOT YET |
 Checks that were run for 27 and 28: XML parse, Java bracket balance, page script syntax, Python syntax. Nothing else was run (Not run: Java compile, phone test).
 What changes for Hussain: the first mic tap asks for the microphone; the first "where am I" asks for location and may answer "unavailable" once, so ask again; the notification question comes once after pairing.
+| 29 | BUILT | ~140 | 109 (`Privacy.java` +43, `index.html` 35, `MainActivity` 22, `NotifyService` 6, `app.py` 2, `Ears` 1) | NOT YET. Only the `/status` uptime field was run (server started, field checked: PASS). Java and page are Not run on a phone |
+
+How the dashboard works (Part 29): open Settings (gear), the first card is "Privacy and permissions". Each row shows three separate things: permission (Allowed or Not allowed, from Android), running now (from Java, not from the page), and last used. A permission being allowed never means a feature is running. Screen reader shows "Accessibility ON" only when the Jarvis accessibility service is really connected. "Reminder service ON" means the background service is really up. The activity log keeps only the feature name and time (max 30 lines, one entry per feature per minute) and never any content. "Open settings" buttons open one fixed Android page each. If the server stops, a red banner appears after about 10 seconds and Jarvis retries every 5 seconds; it clears by itself when the server is back. Chrome shows only the server line, because Android permissions exist only in the app.
 

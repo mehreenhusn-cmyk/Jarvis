@@ -34,6 +34,7 @@ class Ears implements RecognitionListener {
         sr.startListening(new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang).putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1));
+        Privacy.used(wake ? "wake" : "mic");
     }
 
     void stop() {

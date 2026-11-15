@@ -1,10 +1,15 @@
 package com.hussain.jarvis;
 
+import android.Manifest;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
+import java.util.HashMap;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 /** Part 28: one place that knows if Jarvis is stopped. Stop is kept in Java and saved, so the page, a voice command or a restart cannot switch listening back on. */
@@ -13,6 +18,7 @@ final class Privacy {
     static volatile boolean stopped;
     static volatile Runnable screenJob;  // the 6 second wait before the screen is read
     private static SharedPreferences sp;
+    private static final HashMap<String, Long> LAST = new HashMap<>();
 
     static void init(Context c) {
         sp = c.getSharedPreferences("j", 0);
@@ -46,6 +52,46 @@ final class Privacy {
             if (a.picker != null) { a.picker.onReceiveValue(null); a.picker = null; }
         });
         return was.toString();
+    }
+
+    /** Part 29: remember that a feature was used (name and time only, never content). Logged at most once a minute per feature. */
+    static synchronized void used(String id) {
+        if (sp == null) return;
+        long now = System.currentTimeMillis();
+        Long prev = LAST.get(id);
+        if (prev == null) prev = sp.getLong("last_" + id, 0);
+        if (now - prev < 60000) return;
+        LAST.put(id, now);
+        String[] old = (sp.getString("plog", "") + id + "|" + now + "\n").split("\n");
+        StringBuilder sb = new StringBuilder();
+        for (int i = Math.max(0, old.length - 30); i < old.length; i++) sb.append(old[i]).append('\n');
+        sp.edit().putLong("last_" + id, now).putString("plog", sb.toString()).apply();
+    }
+
+    private static int has(Context c, String perm) { return c.checkSelfPermission(perm) == PackageManager.PERMISSION_GRANTED ? 1 : 0; }
+
+    /** Part 29: for the dashboard. perm: 1 allowed, 0 not allowed, -1 none needed. run: is it active this second. last: when it was last used. */
+    static String dashboard(MainActivity a) {
+        JSONObject o = new JSONObject();
+        try {
+            JSONObject s = state(a), p = new JSONObject(), r = new JSONObject(), l = new JSONObject();
+            int mic = has(a, Manifest.permission.RECORD_AUDIO);
+            p.put("mic", mic).put("wake", mic).put("camera", -1).put("screen", ScreenService.live != null ? 1 : 0)
+                .put("location", has(a, Manifest.permission.ACCESS_FINE_LOCATION)).put("contacts", has(a, Manifest.permission.READ_CONTACTS))
+                .put("calls", has(a, Manifest.permission.READ_CALL_LOG))
+                .put("notify", a.getSystemService(NotificationManager.class).areNotificationsEnabled() ? 1 : 0)
+                .put("battery", a.getSystemService(PowerManager.class).isIgnoringBatteryOptimizations(a.getPackageName()) ? 1 : 0);
+            r.put("mic", s.getBoolean("mic")).put("wake", s.getBoolean("wake")).put("camera", s.getBoolean("camera"))
+                .put("screen", s.getBoolean("screen")).put("notify", NotifyService.up);
+            for (String id : new String[]{"mic", "wake", "camera", "screen", "location", "contacts", "calls", "notify"}) l.put(id, sp == null ? 0 : sp.getLong("last_" + id, 0));
+            JSONArray log = new JSONArray();
+            for (String line : (sp == null ? "" : sp.getString("plog", "")).split("\n")) {
+                String[] x = line.split("\\|");
+                if (x.length == 2) log.put(new JSONArray().put(x[0]).put(Long.parseLong(x[1])));
+            }
+            o.put("stopped", stopped).put("perm", p).put("run", r).put("last", l).put("log", log);
+        } catch (Exception e) { /* send what we have */ }
+        return o.toString();
     }
 
     /** Only a real finger tap on the screen in the last 3 seconds can switch Jarvis on again. */

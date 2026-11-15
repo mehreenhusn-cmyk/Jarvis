@@ -23,10 +23,13 @@ import org.json.JSONObject;
 public class NotifyService extends Service {
     static final String BG = "jarvis_bg", ALERT = "jarvis_alert";
     volatile boolean run;
+    static volatile boolean up;  // Part 29: the dashboard shows if the reminder service is really running
 
     @Override public IBinder onBind(Intent i) { return null; }
 
     @Override public int onStartCommand(Intent i, int flags, int id) {
+        up = true;
+        Privacy.init(this);
         NotificationManager nm = getSystemService(NotificationManager.class);
         nm.createNotificationChannel(new NotificationChannel(BG, "Jarvis is running", NotificationManager.IMPORTANCE_MIN));
         nm.createNotificationChannel(new NotificationChannel(ALERT, "Reminders", NotificationManager.IMPORTANCE_HIGH));
@@ -62,11 +65,12 @@ public class NotifyService extends Service {
     }
 
     void notify(String text) {
+        Privacy.used("notify");
         PendingIntent pi = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
         Notification n = new Notification.Builder(this, ALERT).setSmallIcon(android.R.drawable.ic_popup_reminder)
             .setContentTitle("Jarvis reminder").setContentText(text).setAutoCancel(true).setContentIntent(pi).build();
         getSystemService(NotificationManager.class).notify((int) System.currentTimeMillis(), n);
     }
 
-    @Override public void onDestroy() { run = false; super.onDestroy(); }
+    @Override public void onDestroy() { run = false; up = false; super.onDestroy(); }
 }

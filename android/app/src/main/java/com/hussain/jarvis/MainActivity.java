@@ -63,10 +63,12 @@ public class MainActivity extends Activity {
             @Override public void onGeolocationPermissionsShowPrompt(String o, android.webkit.GeolocationPermissions.Callback cb) {
                 boolean has = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
                 if (trusted(o) && !has) requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 4);
+                if (trusted(o) && has) Privacy.used("location");
                 cb.invoke(o, trusted(o) && has, false);
             }
             @Override public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams p) {
                 if (Privacy.stopped) { cb.onReceiveValue(null); return true; }
+                Privacy.used("camera");
                 if (picker != null) picker.onReceiveValue(null);
                 picker = cb;
                 try { startActivityForResult(p.createIntent(), 7); } catch (Exception e) { picker = null; return false; }
@@ -89,10 +91,14 @@ public class MainActivity extends Activity {
                 return false;
             }
             @JavascriptInterface public String calls(int days) {
-                return allowed(Manifest.permission.READ_CALL_LOG, 2) ? ContactsInfo.calls(MainActivity.this, days) : "{\"perm\":false}";
+                if (!allowed(Manifest.permission.READ_CALL_LOG, 2)) return "{\"perm\":false}";
+                Privacy.used("calls");
+                return ContactsInfo.calls(MainActivity.this, days);
             }
             @JavascriptInterface public String contact(String name) {
-                return allowed(Manifest.permission.READ_CONTACTS, 3) ? ContactsInfo.find(MainActivity.this, name) : "{\"perm\":false}";
+                if (!allowed(Manifest.permission.READ_CONTACTS, 3)) return "{\"perm\":false}";
+                Privacy.used("contacts");
+                return ContactsInfo.find(MainActivity.this, name);
             }
             @JavascriptInterface public void listen(String lang, boolean wake) {
                 if (Privacy.stopped) { web.post(() -> web.evaluateJavascript("window.onHeardErr&&onHeardErr('Jarvis is stopped. Tap Turn mic on first',false)", null)); return; }
@@ -101,6 +107,17 @@ public class MainActivity extends Activity {
             }
             @JavascriptInterface public void stopListen() {
                 runOnUiThread(() -> { if (ears != null) ears.stop(); });
+            }
+            @JavascriptInterface public String dashboard() { return Privacy.dashboard(MainActivity.this); }
+            // Part 29: opens one fixed Android settings page (nothing else can be opened from the page)
+            @JavascriptInterface public void openSettings(String w) {
+                Intent i;
+                if ("acc".equals(w)) i = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                else if ("battery".equals(w)) i = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                else if ("notif".equals(w) && Build.VERSION.SDK_INT >= 26) i = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+                else i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName()));
+                final Intent go = i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                runOnUiThread(() -> { try { startActivity(go); } catch (Exception e) { /* this phone has no such page */ } });
             }
             @JavascriptInterface public String privacy() { return Privacy.state(MainActivity.this).toString(); }
             @JavascriptInterface public String stopAll() { return Privacy.stopAll(MainActivity.this); }
@@ -143,6 +160,7 @@ public class MainActivity extends Activity {
 
     void screenDone() {
         if (Privacy.stopped) return;
+        Privacy.used("screen");
         pending = ScreenService.snapshot();
         try { startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NEW_TASK)); }
         catch (Exception e) { /* the notification below still works */ }

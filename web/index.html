@@ -28,14 +28,15 @@ form input{border-radius:24px}#mic{width:52px;height:52px;padding:0;border-radiu
 #set{flex:1;overflow-y:auto;padding:18px 16px}#set h4{margin:22px 0 8px;color:var(--ac);font-size:13px;letter-spacing:.1em;text-transform:uppercase}
 .card{background:var(--sf);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
 .kr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;justify-content:space-between}
+.dr{padding:9px 0;border-top:1px solid var(--line)}.dr small{display:block;color:var(--mut);font-size:12px}.chip{display:inline-block;font-size:12px;padding:2px 8px;border-radius:10px;background:var(--sf2);margin:4px 6px 0 0}
 </style></head><body>
 <header><div class="logo">J</div><div><b>JARVIS</b><span id="st">...</span></div><span class="sp"></span><button id="vbtn" title="Voice">🔊</button><button id="gear" title="Settings">⚙</button></header>
 <div id="pair"><h2>Welcome, sir</h2><p>Enter the 6-digit pairing code shown in Termux.</p>
 <input id="code" inputmode="numeric" maxlength="6" placeholder="••••••"><p><button id="go">Pair this phone</button></p><p id="pe" class="bad"></p></div>
-<div id="set" hidden><h4>API key</h4><div class="card"><p style="margin-top:0;color:var(--mut)">Paste a key. Jarvis finds the company and checks it.</p>
+<div id="set" hidden><h4>Privacy and permissions</h4><div class="card" id="dash"></div><h4>API key</h4><div class="card"><p style="margin-top:0;color:var(--mut)">Paste a key. Jarvis finds the company and checks it.</p>
 <input id="key" placeholder="Paste key here" autocomplete="off"><p><button id="kp">Paste from clipboard</button> <button id="kc" class="g">Check</button></p><p id="kr"></p><div id="kl"></div></div>
 <h4>People</h4><div class="card" id="pl"></div><h4>Memory</h4><div class="card" id="ml"></div><h4>Money ledger</h4><div class="card" id="ll"></div></div>
-<div id="pv"></div><div id="chat" hidden>
+<div id="off" class="bad" hidden style="padding:8px 16px;font-size:13px;background:var(--sf);border-bottom:1px solid var(--line)"></div><div id="pv"></div><div id="chat" hidden>
 <div id="vp" hidden><select id="lang"><option value="hi-IN">Speak: Hindi</option><option value="en-IN">Speak: English</option></select>
 <select id="voice"></select><select id="pre"><option value="">Voice style</option><option value="k">Khattar (deep, Hindi dub)</option><option value="r">Rolex (very deep)</option><option value="d">Jarvis studio (Hindi)</option><option value="b">Jarvis studio (British English)</option><option value="n">Normal</option></select>
 <label><input type="checkbox" id="say" style="width:auto"> Speak replies</label><label>Depth <input type="range" id="pt" min="0.5" max="1.5" step="0.05" style="width:80px;padding:0"></label><label>Speed <input type="range" id="rt" min="0.6" max="1.4" step="0.05" style="width:80px;padding:0"></label>
@@ -60,11 +61,13 @@ async function checkDue(){
     if(s==200)(d.due||[]).forEach(r=>{const t='⏰ Reminder: '+r.text;add('bot',t);speak(t,true);if(navigator.vibrate)navigator.vibrate([300,150,300]);});
   }catch(e){}
 }
+let down=0,since='',srvUp=0;
 async function ping(){
   try{const {d}=await api('/status');
-    if(boot&&d.boot&&d.boot!==boot){location.reload();return;}boot=d.boot||boot;
+    if(boot&&d.boot&&d.boot!==boot){location.reload();return;}boot=d.boot||boot;down=0;srvUp=d.uptime||0;$('off').hidden=true;
     $('st').textContent=(d.configured?'● Online':'● Online · no API key yet')+(d.sync?' · Update: '+d.sync.split('|').join(' · '):'');$('st').className=d.configured?'ok':'warn';
-  }catch(e){$('st').textContent='● Server offline';$('st').className='bad';}
+  }catch(e){if(!down++)since=nowS().slice(11);$('st').textContent='● Server offline';$('st').className='bad';srvUp=0;
+    if(down>=2){$('off').hidden=false;$('off').textContent='Jarvis server is not running (since '+since+'). Open the Termux app and wait 5 seconds. I keep trying every 5 seconds.';}}
 }
 async function history(){
   $('log').textContent='';
@@ -226,7 +229,29 @@ async function addKey(){
 $('kc').onclick=addKey;$('key').onpaste=()=>setTimeout(addKey,150);
 $('kp').onclick=async()=>{try{$('key').value=await navigator.clipboard.readText();addKey();}catch(e){$('kr').textContent='Clipboard blocked. Long-press the box and paste.';}};
 $('vbtn').onclick=()=>{$('vp').hidden=!$('vp').hidden;};
-$('gear').onclick=()=>{if(!token)return;$('set').hidden=!$('set').hidden;$('chat').hidden=!$('set').hidden;if(!$('set').hidden){keys();mem();led();ppl();}};
+const DASH=[['mic','Microphone','Voice input, only after you tap the mic','app'],['wake','Hey Jarvis','Wake word, only while the app is open','app'],['camera','Camera and photos','Android photo picker, only when you tap the camera button',''],['screen','Screen reader','Needs the Jarvis accessibility switch. Reads text only when you ask','acc'],['location','Location','Only when you ask where you are','app'],['contacts','Contacts','Only when you ask for a contact','app'],['calls','Call log','Only when you ask for calls','app'],['notify','Reminders and notifications','Reminders show even when the app is closed','notif'],['battery','Battery limit','Android may stop Jarvis in the background to save battery','battery']];
+const ago=t=>{if(!t)return 'never';const m=Math.round((Date.now()-t)/60000);return m<1?'just now':m<60?m+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' days ago';};
+function dash(){
+  const box=$('dash');let d=null;try{d=window.JarvisApp&&JarvisApp.dashboard?JSON.parse(JarvisApp.dashboard()):null}catch(e){}
+  const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;};
+  box.textContent='';
+  box.appendChild(el('p','',srvUp?'Server: online for '+(srvUp<3600?Math.round(srvUp/60)+' min':Math.round(srvUp/3600)+' h'):'Server: offline'));
+  if(!d){box.appendChild(el('p','','Permission status is shown in the Jarvis Android app. In Chrome the browser controls the microphone and location.'));return;}
+  box.appendChild(el('p',d.stopped?'bad':'ok',d.stopped?'🔒 Jarvis is STOPPED. Nothing listens or reads.':'🟢 Jarvis is active. It listens or reads only when you ask.'));
+  const b=el('button','g',d.stopped?'Turn mic on':'Stop everything');b.onclick=()=>{if(d.stopped)$('mon').click();else add('bot',stopAll());setTimeout(dash,400);};box.appendChild(b);
+  const nm={};
+  DASH.forEach(([id,name,why,go])=>{nm[id]=name;const p=d.perm[id],r=el('div','dr');r.appendChild(el('b','',name));r.appendChild(el('small','',why));
+    const L=id=='battery'?['Limited by Android','Not limited']:id=='screen'?['Accessibility OFF','Accessibility ON']:['Not allowed','Allowed'];
+    r.appendChild(el('span','chip '+(p==1?'ok':p==0?'bad':''),p<0?'No permission needed':L[p]));
+    if(id!='battery')r.appendChild(el('span','chip '+(d.run[id]?'warn':''),id=='notify'?(d.run[id]?'Reminder service ON':'Reminder service OFF'):d.run[id]?'RUNNING NOW':'Not running'));
+    if(id!='battery')r.appendChild(el('span','chip','Last used: '+ago(d.last[id])));
+    if(p==0){const g=el('button','g','Open settings');g.onclick=()=>JarvisApp.openSettings(go);r.appendChild(g);}
+    box.appendChild(r);});
+  box.appendChild(el('small','','Recent activity (feature and time only, nothing private is saved):'));
+  const lg=(d.log||[]).slice(-8).reverse();box.appendChild(el('div','',lg.length?lg.map(x=>(nm[x[0]]||x[0])+' · '+new Date(x[1]).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})).join('\n'):'Nothing yet.'));box.lastChild.style.whiteSpace='pre-line';
+}
+setInterval(()=>{if(!$('set').hidden)dash();},3000);
+$('gear').onclick=()=>{if(!token)return;$('set').hidden=!$('set').hidden;$('chat').hidden=!$('set').hidden;if(!$('set').hidden){keys();mem();led();ppl();dash();}};
 const sty=()=>$('voice').value.includes('hi-IN')?'hindi':'english';
 let priv=localStorage.getItem('jpriv')=='1';
 if(window.JarvisApp&&JarvisApp.privacy){try{priv=!!JSON.parse(JarvisApp.privacy()).stopped;localStorage.setItem('jpriv',priv?'1':'0');}catch(e){}}  // in the app, Java is the truth

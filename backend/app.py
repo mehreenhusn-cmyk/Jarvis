@@ -211,7 +211,7 @@ class H(BaseHTTPRequestHandler):
             return self.wfile.write(page)
         if self.path == "/status":
             ok = any(n == "mock" or bool(getkey(n)) for n in names())
-            return self.send(200, {"ok": True, "provider": ",".join(names()), "configured": ok, "boot": BOOT, "sync": sync_note()})
+            return self.send(200, {"ok": True, "provider": ",".join(names()), "configured": ok, "boot": BOOT, "sync": sync_note(), "uptime": int(time.time()) - int(BOOT)})
         dev = self.device()
         if dev is None:
             return self.send(401, {"error": "pehle pair karo"})
