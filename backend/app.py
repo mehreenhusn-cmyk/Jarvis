@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, autostart, backup, brief, calls, clock, ledger, memory, people, phone, place, progress, remind, screen, see, sysinfo, tasks, tts, voiceengine, web
+import actions, autostart, backup, brief, calls, clock, handoff, ledger, memory, people, phone, place, progress, remind, screen, see, sysinfo, tasks, tts, voiceengine, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -380,6 +380,8 @@ class H(BaseHTTPRequestHandler):
             now = str(data.get("now", ""))
             if mem is None:  # Part 47: "backup", "delete everything" (typed phrase). Never takes a passphrase
                 mem = backup.handle(c, dev, msg, style == "hindi")
+            if mem is None:  # Part 48: "handoff" (summary for Claude or ChatGPT) and "phone kho gaya" (steps)
+                mem = handoff.handle(c, dev, msg, style == "hindi")
             if mem is None:  # missed calls / contact Faisal (made here, no AI)
                 mem = calls.handle(msg, data.get("calls"), data.get("contact"), style == "hindi", data.get("cal"))
             if mem is None:  # note about Faisal: ... / who is Faisal

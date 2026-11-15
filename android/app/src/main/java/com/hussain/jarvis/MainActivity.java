@@ -214,6 +214,23 @@ public class MainActivity extends Activity {
                 return "{\"ok\":true,\"wait\":true}";
             }
             @JavascriptInterface public String setControl(boolean on) { return Privacy.setControl(on); }
+            // Part 48: Share to Jarvis (in), handoff summary (out), two fixed help links. Nothing is sent anywhere by Jarvis: Android's own share sheet or browser opens and Hussain picks.
+            @JavascriptInterface public String takeShare() {
+                if (AppLock.locked() || sharedText == null) return "";
+                String t = sharedText; sharedText = null;
+                return JSONObject.quote(t);
+            }
+            @JavascriptInterface public String shareOut(String t) {
+                if (AppLock.locked() || t == null || t.length() > 8000 || System.currentTimeMillis() - touch > 3000) return "{\"ok\":false}";
+                runOnUiThread(() -> { try { Intent s = new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, t); startActivity(Intent.createChooser(s, "Share handoff summary")); } catch (Exception e) {} });
+                return "{\"ok\":true}";
+            }
+            @JavascriptInterface public String openLink(String k) {
+                String u = "findhub".equals(k) ? "https://www.google.com/android/find" : "sanchar".equals(k) ? "https://sancharsaathi.gov.in" : null;
+                if (AppLock.locked() || u == null || System.currentTimeMillis() - touch > 3000) return "{\"ok\":false}";
+                runOnUiThread(() -> { try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(u))); } catch (Exception e) {} });
+                return "{\"ok\":true}";
+            }
             @JavascriptInterface public String phoneInfo() { if (AppLock.locked()) return "{\"locked\":true}"; return PhoneInfo.json(MainActivity.this); }
             @JavascriptInterface public void saveToken(String t) {
                 getSharedPreferences("j", 0).edit().putString("token", t).apply();
@@ -226,6 +243,7 @@ public class MainActivity extends Activity {
             }
         }, "JarvisApp");
         wantListen = LISTEN.equals(getIntent().getAction());
+        takeShare(getIntent());
         if (TaskRunner.CANCEL.equals(getIntent().getAction())) TaskRunner.cancel = true;
         web.loadUrl(URL);
     }
@@ -234,7 +252,16 @@ public class MainActivity extends Activity {
         super.onNewIntent(i);
         setIntent(i);
         wantListen = LISTEN.equals(i.getAction());  // handled in onResume, after the app lock
+        takeShare(i);
         if (TaskRunner.CANCEL.equals(i.getAction())) TaskRunner.cancel = true;  // Part 42: the Cancel button of the task notification
+    }
+
+    static String sharedText;  // Part 48: text another app shared to Jarvis; the page takes it with takeShare() after the app lock
+
+    void takeShare(Intent i) {
+        if (i == null || !Intent.ACTION_SEND.equals(i.getAction())) return;
+        String t = i.getStringExtra(Intent.EXTRA_TEXT);
+        if (t != null && t.trim().length() > 0) sharedText = t.length() > 4000 ? t.substring(0, 4000) : t;
     }
 
     static String pending;  // screen text waiting to be handed to the page
@@ -303,7 +330,7 @@ public class MainActivity extends Activity {
         if (AppLock.locked()) return;  // nothing is handed to the page while it is locked
         if (wantListen) {  // Part 38: tile or shortcut. Same as tapping the mic: the page checks Stop itself.
             wantListen = false;
-            web.postDelayed(() -> web.evaluateJavascript("document.getElementById('mic')&&document.getElementById('mic').click()", null), 900);
+            web.postDelayed(() -> web.evaluateJavascript("window.go&&go('chat');document.getElementById('mic')&&document.getElementById('mic').click()", null), 900);
         }
         if (pendingAct != null && web != null) {
             String q = pendingAct; pendingAct = null;

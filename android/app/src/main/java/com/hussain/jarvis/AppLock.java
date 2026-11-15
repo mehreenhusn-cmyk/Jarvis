@@ -8,7 +8,7 @@ import android.content.Intent;
 /** Part 36: lock the Jarvis app with Android's own screen lock prompt (fingerprint, face, PIN, pattern). Jarvis never keeps its own PIN. */
 final class AppLock {
     static final int ASK = 9, TURN_OFF = 10;
-    static final long GRACE = 60_000;  // leaving the app for less than a minute does not ask again
+    static final long GRACE = 300_000;  // Part 48: leaving the app for less than 5 minutes does not ask again (was 1 minute)
     private static boolean on;
     private static long okUntil;  // the app is open until this time
     private static boolean loaded;
@@ -18,7 +18,9 @@ final class AppLock {
     static void init(Context c) {
         if (loaded) return;
         loaded = true;
-        on = c.getSharedPreferences("j", 0).getBoolean("applock", false);
+        android.content.SharedPreferences p = c.getSharedPreferences("j", 0);
+        if (!p.getBoolean("lock48", false)) p.edit().putBoolean("lock48", true).putBoolean("applock", false).apply();  // Part 48: Hussain does not want the prompt on every open. One time reset to OFF; he can turn it on again in Settings
+        on = p.getBoolean("applock", false);
     }
 
     /** True if the phone has a screen lock. Without one Android cannot ask for anything. */
