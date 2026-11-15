@@ -10,10 +10,12 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Handler;
 import android.view.MotionEvent;
 import android.os.Looper;
 import android.provider.Settings;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -260,6 +262,56 @@ public class MainActivity extends Activity {
                     String x = t.toString();
                     return JSONObject.quote(x.length() > 4000 ? x.substring(0, 4000) : x);
                 } catch (Exception e) { return ""; }
+            }
+            // Part 49b: notification summary. Off by default; the tap rule (3 s) applies to every change; reading needs a tap too.
+            @JavascriptInterface public String nsInfo() {
+                if (AppLock.locked()) return "{\"locked\":true}";
+                try {
+                    SharedPreferences p = getSharedPreferences("j", 0);
+                    String en = android.provider.Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
+                    return new JSONObject().put("access", en != null && en.contains(getPackageName())).put("on", p.getBoolean("ns_on", false)).put("up", NotifySummary.up)
+                        .put("count", NotifySummary.count()).put("apps", new JSONArray(p.getStringSet("ns_apps", new java.util.HashSet<String>()))).toString();
+                } catch (Exception e) { return "{}"; }
+            }
+            @JavascriptInterface public String nsAccess() {
+                if (AppLock.locked() || System.currentTimeMillis() - touch > 3000) return "{\"ok\":false,\"err\":\"tap\"}";
+                runOnUiThread(() -> { try { startActivity(new Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception e) {} });
+                return "{\"ok\":true}";
+            }
+            @JavascriptInterface public String nsSet(boolean on) {
+                if (AppLock.locked() || System.currentTimeMillis() - touch > 3000) return "{\"ok\":false,\"err\":\"tap\"}";
+                getSharedPreferences("j", 0).edit().putBoolean("ns_on", on).apply();
+                if (!on) NotifySummary.clear();
+                return "{\"ok\":true}";
+            }
+            @JavascriptInterface public String nsAppList() { if (AppLock.locked()) return "[]"; return Apps.list(MainActivity.this).toString(); }
+            @JavascriptInterface public String nsChoose(String json) {
+                if (AppLock.locked() || json == null || System.currentTimeMillis() - touch > 3000) return "{\"ok\":false,\"err\":\"tap\"}";
+                try {
+                    JSONArray a = new JSONArray(json);
+                    SharedPreferences p = getSharedPreferences("j", 0);
+                    SharedPreferences.Editor ed = p.edit();
+                    java.util.HashSet<String> set = new java.util.HashSet<>();
+                    for (int i = 0; i < Math.min(15, a.length()); i++) {
+                        JSONObject o = a.getJSONObject(i);
+                        String pk = o.optString("p");
+                        if (pk.isEmpty() || pk.equals(getPackageName())) continue;
+                        set.add(pk);
+                        ed.putString("ns_l_" + pk, o.optString("l", pk));
+                    }
+                    ed.putStringSet("ns_apps", set).apply();
+                    NotifySummary.keepOnly(set, getSharedPreferences("j", 0));
+                    return "{\"ok\":true}";
+                } catch (Exception e) { return "{\"ok\":false}"; }
+            }
+            @JavascriptInterface public String nsRead() {
+                if (AppLock.locked() || System.currentTimeMillis() - touch > 3000) return "";
+                return NotifySummary.json();
+            }
+            @JavascriptInterface public String nsClear() {
+                if (AppLock.locked() || System.currentTimeMillis() - touch > 3000) return "{\"ok\":false}";
+                NotifySummary.clear();
+                return "{\"ok\":true}";
             }
             @JavascriptInterface public String phoneInfo() { if (AppLock.locked()) return "{\"locked\":true}"; return PhoneInfo.json(MainActivity.this); }
             @JavascriptInterface public void saveToken(String t) {

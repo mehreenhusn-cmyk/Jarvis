@@ -41,6 +41,15 @@ final class Apps {
         return out;
     }
 
+    /** Part 49b: [{l:name,p:package}] of every app with a launcher icon, A to Z. Names only. */
+    static JSONArray list(Context c) {
+        List<App> l = all(c);
+        java.util.Collections.sort(l, (x, y) -> x.label.compareToIgnoreCase(y.label));
+        JSONArray a = new JSONArray();
+        try { for (App x : l) a.put(new JSONObject().put("l", x.label).put("p", x.pkg)); } catch (Exception e) { /* empty */ }
+        return a;
+    }
+
     /** Result: {ok,app} opened | {ask:[names]} two or more fit, the page shows buttons | {err:not_found|launch_failed}. exact=true when Hussain tapped a name from our own list. */
     static JSONObject open(Context c, String name, boolean exact) {
         JSONObject o = new JSONObject();

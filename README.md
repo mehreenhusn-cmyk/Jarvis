@@ -4,10 +4,10 @@
 > runs out often. This README has the full plan: what we build, why, how, the rules, where we are, and what is next.
 > Read it, then start the next part. Do not ask him to resend the old chat. Repo: https://github.com/mehreenhusn-cmyk/Jarvis
 
-## 0. AT A GLANCE (updated 16 Nov 2026, after Part 53 and the new Chat look)
+## 0. AT A GLANCE (updated 16 Nov 2026, after Parts 53, 53b and 49b)
 **What:** Jarvis, a personal AI assistant on Hussain's phone (Termux server + Android app). **Why:** one app on the phone, no PC, works by download only.
-**Done:** 56 of 57 Parts built (about 4,950 lines of code, 77 files). Part 49 is now split into 49a (clipboard, built) and 49b (notification summary, optional). Only Parts 1 to 26 were partly phone tested; Parts 27 to 40, 41 to 48, 49a, 50, 51, 52, 54, 55 and 56 are built but NOT phone tested. Java is still not compiled: the GitHub Build APK is the first compile test.
-**Pending:** 2 optional Parts, about 370 lines: 49b notification summary (about 290, risky) and Weather on Home (about 80, needs a free weather service). No required Part is left. Next step is the same as before: run **Build APK**, install, test with section 11.8. Part 53 (Sarvam voice) and the new Chat look are built but not phone tested.
+**Done:** 57 of 58 Parts built (about 4,950 lines of code, 77 files). Part 49 was split into 49a (clipboard) and 49b (notification summary), both built. Only Parts 1 to 26 were partly phone tested; Parts 27 to 40, 41 to 48, 49a, 50, 51, 52, 54, 55 and 56 are built but NOT phone tested. Java is still not compiled: the GitHub Build APK is the first compile test.
+**Pending:** only 1 optional Part: Weather on Home (about 80 lines, needs a free weather service). No required Part is left. Next step: run **Build APK**, install, test with section 11.8. Parts 53, 53b and 49b are built but not phone tested; 49b Java was never compiled (the GitHub Build APK is the first compile test). The default voice stays Edge JARVIS (Hussain likes it); Sarvam is used only if he adds a key and chooses it.
 | Group | Parts | Status |
 |---|---|---|
 | Base: server, chat, voice, reminders, app, privacy | 1 to 29 | DONE |
@@ -27,7 +27,7 @@
 | Chat screen redesigned in the same neon look as Home (CSS only) | 53b | BUILT (this zip), not rendered, not phone tested |
 | Home tab (orb, today, quick buttons, stats). Redesigned in Part 48 | 56, 48 | BUILT |
 | Offline wake word (Vosk, model downloaded by tap) and Clipboard button | 40, 49a | BUILT (this zip) |
-| Optional: notification summary | 49b | OPTIONAL |
+| Notification summary (optional feature, OFF by default, chosen apps only) | 49b | BUILT (this zip), not compiled, not phone tested |
 
 ## 1. What we are building
 A personal AI assistant like Jarvis from Iron Man. It talks, remembers things, sets reminders, keeps a money ledger, reads links and
@@ -293,7 +293,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 47 DONE | (old Batch E) Encrypted backup, restore with preview, delete everything | backup.py*, app.py, index.html | ~210 (real: about 210) | With | Memory is safe and can move to a new phone |
 | 48 DONE | (old Batch G) Share to Jarvis, handoff summary for Claude or ChatGPT, lost-phone steps card. Also: app lock OFF by default, neon Home dashboard | AndroidManifest, MainActivity, AppLock, handoff.py*, app.py, index.html | ~180 (real: about 215 code lines) | Python run, Java without | Official sharing only, no private sessions |
 | 49a DONE | Clipboard button (half of old Part 49, safe) | MainActivity, index.html | ~60 (real: about 45) | Without | Use a copied text without typing |
-| 49b | OPTIONAL, risky: notification summary for chosen apps (other half of old Part 49) | NotifySummary.java*, MainActivity, AndroidManifest, index.html, app.py | ~290 | Without | Day summary. Needs special notification access |
+| 49b DONE | Notification summary. `NotifySummary.java` (NotificationListenerService, needs the Android notification access switch, Android shows a warning). OFF by default. Settings > Notification summary: 1 allow access, 2 choose up to 15 apps, 3 turn on. Keeps app name, title and 200 characters in phone memory only (never on disk, never sent) for 24 h, max 50. Drops anything with OTP, code, password, PIN, verification or a card number, ongoing and group-summary notifications, and Jarvis' own. Home > Smart shortcuts > Notifications shows the list; only the Summarize tap sends it to the AI; Clear list and Turn off wipe it. No server change (reuses chat and the same redaction idea as 49a) | NotifySummary.java*, Apps.java, MainActivity, AndroidManifest, index.html | ~230 | Page JS syntax only; Java NOT compiled | Day summary. Needs special notification access
 | 50 DONE | Live system card (like the PC screenshot): RAM used/free, storage, battery and heat, Jarvis server own memory and CPU, uptime, net online. New `/stats` route, refreshed every 5 s only while the card is open. Honest "not available" if Android blocks a number | sysinfo.py*, app.py, index.html | ~110 | With (Python) | Hussain sees what Jarvis and the phone are using |
 | 51 DONE | Voice Personality Engine, backend: intent classifier (CONVERSATION, INFORMATION, TASK_CONFIRMATION, REMINDER, BRIEFING, ALERT), policy table, JARVIS fallback, two voice profiles, `/tts` takes `intent` or `profile` | voiceengine.py*, tts.py, app.py | ~170 | With | The right voice is chosen by intent, not by keywords |
 | 52 DONE | Voice Personality settings: Tony and JARVIS cards, Auto routing ON, manual override, Test Tony, Test JARVIS, active-voice badge, saved in `voice.json` on the server (survives restart), stop and switch while speaking | index.html, app.py | ~160 | Without (page) plus Python route tests | One clear place to control both voices |
@@ -317,7 +317,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 Estimates are rough (plus or minus 25 percent). Real numbers go into this table after each Part.
 
 
-**Build order (next first):** all required Parts are built. Next: build the APK and test on the phone (section 11.8), including Part 53 with a Sarvam key. Optional: 49b. Ideas not planned yet: weather on Home (needs location and a free weather service), a portrait image for the Home orb.
+**Build order (next first):** all required Parts are built. Next: build the APK and test on the phone (section 11.8), including 49b and Part 53 with a Sarvam key. Optional left: Weather on Home. Ideas not planned yet: weather on Home (needs location and a free weather service), a portrait image for the Home orb.
 
 ### 11.6b Dual voice personality plan (added 15 Nov 2026; Parts 51, 52 and 53 built 16 Nov 2026; Tony hidden, provider changed to Sarvam)
 Goal: two default voices that switch by themselves. Default from the first start: Tony and JARVIS with Auto routing ON (Hussain asked for this on 16 Nov 2026); the classic voice is only used if he switches it on in Settings. TONY = conversation (confident, witty, Hinglish). JARVIS = information, tasks, reminders, briefings, alerts (calm, deep, precise). No cloning of Rajesh Khattar or Atul Kapoor. Original or licensed voices only.
