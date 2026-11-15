@@ -59,6 +59,7 @@ Auto-start (Part 11): Termux starts Jarvis when opened. Turn off with `JARVIS_NO
 | 16 | **Android app shell** (`android/`, `.github/workflows/apk.yml`): WebView of the Termux page, mic permission. Build: GitHub > Actions > Build APK > run > download `Jarvis-apk` | Built, never built yet |
 | 20 | **People profiles** (`backend/people.py`): "note about Faisal: old friend", "who is Faisal", "my people", "forget person Faisal"; Settings > People list. When you name a saved person in chat, the AI gets those notes. No passwords or OTPs | Built, logic checked with a fake database only |
 | 21 | **Location** (`backend/place.py`): only when you ask ("where am I", "near me"), the page sends the phone position for that one message. Never stored. Place name comes from OpenStreetMap over the internet. App asks for location permission | Built, not tested on phone |
+| 25 | **Mic inside the app + Hey Jarvis** (`Ears.java`, page changes): the app now uses the phone's own speech recognizer, so the mic button works in the app. "Hey Jarvis: off/on" button in the voice drawer: while the app stays open, it listens again and again; say "Hey Jarvis, <question>" or just "Hey Jarvis" and wait for "Yes sir?". It pauses while Jarvis speaks and when the app goes to the background (Android does not allow background listening). May beep and use battery; the phone's speech service (Google) hears the audio. "Jarvis, stop listening" or the button turns it off. Opt-in only | Built; app side not compiled or tried |
 | 23 | **Screen reader** (`ScreenService.java`, `backend/screen.py`): Android app only. Say "read my screen" or "explain this screen". Jarvis asks you to turn on "Jarvis screen reader" in Accessibility settings (once), goes to the background, reads the text of the app you switch to after 6 seconds, and comes back with the answer. Reads text only (no screenshots), skips password fields, max 3000 characters, ignores all events and never reads by itself. The text goes to the AI provider for that one answer only and the answer is not saved. Screen text is treated as data, not orders | Built; app side not compiled or tried |
 | 19 | **Calls and contacts** (`backend/calls.py` + `ContactsInfo.java`): in the Android app only, "missed calls", "recent calls today", "call history this week", "contact Faisal". Reads names, numbers and times only when you ask; the permission is asked at that moment. The answer is made on the phone (no AI sees it) and is NOT saved in chat history | Built, logic checked with fake data; app side not compiled |
 | 3c | **Voice fix:** an old saved voice name left the voice list empty, so nothing was spoken and no error showed. Now it falls back to Madhur, and every voice failure shows a clear message | Built |
@@ -71,13 +72,12 @@ Auto-start (Part 11): Termux starts Jarvis when opened. Turn off with `JARVIS_NO
 | 18 | **Reminder notifications with the app closed:** `NotifyService.java` checks `/due` every 30 sec and shows a phone notification. The page hands the pairing token to the app. Termux must stay running | Built, never compiled or run |
 
 ## 7. Roadmap (about 26 parts, each under 350 lines; sizes are estimates)
-Done so far (1-24): about 38 files, about 2,400 lines of code. Known limit: Android WebView has no speech recognition, so the mic button works in Chrome only; the app needs a small speech bridge (planned with Part 25). 
+Done so far (1-25): about 39 files, about 2,550 lines of code. Hey Jarvis works only while the app is open (not from the background or with the screen off). 
 | Part | What | New files | Lines |
 |---|---|---|---|
-| 25 | "Hey Jarvis" wake word (uncertain on Android, test first) | 2 | ~150 |
 | 26 | Security check and final polish | 0-1 | ~100 |
-| **Remaining (25, 26)** | | **~3 files** | **~250 lines** |
-| **Final total** | | **~41 files** | **~2,650 lines** |
+| **Remaining (26)** | | **0-1 files** | **~100 lines** |
+| **Final total** | | **~40 files** | **~2,650 lines** |
 
 Safety rules for later parts: ask before sending a message, deleting or paying; never use mic or camera secretly; call log is metadata only;
 "stop listening" turns the mic off at once.

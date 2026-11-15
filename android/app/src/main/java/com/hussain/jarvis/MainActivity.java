@@ -27,6 +27,7 @@ import android.webkit.WebViewClient;
 public class MainActivity extends Activity {
     static final String URL = "http://127.0.0.1:8787";
     WebView web;
+    Ears ears;
     ValueCallback<Uri[]> picker;
 
     @Override protected void onCreate(Bundle b) {
@@ -70,6 +71,12 @@ public class MainActivity extends Activity {
             @JavascriptInterface public String contact(String name) {
                 return allowed(Manifest.permission.READ_CONTACTS, 3) ? ContactsInfo.find(MainActivity.this, name) : "{\"perm\":false}";
             }
+            @JavascriptInterface public void listen(String lang, boolean wake) {
+                runOnUiThread(() -> { if (ears == null) ears = new Ears(MainActivity.this, web); ears.start(lang, wake); });
+            }
+            @JavascriptInterface public void stopListen() {
+                runOnUiThread(() -> { if (ears != null) ears.stop(); });
+            }
             @JavascriptInterface public String screen() {
                 if (ScreenService.live == null) {
                     runOnUiThread(() -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
@@ -99,6 +106,11 @@ public class MainActivity extends Activity {
         nm.notify(77, new Notification.Builder(this, NotifyService.ALERT).setSmallIcon(android.R.drawable.ic_popup_reminder)
             .setContentTitle("Jarvis read your screen").setContentText("Tap to see the answer").setAutoCancel(true)
             .setContentIntent(PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE)).build());
+    }
+
+    @Override protected void onPause() {
+        super.onPause();  // Android does not let apps listen from the background, so Hey Jarvis pauses here
+        if (ears != null && ears.on) { ears.stop(); ears.js("onHeardErr", "Hey Jarvis paused because the app went to the background"); }
     }
 
     @Override protected void onResume() {

@@ -39,7 +39,7 @@ form input{border-radius:24px}#mic{width:52px;height:52px;padding:0;border-radiu
 <div id="vp" hidden><select id="lang"><option value="hi-IN">Speak: Hindi</option><option value="en-IN">Speak: English</option></select>
 <select id="voice"></select><select id="pre"><option value="">Voice style</option><option value="k">Khattar (deep, Hindi dub)</option><option value="r">Rolex (very deep)</option><option value="n">Normal</option></select>
 <label><input type="checkbox" id="say" style="width:auto"> Speak replies</label><label>Depth <input type="range" id="pt" min="0.5" max="1.5" step="0.05" style="width:80px;padding:0"></label><label>Speed <input type="range" id="rt" min="0.6" max="1.4" step="0.05" style="width:80px;padding:0"></label>
-<button type="button" id="tv" class="g">Test voice</button><button type="button" id="mon" class="g" hidden>Turn mic on</button><b id="ms" class="ok">Mic off</b></div>
+<button type="button" id="tv" class="g">Test voice</button><button type="button" id="mon" class="g" hidden>Turn mic on</button><button type="button" id="wake" class="g" hidden>Hey Jarvis: off</button><b id="ms" class="ok">Mic off</b></div>
 <div id="log"></div>
 <form id="f"><button type="button" id="stop" title="Stop">⏹</button><input id="msg" autocomplete="off" placeholder="Message Jarvis..."><button id="send">Send</button><button type="button" id="cam" title="Camera" class="g" style="width:44px;height:44px;border-radius:50%;padding:0;flex:none">📷</button><button type="button" id="mic" title="Speak">🎤</button><input type="file" id="pic" accept="image/*" capture="environment" hidden></form></div>
 <script>
@@ -84,17 +84,17 @@ $('f').onsubmit=async e=>{
     if(r.perm===false){add('user',t);add('bot','Turn on "Jarvis screen reader" in Accessibility settings (I opened it for you), then ask again.');return;}
     pendingMsg=t;add('bot','Switch to the app you want me to read. I will read it in '+r.wait+' seconds and come back.');return;}
   const sc=screenData;screenData=null;const vm=viaMic;viaMic=false;add('user',t);const w=add('bot','...');
-  try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:SLOW.test(t)?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,screen:sc});
+  let sp=false;try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:SLOW.test(t)?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,screen:sc});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
-    if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply,vm);}else{w.className='m err';w.textContent=d.error||'error';}
-  }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}
+    if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply,vm);sp=vm||$('say').checked;}else{w.className='m err';w.textContent=d.error||'error';}
+  }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}finally{if(wakeOn&&!sp)heardBack();}
 };
-let viaMic=false;
+let viaMic=false,wakeOn=false,appListening=false,cmdNext=false;
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;
 function micState(on){$('mic').textContent=on?'🎙':'🎤';$('ms').textContent=on?'Mic ON':'Mic off';$('ms').className=on?'bad':'ok';pv();}
 $('mic').onclick=()=>{
   if(priv)return;
-  if(!SR){add('err','Voice input is not available here. Use Chrome.');return;}
+  if(!SR){if(appEars()){if(appListening){JarvisApp.stopListen();appListening=false;micState(false);}else{appListening=true;micState(true);JarvisApp.listen($('lang').value,false);}}else add('err','Voice input is not available here. Use Chrome.');return;}
   if(rec){rec.stop();return;}
   rec=new SR();rec.lang=$('lang').value;rec.interimResults=false;
   rec.onresult=e=>{$('msg').value=e.results[0][0].transcript;viaMic=true;$('f').requestSubmit();};
@@ -102,7 +102,27 @@ $('mic').onclick=()=>{
   rec.onend=()=>{rec=null;micState(false);};
   micState(true);rec.start();
 };
-$('stop').onclick=()=>{if(rec)rec.abort();speechSynthesis.cancel();if(aud)aud.pause();micState(false);};
+const appEars=()=>!!(window.JarvisApp&&JarvisApp.listen);
+const WAKE=/(?:jarvis|jarvish|जार्विस|जारविस|जार्विश)[\s,.!?]*(.*)$/i;
+const heardBack=()=>{if(!appEars()||priv)return;
+  if(cmdNext){cmdNext=false;appListening=true;micState(true);JarvisApp.listen($('lang').value,false);}
+  else if(wakeOn)JarvisApp.listen($('lang').value,true);};
+function wakeBtn(){$('wake').hidden=!appEars();$('wake').textContent='Hey Jarvis: '+(wakeOn?'on':'off');
+  if(wakeOn)$('ms').textContent='Waiting for "Hey Jarvis"';else if(!rec&&!appListening)micState(false);}
+$('wake').onclick=()=>{
+  if(priv){add('err','Privacy mode is on. Tap "Turn mic on" first.');return;}
+  wakeOn=!wakeOn;
+  if(wakeOn){JarvisApp.listen($('lang').value,true);add('bot','Hey Jarvis is on while this app stays open. Say "Hey Jarvis" and then your question. The phone speech service listens, so it may beep and use more battery. Say "Jarvis, stop listening" or tap the button to turn it off.');}
+  else JarvisApp.stopListen();
+  wakeBtn();pv();};
+const heardSend=t=>{if(wakeOn)JarvisApp.stopListen();viaMic=true;$('msg').value=t;$('f').requestSubmit();};
+window.onHeard=(txt,wake)=>{txt=(txt||'').trim();
+  if(wake){const m=txt.match(WAKE);if(!m)return;const cmd=m[1].trim();
+    if(cmd.length>1){heardSend(cmd);return;}
+    cmdNext=true;JarvisApp.stopListen();speak(sty()=='hindi'?'जी सर?':'Yes sir?',true);return;}
+  appListening=false;micState(false);if(txt)heardSend(txt);else add('err','I did not hear anything.');};
+window.onHeardErr=txt=>{appListening=false;wakeOn=false;cmdNext=false;micState(false);wakeBtn();add('err','Mic: '+txt);};
+$('stop').onclick=()=>{if(rec)rec.abort();if(appEars()){JarvisApp.stopListen();wakeOn=false;appListening=false;wakeBtn();}speechSynthesis.cancel();if(aud)aud.pause();micState(false);};
 const NV=[['hi-IN-MadhurNeural','Jarvis Hindi (Madhur)'],['en-GB-RyanNeural','Jarvis English (Ryan)'],['en-IN-PrabhatNeural','Indian male (Prabhat)'],['en-IN-NeerjaNeural','Indian female (Neerja)'],['hi-IN-SwaraNeural','Hindi female (Swara)']];
 let aud=null,warned=false;
 function loadVoices(){
@@ -115,20 +135,20 @@ function loadVoices(){
 async function neural(t,v){
   const r=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text:t,voice:v,pitch:Math.round(($('pt').value-1)*100),rate:Math.round(($('rt').value-1)*100)})});
   if(!r.ok){let e={};try{e=await r.json()}catch(x){}throw new Error(e.error||'voice error');}
-  if(aud)aud.pause();aud=new Audio(URL.createObjectURL(await r.blob()));aud.playbackRate=+$('rt').value;await aud.play();
+  if(aud)aud.pause();aud=new Audio(URL.createObjectURL(await r.blob()));aud.playbackRate=+$('rt').value;aud.onended=aud.onerror=heardBack;await aud.play();
 }
 function local(t){
   speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.pitch=+$('pt').value;u.rate=+$('rt').value;
   const v=speechSynthesis.getVoices().find(x=>x.name==$('voice').value)||speechSynthesis.getVoices().find(x=>/en.GB|en.IN/i.test(x.lang));
-  if(v){u.voice=v;u.lang=v.lang;}else u.lang='en-IN';speechSynthesis.speak(u);
+  if(v){u.voice=v;u.lang=v.lang;}else u.lang='en-IN';u.onend=u.onerror=heardBack;speechSynthesis.speak(u);
 }
 async function speak(t,force){
-  if(!force&&!$('say').checked)return;const v=$('voice').value||'neural:hi-IN-MadhurNeural';
+  if(!force&&!$('say').checked)return;if(wakeOn&&appEars())JarvisApp.stopListen();const v=$('voice').value||'neural:hi-IN-MadhurNeural';
   if(v.startsWith('neural:')){
     try{await neural(t,v.slice(7));return;}catch(e){add('err','Online voice failed: '+(e.name=='NotAllowedError'?'the browser blocked sound. Tap the page once and try again.':e.message)+'. Trying the phone voice.');}
   }
   if(window.speechSynthesis&&speechSynthesis.getVoices().length)local(t);
-  else add('err','No voice on this phone. Install a text-to-speech voice in Android settings, or fix the online voice (pip install edge-tts, internet on).');
+  else{heardBack();add('err','No voice on this phone. Install a text-to-speech voice in Android settings, or fix the online voice (pip install edge-tts, internet on).');}
 }
 if(window.speechSynthesis){speechSynthesis.onvoiceschanged=loadVoices;loadVoices();}
 $('say').checked=localStorage.getItem('jsay')=='1';$('lang').value=localStorage.getItem('jlang')||'hi-IN';
@@ -202,14 +222,14 @@ $('gear').onclick=()=>{if(!token)return;$('set').hidden=!$('set').hidden;$('chat
 const sty=()=>$('voice').value.includes('hi-IN')?'hindi':'english';
 let priv=localStorage.getItem('jpriv')=='1';
 function pv(){
-  $('pv').textContent=(priv?'🔒 Privacy mode: mic and voice off':'🟢 Mic: '+(rec?'on':'off')+' · Voice: '+($('say').checked?'on':'off'))+' · Camera, location, phone and screen: only when you ask';
+  $('pv').textContent=(priv?'🔒 Privacy mode: mic and voice off':'🟢 Mic: '+(rec||appListening||wakeOn?'on':'off')+' · Voice: '+($('say').checked?'on':'off'))+' · Camera, location, phone and screen: only when you ask';
   $('mon').hidden=!priv;$('mic').disabled=priv;
 }
 function stopAll(){
-  if(rec)rec.abort();if(window.speechSynthesis)speechSynthesis.cancel();if(aud)aud.pause();
+  if(rec)rec.abort();if(appEars()){JarvisApp.stopListen();wakeOn=false;appListening=false;cmdNext=false;wakeBtn();}if(window.speechSynthesis)speechSynthesis.cancel();if(aud)aud.pause();
   $('say').checked=false;localStorage.setItem('jsay','0');priv=true;localStorage.setItem('jpriv','1');micState(false);
 }
-$('mon').onclick=()=>{priv=false;localStorage.setItem('jpriv','0');pv();};$('say').addEventListener('change',pv);
+$('mon').onclick=()=>{priv=false;localStorage.setItem('jpriv','0');pv();};$('say').addEventListener('change',pv);wakeBtn();
 $('pre').onchange=()=>{
   const p={k:[0.7,0.92],r:[0.5,0.85],n:[0.95,1]}[$('pre').value];if(!p)return;
   $('pt').value=p[0];$('rt').value=p[1];localStorage.setItem('jpt',p[0]);localStorage.setItem('jrt',p[1]);
