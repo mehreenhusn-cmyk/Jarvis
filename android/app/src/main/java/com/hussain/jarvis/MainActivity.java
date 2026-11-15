@@ -119,6 +119,12 @@ public class MainActivity extends Activity {
                 if (!allowed(Manifest.permission.RECORD_AUDIO, 1)) { web.post(() -> web.evaluateJavascript("window.onHeardErr&&onHeardErr('allow the microphone, then tap the mic again',false)", null)); return; }
                 runOnUiThread(() -> { if (ears == null) ears = new Ears(MainActivity.this, web); ears.start(lang, wake); });
             }
+            // Part 61: listen WHILE Jarvis speaks (interrupt). Same checks as listen(); the page asks only with earphones connected.
+            @JavascriptInterface public void listenBarge(String lang) {
+                if (AppLock.locked() || Privacy.stopped || !allowed(Manifest.permission.RECORD_AUDIO, 1)) return;
+                runOnUiThread(() -> { if (ears == null) ears = new Ears(MainActivity.this, web); ears.start(lang, true, true); });
+            }
+            @JavascriptInterface public boolean headset() { return Ears.headset(MainActivity.this); }
             // Part 39: background listening TEST. Starts only after a real finger tap, never while locked or stopped. Counts only, keeps no words.
             @JavascriptInterface public String bgListen(boolean on) {
                 if (AppLock.locked()) return "{\"ok\":false,\"err\":\"locked\"}";
@@ -191,6 +197,12 @@ public class MainActivity extends Activity {
                     }
                     if (java.util.Arrays.asList("settings", "torch", "volume").contains(ty)) {  // Part 37: fixed settings pages, flashlight, music volume. Answer comes back at once, read from Android.
                         JSONObject r = PhoneSettings.run(MainActivity.this, a);
+                        if (r.optBoolean("ok")) Privacy.used("apps");
+                        try { r.put("type", ty); } catch (Exception e) { /* send what we have */ }
+                        return r.toString();
+                    }
+                    if (java.util.Arrays.asList("alarm", "timer", "search", "media").contains(ty)) {  // Part 66 and Part 60: alarm, timer, search inside an app (fixed addresses built in QuickSet)
+                        JSONObject r = QuickSet.run(MainActivity.this, a);
                         if (r.optBoolean("ok")) Privacy.used("apps");
                         try { r.put("type", ty); } catch (Exception e) { /* send what we have */ }
                         return r.toString();

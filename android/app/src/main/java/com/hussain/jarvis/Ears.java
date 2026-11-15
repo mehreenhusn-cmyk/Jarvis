@@ -1,7 +1,10 @@
 package com.hussain.jarvis;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -19,29 +22,31 @@ class Ears implements RecognitionListener {
     final Handler ui = new Handler(Looper.getMainLooper());
     SpeechRecognizer sr;
     String lang = "en-IN";
-    volatile boolean wake, on;
+    volatile boolean wake, on, barge;  // barge (Part 61): listening WHILE Jarvis speaks, partial words go to the page so it can stop talking
 
     Ears(Activity a, WebView w) { act = a; web = w; }
 
     /** Main thread only. wakeMode: keep listening again and again, and the page looks for "Hey Jarvis". */
-    void start(String l, boolean wakeMode) {
+    void start(String l, boolean wakeMode) { start(l, wakeMode, false); }
+
+    void start(String l, boolean wakeMode, boolean bargeMode) {
         stop();
         if (Privacy.stopped) { js("onHeardErr", "Jarvis is stopped. Tap Turn mic on first"); return; }
         if (!SpeechRecognizer.isRecognitionAvailable(act)) { js("onHeardErr", "this phone has no speech service"); return; }
         if (ListenService.up) ListenService.halt(act);  // Part 39: only one listener at a time; opening the mic here ends the background test
-        lang = l; wake = wakeMode; on = true;
+        lang = l; wake = wakeMode; on = true; barge = bargeMode;
         sr = SpeechRecognizer.createSpeechRecognizer(act);
         sr.setRecognitionListener(this);
         sr.startListening(new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            .putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang).putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang).putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1).putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, bargeMode)
             .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, wake ? 1500L : 4500L)  // Part 36: when you talk, Jarvis waits about 4 to 5 seconds of quiet before answering, like a person
             .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, wake ? 1500L : 4000L));  // (some phone speech services ignore these two numbers)
         Privacy.used(wake ? "wake" : "mic");
     }
 
     void stop() {
-        on = false;
+        on = false; barge = false;
         ui.removeCallbacksAndMessages(null);
         if (sr != null) { sr.destroy(); sr = null; }
     }
@@ -50,7 +55,7 @@ class Ears implements RecognitionListener {
         web.evaluateJavascript("window." + fn + "&&" + fn + "(" + JSONObject.quote(text) + "," + wake + ")", null);
     }
 
-    void again(long ms) { ui.postDelayed(() -> { if (on) start(lang, wake); }, ms); }
+    void again(long ms) { ui.postDelayed(() -> { if (on) start(lang, wake, barge); }, ms); }
 
     @Override public void onResults(Bundle b) {
         ArrayList<String> r = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
@@ -73,6 +78,23 @@ class Ears implements RecognitionListener {
     @Override public void onRmsChanged(float v) { }
     @Override public void onBufferReceived(byte[] b) { }
     @Override public void onEndOfSpeech() { }
-    @Override public void onPartialResults(Bundle b) { }
+    @Override public void onPartialResults(Bundle b) {
+        if (!barge) return;
+        ArrayList<String> r = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+        if (r != null && !r.isEmpty() && !r.get(0).trim().isEmpty()) js("onPartial", r.get(0));
+    }
+
+    /** Part 61: true when earphones are connected (wired, USB or Bluetooth). Interrupt works only then, because the mic would hear Jarvis' own voice from the speaker. */
+    static boolean headset(Context c) {
+        try {
+            AudioManager am = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
+            for (AudioDeviceInfo d : am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+                int t = d.getType();
+                if (t == AudioDeviceInfo.TYPE_WIRED_HEADSET || t == AudioDeviceInfo.TYPE_WIRED_HEADPHONES || t == AudioDeviceInfo.TYPE_USB_HEADSET
+                        || t == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP || t == AudioDeviceInfo.TYPE_BLUETOOTH_SCO) return true;
+            }
+        } catch (Exception x) { /* no answer means no earphones */ }
+        return false;
+    }
     @Override public void onEvent(int t, Bundle b) { }
 }

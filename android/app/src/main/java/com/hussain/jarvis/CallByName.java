@@ -90,6 +90,20 @@ final class CallByName {
                 number = hit.get(0)[1];
                 label = hit.get(0)[0];
             }
+            if ("whatsapp".equals(q.optString("via"))) {  // Part 69: only OPENS the chat with the words filled in. WhatsApp's send button is Hussain's own tap.
+                String d = number.startsWith("+") ? number.substring(1) : number.startsWith("00") ? number.substring(2) : number;
+                if (number.startsWith("0") && !number.startsWith("00")) d = "91" + number.substring(1);  // India: 098... -> 9198...
+                else if (d.length() == 10) d = "91" + d;
+                String text = q.optString("text");
+                Uri u = Uri.parse("https://wa.me/" + d + (text.isEmpty() ? "" : "?text=" + Uri.encode(text)));
+                Intent w = new Intent(Intent.ACTION_VIEW, u).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                try { a.startActivity(new Intent(w).setPackage("com.whatsapp")); }
+                catch (Exception e1) {
+                    try { a.startActivity(new Intent(w).setPackage("com.whatsapp.w4b")); }
+                    catch (Exception e2) { a.startActivity(w); }  // no WhatsApp app: the link opens in the browser
+                }
+                return o.put("ok", true).put("name", label).put("mode", "whatsapp");
+            }
             boolean direct = !raw;
             if (direct && a.checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
                 a.runOnUiThread(() -> a.requestPermissions(new String[]{Manifest.permission.CALL_PHONE}, 6));

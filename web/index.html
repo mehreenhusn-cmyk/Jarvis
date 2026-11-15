@@ -94,7 +94,7 @@ body.hm #vstat{background:rgba(7,11,26,.92);color:#97a6cc;border-color:rgba(96,1
 <div id="vp" hidden><select id="lang"><option value="hi-IN">Speak: Hindi</option><option value="en-IN">Speak: English</option><option value="ta-IN">Speak: Tamil</option><option value="gu-IN">Speak: Gujarati</option><option value="mr-IN">Speak: Marathi</option><option value="te-IN">Speak: Telugu</option><option value="kn-IN">Speak: Kannada</option><option value="ml-IN">Speak: Malayalam</option><option value="bn-IN">Speak: Bengali</option><option value="pa-IN">Speak: Punjabi</option><option value="ur-IN">Speak: Urdu</option></select>
 <select id="voice"></select><select id="pre"><option value="">Voice style</option><option value="k">Khattar (deep, Hindi dub)</option><option value="r">Rolex (very deep)</option><option value="d">Jarvis studio (Hindi)</option><option value="b">Jarvis studio (British English)</option><option value="n">Normal</option></select>
 <label><input type="checkbox" id="say" style="width:auto"> Speak replies</label><label>Depth <input type="range" id="pt" min="0.5" max="1.5" step="0.05" style="width:80px;padding:0"></label><label>Speed <input type="range" id="rt" min="0.6" max="1.4" step="0.05" style="width:80px;padding:0"></label>
-<button type="button" id="tv" class="g">Test voice</button><button type="button" id="mon" class="g" hidden>Turn mic on</button><button type="button" id="wake" class="g" hidden>Hey Jarvis: off</button><button type="button" id="conv" class="g" hidden>Conversation: off</button><b class="vbadge ok">Voice: -</b> <b id="ms" class="ok">Mic off</b></div>
+<button type="button" id="tv" class="g">Test voice</button><button type="button" id="mon" class="g" hidden>Turn mic on</button><button type="button" id="wake" class="g" hidden>Hey Jarvis: off</button><button type="button" id="conv" class="g" hidden>Conversation: off</button><button type="button" id="intr" class="g" hidden>Interrupt: off</button><b class="vbadge ok">Voice: -</b> <b id="ms" class="ok">Mic off</b></div>
 <div id="vstat"><span id="vs">Idle</span><select id="mode" title="Mode"><option value="normal">Normal</option><option value="research">Research</option><option value="quiet">Quiet</option><option value="focus">Focus</option></select></div>
 <div id="log"></div>
 <form id="f"><button type="button" id="stop" title="Stop" aria-label="Stop"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg></button><div id="box"><input id="msg" autocomplete="off" placeholder="Message Jarvis..."><button type="button" id="cam" title="Camera" aria-label="Camera" class="g"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5h3l1.6-2.5h6.8L17 8.5h3V19H4z"/><circle cx="12" cy="13.5" r="3.6"/></svg></button></div><button id="send" title="Send" aria-label="Send"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button><button type="button" id="mic" title="Speak" aria-label="Speak"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button><input type="file" id="pic" accept="image/*" capture="environment" hidden></form></div>
@@ -176,13 +176,34 @@ $('mic').onclick=()=>{
   rec.onend=()=>{rec=null;micState(false);};
   micState(true);rec.start();
 };
+// Part 61: smart interrupt. While Jarvis speaks, the phone mic listens; when YOU start talking Jarvis stops at once and answers what you said.
+// Only with earphones (wired, Bluetooth or USB), because without them the mic hears Jarvis' own voice. Opt-in, off by default. Words that match Jarvis' own sentence are ignored.
+let intrOn=localStorage.getItem('jintr')=='1',barging=false,cutWait=false,skipEnd=false,lastSay='';
+const wd=s=>(String(s||'').toLowerCase().match(/[\w\u0900-\u097F]+/g)||[]);
+const echoLike=x=>{const a=wd(x);if(!a.length)return true;const b=new Set(wd(lastSay));const hit=a.filter(w=>b.has(w)).length;return a.length>=2?hit/a.length>=0.6:b.has(a[0]);};
+const hasEarphones=()=>{try{return !!(window.JarvisApp&&JarvisApp.headset&&JarvisApp.headset());}catch(e){return false;}};
+function intrBtn(){const b=$('intr');if(!b)return;b.hidden=!(window.JarvisApp&&JarvisApp.listenBarge);b.textContent='Interrupt: '+(intrOn?'on':'off');}
+function bargeStart(){
+  if(!intrOn||barging||cutWait||priv||cmdNext||appListening||!window.JarvisApp||!JarvisApp.listenBarge||!hasEarphones())return;
+  barging=true;JarvisApp.listenBarge($('lang').value);}
+window.onPartial=txt=>{  // the first words you say: cut Jarvis off now, keep listening for the rest of your sentence
+  if(!barging||cutWait||echoLike(txt))return;
+  barging=false;cutWait=true;skipEnd=true;setTimeout(()=>{skipEnd=false;},700);
+  if(aud)aud.pause();if(window.speechSynthesis)speechSynthesis.cancel();
+  setTimeout(()=>{if(cutWait){cutWait=false;try{JarvisApp.stopListen();}catch(e){}resumeMic();}},9000);};  // safety: if no sentence arrives, go back to normal
+$('intr').onclick=()=>{
+  intrOn=!intrOn;localStorage.setItem('jintr',intrOn?'1':'0');intrBtn();const hi=sty()=='hindi';
+  if(intrOn)add('bot',hasEarphones()?(hi?'इंटरप्ट चालू सर। मैं बोल रहा होऊँ तब भी आप बोलिए, मैं रुककर सुनूँगा।':'Interrupt is on, sir. While I speak, just talk and I will stop and listen.')
+    :(hi?'इंटरप्ट चालू है सर, पर यह सिर्फ़ ईयरफ़ोन लगे हों तब चलेगा, वरना मेरी अपनी आवाज़ मुझे रोक देगी। फ़ोन का स्पीच सर्विस बीप कर सकता है।':'Interrupt is on, sir, but it works only with earphones connected, otherwise my own voice would stop me. The phone speech service may beep.'));
+  else if(barging){barging=false;try{JarvisApp.stopListen();}catch(e){}}};
 const appEars=()=>!!(window.JarvisApp&&JarvisApp.listen);
 const WAKE=/(?:jarvis|jarvish|जार्विस|जारविस|जार्विश)[\s,.!?]*(.*)$/i;
-const heardBack=()=>{if(!appEars()||priv)return;
+const heardBack=()=>{if(barging){barging=false;try{JarvisApp.stopListen();}catch(e){}}if(skipEnd)return;resumeMic();};  // Part 61: Jarvis finished (or was cut off)
+const resumeMic=()=>{if(!appEars()||priv)return;
   if(convOn){setTimeout(()=>{if(convOn&&!priv){appListening=true;micState(true);JarvisApp.listen($('lang').value,false);}},500);return;}  // Part 55: a short pause so the mic does not hear Jarvis's own voice
   if(cmdNext){cmdNext=false;appListening=true;micState(true);JarvisApp.listen($('lang').value,false);}
   else if(wakeOn)JarvisApp.listen($('lang').value,true);};
-function wakeBtn(){$('wake').hidden=!appEars();$('conv').hidden=!appEars();$('wake').textContent='Hey Jarvis: '+(wakeOn?'on':'off');
+function wakeBtn(){$('wake').hidden=!appEars();$('conv').hidden=!appEars();intrBtn();$('wake').textContent='Hey Jarvis: '+(wakeOn?'on':'off');
   if(wakeOn)$('ms').textContent='Waiting for "Hey Jarvis"';else if(!rec&&!appListening)micState(false);}
 $('wake').onclick=()=>{
   if(priv){add('err','Privacy mode is on. Tap "Turn mic on" first.');return;}
@@ -192,6 +213,8 @@ $('wake').onclick=()=>{
   wakeBtn();pv();};
 const heardSend=t=>{if(wakeOn)JarvisApp.stopListen();viaMic=true;$('msg').value=t;$('f').requestSubmit();};
 window.onHeard=(txt,wake)=>{txt=(txt||'').trim();
+  if(cutWait){cutWait=false;try{JarvisApp.stopListen();}catch(e){}if(!txt||STOPW.test(txt)){resumeMic();return;}heardSend(txt);return;}  // Part 61: what you said while Jarvis was talking
+  if(barging)return;
   if(wake){const m=txt.match(WAKE);if(!m)return;const cmd=m[1].trim();
     if(cmd.length>1){heardSend(cmd);return;}
     cmdNext=true;JarvisApp.stopListen();speak(sty()=='hindi'?'जी सर?':'Yes sir?',true);return;}
@@ -199,7 +222,7 @@ window.onHeard=(txt,wake)=>{txt=(txt||'').trim();
   if(convOn){if(!txt)return convSilent();convMiss=0;if(STOPW.test(txt)){convEnd(sty()=='hindi'?'ठीक है सर, बातचीत बंद।':'Okay sir, conversation mode is off.');return;}
     if(++convTurns>20){convEnd('Conversation mode stopped after 20 turns to save battery. Tap Conversation to start again.');return;}}
   if(txt)heardSend(txt);else add('err','I did not hear anything.');};
-window.onHeardErr=txt=>{appListening=false;
+window.onHeardErr=txt=>{if(barging||cutWait){barging=cutWait=false;return;}appListening=false;
   if(convOn){if(/did not hear/i.test(txt))return convSilent();convEnd('Conversation mode stopped. Mic: '+txt);return;}
   wakeOn=false;cmdNext=false;micState(false);wakeBtn();add('err','Mic: '+txt);};
 // Part 55: conversation mode. After Jarvis finishes speaking the phone mic opens by itself. It ends after 2 silent rounds, on "bas" / "stop", after 20 turns, or on Stop everything. App only, while the app is open.
@@ -215,7 +238,7 @@ $('conv').onclick=()=>{
   convOn=true;convMiss=0;convTurns=0;$('say').checked=true;localStorage.setItem('jsay','1');
   add('bot',sty()=='hindi'?'बातचीत चालू सर। मैं जवाब देने के बाद खुद सुनूँगा। बंद करने के लिए "बस" बोलिए या Conversation दबाइए। फ़ोन का स्पीच सर्विस बीप कर सकता है।':'Conversation mode is on, sir. After each answer I listen by myself. Say "bas" or "stop", or tap Conversation, to end it. The phone speech service may beep.');
   appListening=true;micState(true);JarvisApp.listen($('lang').value,false);convBtn();};
-$('stop').onclick=()=>{convOn=false;if(rec)rec.abort();if(appEars()){JarvisApp.stopListen();wakeOn=false;appListening=false;wakeBtn();}speechSynthesis.cancel();if(aud)aud.pause();micState(false);};
+$('stop').onclick=()=>{barging=cutWait=false;convOn=false;if(rec)rec.abort();if(appEars()){JarvisApp.stopListen();wakeOn=false;appListening=false;wakeBtn();}speechSynthesis.cancel();if(aud)aud.pause();micState(false);};
 const NV=[['hi-IN-MadhurNeural','Jarvis Hindi (Madhur)'],['en-GB-RyanNeural','Jarvis English (Ryan)'],['en-IN-PrabhatNeural','Indian male (Prabhat)'],['en-IN-NeerjaNeural','Indian female (Neerja)'],['hi-IN-SwaraNeural','Hindi female (Swara)']];
 let aud=null,warned=false,fx=['d','b'].includes(localStorage.getItem('jpre'));
 let actx=null;
@@ -239,7 +262,7 @@ async function engine(t,intent,profile){
   const r=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text:t,intent:intent||'',profile:profile||'',lang:sty()})});
   if(!r.ok){let e={};try{e=await r.json()}catch(x){}throw new Error(e.error||'voice error');}
   const w=r.headers.get('X-Voice')||'';if(aud)aud.pause();if(window.speechSynthesis)speechSynthesis.cancel();
-  aud=new Audio(URL.createObjectURL(await r.blob()));aud.onended=aud.onerror=heardBack;await aud.play();const en=r.headers.get('X-Engine')||'';badge('Voice: '+(w=='tony'?'TONY':'JARVIS')+(en=='sarvam'?' (Sarvam)':en=='edge-fallback'?' (Edge, Sarvam failed)':' (Edge)'));
+  aud=new Audio(URL.createObjectURL(await r.blob()));aud.onended=aud.onerror=heardBack;await aud.play();bargeStart();const en=r.headers.get('X-Engine')||'';badge('Voice: '+(w=='tony'?'TONY':'JARVIS')+(en=='sarvam'?' (Sarvam)':en=='edge-fallback'?' (Edge, Sarvam failed)':' (Edge)'));
 }
 async function voiceSave(p){  // saving stops the voice that is speaking now, so a switch is heard at once
   if(aud)aud.pause();if(window.speechSynthesis)speechSynthesis.cancel();
@@ -278,19 +301,20 @@ function voiceCard(){
 async function neural(t,v){
   const r=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text:t,voice:v,pitch:Math.round(($('pt').value-1)*100),rate:Math.round(($('rt').value-1)*100)})});
   if(!r.ok){let e={};try{e=await r.json()}catch(x){}throw new Error(e.error||'voice error');}
-  if(aud)aud.pause();aud=new Audio(URL.createObjectURL(await r.blob()));aud.playbackRate=+$('rt').value;if(fx)studio(aud);aud.onended=aud.onerror=heardBack;await aud.play();badge('Voice: classic');
+  if(aud)aud.pause();aud=new Audio(URL.createObjectURL(await r.blob()));aud.playbackRate=+$('rt').value;if(fx)studio(aud);aud.onended=aud.onerror=heardBack;await aud.play();bargeStart();badge('Voice: classic');
 }
 function local(t){
   badge('Voice: phone voice (fallback)');
   speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.pitch=+$('pt').value;u.rate=+$('rt').value;
   const v=speechSynthesis.getVoices().find(x=>x.name==$('voice').value)||speechSynthesis.getVoices().find(x=>/en.GB|en.IN/i.test(x.lang));
-  if(v){u.voice=v;u.lang=v.lang;}else u.lang='en-IN';u.onend=u.onerror=heardBack;speechSynthesis.speak(u);
+  if(v){u.voice=v;u.lang=v.lang;}else u.lang='en-IN';u.onend=u.onerror=heardBack;speechSynthesis.speak(u);bargeStart();
 }
 const SV=[[/[\u0B80-\u0BFF]/,'ta-IN-ValluvarNeural'],[/[\u0C00-\u0C7F]/,'te-IN-MohanNeural'],[/[\u0A80-\u0AFF]/,'gu-IN-NiranjanNeural'],[/[\u0C80-\u0CFF]/,'kn-IN-GaganNeural'],[/[\u0D00-\u0D7F]/,'ml-IN-MidhunNeural'],[/[\u0980-\u09FF]/,'bn-IN-BashkarNeural'],[/[\u0600-\u06FF]/,'ur-IN-SalmanNeural']];  // Part 63: a reply in these scripts is read by a voice of that language
 const scriptVoice=t=>{for(const [r,v] of SV)if(r.test(t))return v;return /[\u0900-\u097F]/.test(t)&&/आहे|आणि|उघड|आहेत/.test(t)?'mr-IN-ManoharNeural':null;};
 const LT={gu:['ઠીક છે સર, {x} ખોલી રહ્યો છું.','સર, આ ફોનમાં "{x}" નામની એપ મળી નથી.','કઈ, સર?'],ta:['சரி சார், {x} திறக்கிறேன்.','சார், இந்த போனில் "{x}" என்ற ஆப் கிடைக்கவில்லை.','எது சார்?'],te:['సరే సర్, {x} తెరుస్తున్నాను.','సర్, ఈ ఫోన్‌లో "{x}" అనే యాప్ దొరకలేదు.','ఏది సర్?'],kn:['ಸರಿ ಸರ್, {x} ತೆರೆಯುತ್ತಿದ್ದೇನೆ.','ಸರ್, ಈ ಫೋನ್‌ನಲ್ಲಿ "{x}" ಎಂಬ ಆ್ಯಪ್ ಸಿಗಲಿಲ್ಲ.','ಯಾವುದು ಸರ್?'],ml:['ശരി സർ, {x} തുറക്കുന്നു.','സർ, ഈ ഫോണിൽ "{x}" എന്ന ആപ്പ് കണ്ടെത്തിയില്ല.','ഏതാണ് സർ?'],bn:['ঠিক আছে স্যার, {x} খুলছি।','স্যার, এই ফোনে "{x}" নামের অ্যাপ পাওয়া যায়নি।','কোনটা স্যার?'],pa:['ਠੀਕ ਹੈ ਸਰ, {x} ਖੋਲ੍ਹ ਰਿਹਾ ਹਾਂ।','ਸਰ, ਇਸ ਫ਼ੋਨ ਵਿੱਚ "{x}" ਨਾਮ ਦੀ ਐਪ ਨਹੀਂ ਮਿਲੀ।','ਕਿਹੜੀ ਸਰ?'],mr:['ठीक आहे सर, {x} उघडत आहे.','सर, या फोनमध्ये "{x}" नावाचे अ‍ॅप सापडले नाही.','कोणते सर?'],ur:['ٹھیک ہے سر، {x} کھول رہا ہوں۔','سر، اس فون میں "{x}" نام کی ایپ نہیں ملی۔','کون سی سر؟']};  // Part 63: app-open answers in the language you spoke
 const lt=(a,i,x)=>(LT[a.lang]||[])[i]?.replace('{x}',x);
 async function speak(t,force,intent,profile){
+  lastSay=t||'';
   if(!force&&(!$('say').checked||MODE=='quiet'))return;if(wakeOn&&appEars())JarvisApp.stopListen();const v=$('voice').value||'neural:hi-IN-MadhurNeural';
   const sv=scriptVoice(t);if(sv){try{await neural(t,sv);return;}catch(e){add('err','Voice for this language failed: '+e.message+'. Trying the phone voice.');}}
   const eng=localStorage.getItem('jeng')!='0';  // Part 52: Tony / JARVIS voices are ON unless you switch to the classic voice
@@ -410,6 +434,8 @@ const ACTERR={no_torch:['सर, इस फ़ोन में टॉर्च �
   app_missing:['सर, इस फ़ोन में वह ऐप नहीं मिला।','Sir, I could not find that app on this phone.'],
   not_opened:['सर, ऐप सामने नहीं आया, इसलिए रुक गया।','Sir, the app did not come to the front, so I stopped.'],
   launch_failed:['सर, Android ने ऐप खोलने नहीं दिया।','Sir, Android did not let me open the app.'],
+  bad_time:['सर, यह समय मुझे सही नहीं लगा। कुछ नहीं किया।','Sir, that time does not look right. I did nothing.'],
+  bad_query:['सर, क्या ढूँढना है यह साफ़ नहीं हुआ। कुछ नहीं किया।','Sir, it is not clear what to search for. I did nothing.'],
   unknown:['सर, मुझे यह कदम समझ नहीं आया। कुछ नहीं किया।','Sir, I did not understand this step. I did nothing.']};
 let lastAct=null;
 function actMsg(r,a){
@@ -417,6 +443,11 @@ function actMsg(r,a){
   if(r.ok){
     if(t=='current_app')return say('सर, अभी "'+r.app+'" खुला है।','Sir, "'+r.app+'" is open right now.');
     if(t=='lock')return r.locked?say('फ़ोन लॉक हो गया सर। अनलॉक मैं कभी नहीं करता, वो आप खुद कीजिए।','The phone is locked, sir. I never unlock it, you do that yourself.'):say('सर, मैंने Android से लॉक करने को कहा, पर पक्का नहीं कह सकता कि लॉक हुआ। हो सकता है फ़ोन में स्क्रीन लॉक सेट ही न हो।','Sir, I asked Android to lock the phone, but I cannot confirm it locked. The phone may have no screen lock set.');
+    if(t=='alarm')return a&&a.show?say('अलार्म की लिस्ट खुल गई सर।','Your alarm list is open, sir.'):(r.hour!=null?say(((r.hour%12)||12)+':'+String(r.minute).padStart(2,'0')+(r.hour<12?' AM':' PM')+' का अलार्म लग गया सर। न लगा हो तो Clock ऐप में एक बार देख लीजिए।','Alarm set for '+((r.hour%12)||12)+':'+String(r.minute).padStart(2,'0')+(r.hour<12?' AM':' PM')+', sir. If it is missing, please check the Clock app.'):say('अलार्म लग गया सर।','The alarm is set, sir.'));
+    if(t=='media'){const c=a&&a.cmd;if(r.was===false&&c!='play')return say('सर, अभी कोई गाना या वीडियो चलता नहीं दिख रहा। पहले कुछ चलाइए।','Sir, I do not see any music or video playing right now. Start something first.');
+      return say({pause:'गाना रोक दिया सर।',play:'चला दिया सर।',next:'अगला गाना लगा दिया सर।',prev:'पिछला गाना लगा दिया सर।'}[c]||'हो गया सर।',{pause:'Paused, sir.',play:'Playing, sir. If nothing starts, no player is open.',next:'Next song, sir.',prev:'Previous song, sir.'}[c]||'Done, sir.');}
+    if(t=='timer')return say('टाइमर चालू हो गया सर।','The timer is running, sir.');
+    if(t=='search')return say('सर्च खुल गया सर।','The search is open, sir.');
     if(t=='settings')return say('सेटिंग का पेज खुल गया सर।','The settings page is open, sir.');
     if(t=='torch')return r.on?say('टॉर्च चालू हो गई सर।','The flashlight is on, sir.'):say('टॉर्च बंद हो गई सर।','The flashlight is off, sir.');
     if(t=='volume')return r.changed===false?say('सर, आवाज़ पहले से '+(lastAct&&lastAct.dir=='up'?'सबसे ज़्यादा':'सबसे कम')+' है।','Sir, the volume is already at the '+(lastAct&&lastAct.dir=='up'?'top':'bottom')+'.'):say('आवाज़ अब '+r.vol+'/'+r.max+' है सर।','The volume is now '+r.vol+' of '+r.max+', sir.');
@@ -474,11 +505,11 @@ async function doCall(a,w){
   w.textContent=say('कॉन्टैक्ट ढूँढ रहा हूँ: '+who+'…','Looking for the contact: '+who+'...');await new Promise(z=>setTimeout(z,80));
   let r;try{r=JSON.parse(JarvisApp.act(JSON.stringify(a)));}catch(e){r={ok:false,err:'unknown'};}
   let t;
-  if(r.ok)t='✔ '+(r.mode=='dial'?say('डायलर खुल गया सर। हरा कॉल बटन आप खुद दबाइए।','The dialer is open, sir. Please press the green call button yourself.'):say('ठीक है सर, '+r.name+' को कॉल कर रहा हूँ।','Calling '+r.name+', sir.'));
+  if(r.ok)t='✔ '+(r.mode=='whatsapp'?say('व्हाट्सएप चैट खुल गई सर। भेजने का बटन आप खुद दबाइए।','The WhatsApp chat is open, sir. Please press send yourself.'):r.mode=='dial'?say('डायलर खुल गया सर। हरा कॉल बटन आप खुद दबाइए।','The dialer is open, sir. Please press the green call button yourself.'):say('ठीक है सर, '+r.name+' को कॉल कर रहा हूँ।','Calling '+r.name+', sir.'));
   else if(r.ask){
     t=say('कौन सा सर? जिसे कॉल करना है उसे दबाइए।','Which one, sir? Tap the one to call.');w.textContent=t;const row=document.createElement('div');
-    r.ask.forEach(x=>{const b=document.createElement('button');b.type='button';b.className='g';b.textContent='📞 '+x.label;b.style.margin='6px 6px 0 0';
-      b.onclick=async ev=>{if(!ev.isTrusted)return;row.remove();w.textContent=await doCall({type:'call',number:x.number,name:String(x.label).replace(/ \(\.\.\.\d+\)$/,'')},w);};row.appendChild(b);});
+    r.ask.forEach(x=>{const b=document.createElement('button');b.type='button';b.className='g';b.textContent=(a.via=='whatsapp'?'💬 ':'📞 ')+x.label;b.style.margin='6px 6px 0 0';
+      b.onclick=async ev=>{if(!ev.isTrusted)return;row.remove();w.textContent=await doCall({type:'call',number:x.number,name:String(x.label).replace(/ \(\.\.\.\d+\)$/,''),via:a.via,text:a.text},w);};row.appendChild(b);});
     w.appendChild(row);return t;}
   else if(r.err=='not_found')t='✖ '+say('सर, कॉन्टैक्ट में "'+who+'" नाम नहीं मिला। नाम की स्पेलिंग बदलकर देखिए।','Sir, I could not find "'+who+'" in your contacts. Try another spelling.');
   else if(r.err=='perm')t='✖ '+(r.what=='contacts'?say('सर, कॉन्टैक्ट की अनुमति दीजिए, फिर दोबारा बोलिए।','Sir, allow Contacts on the phone, then say it again.'):say('सर, फ़ोन कॉल की अनुमति दीजिए, फिर दोबारा बोलिए।','Sir, allow Phone calls on the phone, then say it again.'));
@@ -580,7 +611,7 @@ function stopAll(){
   if(window.JarvisApp&&JarvisApp.stopAll){try{const n=JSON.parse(JarvisApp.stopAll());if(n.mic)was.push('microphone');if(n.wake)was.push('Hey Jarvis');if(n.bg)was.push('background listening test');if(n.task)was.push('running task');if(n.screen)was.push('screen reading');if(n.camera)was.push('photo picker');}catch(e){}}
   else if(appEars())JarvisApp.stopListen();
   if(wakeOn&&!was.includes('Hey Jarvis'))was.push('Hey Jarvis');
-  wakeOn=false;appListening=false;cmdNext=false;convOn=false;convMiss=0;convTurns=0;pendingMsg=null;screenData=null;if(appEars()){wakeBtn();convBtn();}
+  barging=cutWait=false;wakeOn=false;appListening=false;cmdNext=false;convOn=false;convMiss=0;convTurns=0;pendingMsg=null;screenData=null;if(appEars()){wakeBtn();convBtn();}
   if(window.speechSynthesis)speechSynthesis.cancel();if(aud)aud.pause();
   $('say').checked=false;localStorage.setItem('jsay','0');priv=true;localStorage.setItem('jpriv','1');micState(false);
   return '🔒 Done, sir. '+(was.length?'Stopped: '+was.join(', ')+'.':'Nothing was listening or reading.')+' Voice replies are off. Jarvis stays stopped until you tap "Turn mic on". Reminders still run, they do not listen.';

@@ -66,6 +66,9 @@ def make(c, dev, msg, hindi, control, in_app, dry=False):
         if act and act.get("type") == "call":  # Part 64: a call is never one step of a task, it is said on its own
             return say("सर, कॉल किसी काम का कदम नहीं बन सकता। कॉल अकेले बोलिए, जैसे \"अम्मी को कॉल करो\"। मैंने कुछ नहीं किया।",
                        "Sir, a call cannot be a step in a task. Please say the call on its own, like \"call Ammi\". I did nothing."), None
+        if act and act.get("type") in ("alarm", "timer", "search", "media"):  # Part 66 and Part 60: said on their own, never a step of a task
+            return say("सर, अलार्म, टाइमर और ऐप में सर्च किसी काम का कदम नहीं बनते। इन्हें अकेले बोलिए। मैंने कुछ नहीं किया।",
+                       "Sir, an alarm, a timer or a search inside an app cannot be a step in a task. Please say it on its own. I did nothing."), None
         if not act or act.get("type") not in OK_STEPS:
             refused = True  # blocked (password, OTP...), needs a Yes, or not allowed in a task
             continue

@@ -282,6 +282,243 @@ def call_cmd(msg):
     return act, f"Calling {name}, sir.", f"ठीक है सर, {name} को कॉल कर रहा हूँ।"
 
 
+# ---- Part 66: alarm and timer by voice. Part 60: search inside an app. Only the person's own words; the app (Java) sets the alarm or opens the search page. ----
+NUMW = {"ek": 1, "एक": 1, "do": 2, "दो": 2, "teen": 3, "तीन": 3, "char": 4, "chaar": 4, "चार": 4, "panch": 5, "paanch": 5, "पांच": 5, "पाँच": 5, "chhe": 6, "che": 6, "chah": 6, "छह": 6, "छः": 6, "saat": 7, "सात": 7, "aath": 8, "आठ": 8, "nau": 9, "नौ": 9, "das": 10, "दस": 10,
+        "gyarah": 11, "ग्यारह": 11, "barah": 12, "बारह": 12, "pandrah": 15, "पंद्रह": 15, "bees": 20, "बीस": 20, "tees": 30, "तीस": 30, "aadha": 0.5, "adha": 0.5, "आधा": 0.5, "dedh": 1.5, "derh": 1.5, "डेढ़": 1.5, "डेढ": 1.5}
+BAJE = {"baje", "bje", "बजे", "o'clock", "oclock"}
+UNIT = {"sec": 1, "secs": 1, "second": 1, "seconds": 1, "सेकंड": 1, "सेकेंड": 1, "min": 60, "mins": 60, "minute": 60, "minutes": 60, "मिनट": 60, "मिनिट": 60,
+        "hour": 3600, "hours": 3600, "hr": 3600, "hrs": 3600, "ghanta": 3600, "ghante": 3600, "ghanta.": 3600, "घंटा": 3600, "घंटे": 3600, "घण्टा": 3600, "घण्टे": 3600}
+ALW = {"alarm", "अलार्म", "alaram", "alarams", "alarms"}
+TMW = {"timer", "टाइमर", "taimar"}
+AFILL = set("laga lagao lagana laga do de dena dijiye karo kar kr kardo set a an the for at on to ka ki ke ko ke liye me mein में par पर please plz pls jarvis जार्विस sir सर bhai भाई ji जी mere meri mera mujhe मुझे ek एक chahiye चाहिए hai है aur phir fir ab".split()) | FILL
+AMW = {"subah", "सुबह", "savere", "morning", "am", "a.m", "a.m."}
+PMW = {"shaam", "शाम", "sham", "evening", "pm", "p.m", "p.m.", "raat", "रात", "night"}
+NOONW = {"dopahar", "दोपहर", "afternoon", "dophar"}
+SHOWW = {"band", "बंद", "cancel", "delete", "hata", "hatao", "हटा", "हटाओ", "off", "dikhao", "दिखाओ", "show", "list", "dismiss", "rok", "roko", "ruk", "kholo", "खोलो", "open", "ओपन", "check"}
+SAADE = {"saade": 0.5, "साढ़े": 0.5, "साढे": 0.5, "sava": 0.25, "सवा": 0.25, "paune": -0.25, "पौने": -0.25, "paun": -0.25}
+MAXT = 86400
+
+
+def _num(tok):
+    if re.fullmatch(r"\d+(\.\d+)?", tok):
+        return float(tok)
+    return NUMW.get(tok)
+
+
+def _clock(w, raw=""):
+    """(hour, minute, ambiguous) from the words, or None. 24-hour times and am/pm/subah/shaam are exact; a bare 6 is ambiguous and Java picks the next one on the phone's own clock."""
+    s = set(w)
+    h = mi = None
+    txt = " ".join(w)
+    m = re.search(r"(?<![\d:.])(\d{1,2})[:.](\d{2})(?![\d:])", raw)
+    if m and int(m.group(2)) < 60:
+        h, mi = int(m.group(1)), int(m.group(2))
+    else:
+        m = re.search(r"\b(\d{1,2}) (\d{2})\b(?! ?(?:min|sec|hour|hr|मिनट|सेकंड|घंटे))", txt)
+        if m and int(m.group(2)) < 60 and (set(w[w.index(m.group(2)) + 1:w.index(m.group(2)) + 2]) & (BAJE | AMW | PMW | NOONW) or s & (AMW | PMW | BAJE)):
+            h, mi = int(m.group(1)), int(m.group(2))
+    if h is None:
+        for i, t in enumerate(w):
+            n = _num(t)
+            nxt = w[i + 1] if i + 1 < len(w) else ""
+            prv = w[i - 1] if i else ""
+            if n is None or n != int(n) or not 0 <= n <= 24:
+                continue
+            if nxt in BAJE or nxt in AMW | PMW or (t.isdigit() and not (nxt in UNIT)):
+                if prv in SAADE:
+                    h, mi = int(n), 30 if SAADE[prv] == 0.5 else 15
+                    if SAADE[prv] < 0:
+                        h, mi = int(n) - 1, 45
+                else:
+                    h, mi = int(n), 0
+                break
+    if h is None or h > 24 or mi > 59:
+        return None
+    if h == 24:
+        h = 0
+    if h > 12 or h == 0:
+        return h, mi, False  # a 24-hour time such as 18:30 or 0:15
+    if s & NOONW:
+        return (12 if h == 12 else h + 12 if h <= 6 else h), mi, False
+    if s & PMW - {"raat", "रात", "night"}:
+        return (h if h == 12 else h + 12), mi, False
+    if s & {"raat", "रात", "night"}:
+        return (0 if h == 12 else h + 12 if h >= 5 else h), mi, False  # raat 1 baje is 1 AM, raat 10 baje is 10 PM
+    if s & AMW:
+        return (0 if h == 12 else h), mi, False
+    return h, mi, True
+
+
+def _span(w):
+    """Seconds from words like \"5 minute\", \"1 hour 30 minute\", \"aadha ghanta\", else None."""
+    tot, hit = 0.0, False
+    for i, t in enumerate(w[:-1]):
+        n = _num(t)
+        if n is not None and w[i + 1] in UNIT:
+            tot += n * UNIT[w[i + 1]]
+            hit = True
+    return int(tot) if hit else None
+
+
+def alarm_cmd(msg):
+    """(action, English text, Hindi text) for \"subah 6 baje alarm laga\" or \"5 minute ka timer\", else None. Never a question, never part of a task."""
+    m = msg.strip()
+    if "?" in m or len(m) > 80:
+        return None
+    w = _words(m)
+    s = set(w)
+    if not w or len(w) > 10 or s & QW:
+        return None
+    if s & TMW:
+        if s & SHOWW and not _span(w):
+            return {"type": "alarm", "show": True}, "Android does not let me stop a timer. I opened your alarms and timers, sir, please stop it there.", "सर, Android मुझे टाइमर बंद नहीं करने देता। मैंने अलार्म खोल दिया है, वहाँ से बंद कर दीजिए।"
+        sec = _span(w)
+        if not sec:
+            return None, "How long should the timer be, sir? For example \"5 minute ka timer\".", "कितनी देर का टाइमर सर? जैसे \"5 मिनट का टाइमर\"।"
+        if sec > MAXT:
+            return None, "Sir, a timer can be 24 hours at most.", "सर, टाइमर ज़्यादा से ज़्यादा 24 घंटे का हो सकता है।"
+        mm, ss = divmod(sec, 60)
+        hh, mm = divmod(mm, 60)
+        nice = " ".join(x for x in (f"{hh} hour" + ("s" if hh > 1 else "") if hh else "", f"{mm} min" if mm else "", f"{ss} sec" if ss else "") if x)
+        nice_hi = " ".join(x for x in (f"{hh} घंटे" if hh else "", f"{mm} मिनट" if mm else "", f"{ss} सेकंड" if ss else "") if x)
+        return {"type": "timer", "seconds": sec}, f"Starting a {nice} timer, sir.", f"{nice_hi} का टाइमर चालू कर रहा हूँ सर।"
+    if not s & ALW:
+        return None
+    if s & SHOWW:
+        return {"type": "alarm", "show": True}, "Android does not let me delete or switch off alarms. I opened your alarms, sir, please do it there.", "सर, Android मुझे अलार्म हटाने या बंद करने नहीं देता। मैंने आपके अलार्म खोल दिए हैं, वहाँ से कर लीजिए।"
+    t = _clock(w, m)
+    if not t:
+        return None, 'What time should the alarm be, sir? For example "subah 6 baje alarm laga".', 'कितने बजे का अलार्म सर? जैसे "सुबह 6 बजे अलार्म लगा"।'
+    h, mi, amb = t
+    act = {"type": "alarm", "hour": h, "minute": mi}
+    if amb:
+        act["ambiguous"] = True
+    shown = f"{h if amb else (h % 12 or 12)}:{mi:02d}" + ("" if amb else " AM" if h < 12 else " PM")
+    return act, f"Setting an alarm for {shown}, sir.", f"{shown} का अलार्म लगा रहा हूँ सर।"
+
+
+# search inside an app: only these apps, and Java builds the web address itself from its own fixed list (the page never sends a link)
+SEARCHAPPS = {"YouTube": "youtube", "Google": "google", "Chrome": "google", "Maps": "maps", "Play Store": "play", "Amazon": "amazon", "Flipkart": "flipkart", "Spotify": "spotify"}
+SEARCHW = {"search", "serch", "सर्च", "dhundo", "dhoondo", "dhundna", "dhoondna", "ढूंढो", "ढूँढो", "ढूंढ", "खोजो", "khojo", "play", "प्ले", "chalao", "chala", "चलाओ", "चला", "laga", "lagao", "लगाओ", "sunao", "सुनाओ", "dikhao", "दिखाओ", "dekho", "देखो", "find", "look", "lookup", "navigate"}
+SFILL = FILL | {"par", "pe", "पर", "पे", "me", "mein", "में", "ke", "liye", "लिए", "के", "का", "ki", "की", "ka", "se", "से", "ya", "karke", "kar", "karo", "kro", "करके", "app", "ऐप"}
+SEDGE = {"on", "in", "for", "to", "a", "the", "some", "i", "want", "of", "about", "mujhe"}
+
+
+def search_cmd(msg):
+    """(action, English text, Hindi text) for \"YouTube par Arijit ke gaane search karo\" or \"play Kesariya on YouTube\", else None.
+    There must be an app name from the fixed list AND a search or play word AND something to search for, so \"YouTube kholo\" stays a plain open."""
+    m = msg.strip()
+    if "?" in m or len(m) > 120:
+        return None
+    w = _words(m)
+    if not w or len(w) > 14 or QW & set(w):
+        return None
+    app, used = None, ()
+    for i, t in enumerate(w):
+        two = canon(t + w[i + 1]) if i + 1 < len(w) else None  # "google maps"
+        if two in SEARCHAPPS and two != t + w[i + 1]:
+            app, used = two, (i, i + 1)
+        elif t in ("google", "गूगल"):
+            app, used = "Google", (i,)
+        elif canon(t) in SEARCHAPPS:
+            app, used = canon(t), (i,)
+        if app:
+            break
+    if not app or not set(w) & SEARCHW:
+        return None
+    rest = [x for j, x in enumerate(w) if j not in used]
+    rest = [x for x in rest if x not in SEARCHW and x not in SFILL and x not in EN and x not in HI]
+    while rest and rest[0] in SEDGE:  # little English words (on, in, for, the) are dropped only at the two ends, so \"weather in Mumbai\" stays whole
+        rest = rest[1:]
+    while rest and rest[-1] in SEDGE:
+        rest = rest[:-1]
+    q = " ".join(rest).strip()
+    if not q or len(q) > 100:
+        return None
+    return {"type": "search", "app": SEARCHAPPS[app], "query": q}, f"Searching {app} for \"{q}\", sir.", f"{app} पर \"{q}\" ढूँढ रहा हूँ सर।"
+
+# ---- Part 68: music control by voice. Part 69: WhatsApp message by contact name. Only the person's own words; nothing is sent by Jarvis. ----
+MEDW = {"gaana", "gana", "gaane", "gane", "song", "songs", "music", "musik", "track", "गाना", "गाने", "गान", "म्यूजिक", "म्यूज़िक", "संगीत"}
+M_PAUSE = {"pause", "pose", "पॉज", "ruko", "roko", "rok", "ruk", "band", "bandh", "stop", "बंद", "रोको", "रुको", "रोक"}
+M_PLAY = {"play", "resume", "continue", "chalu", "chalao", "chala", "shuru", "start", "चालू", "चलाओ", "प्ले", "शुरू"}
+M_NEXT = {"next", "agla", "agli", "अगला", "अगली", "नेक्स्ट", "skip", "badlo", "badal", "बदलो", "बदल"}
+M_PREV = {"previous", "prev", "pichla", "pichhla", "पिछला", "पिछली", "पिछले"}
+MFILL = FILL | GO | {"ka", "ki", "ke", "ko", "ye", "yeh", "isko", "wala", "wali", "वाला", "वाली", "abhi", "अभी", "thoda", "थोड़ा", "bas", "बस", "ho", "hota"}
+
+
+def media_cmd(msg):
+    """(action, English text, Hindi text) for "gaana pause karo", "next song", "agla gaana", "music band karo", else None.
+    Needs a music word (gaana, song, music) except for a lone "pause" or "resume". Volume words belong to Part 37, so they are left alone."""
+    m = msg.strip()
+    if "?" in m or len(m) > 60:
+        return None
+    w = _words(m)
+    s = set(w)
+    if not w or len(w) > 6 or s & QW or s & VOLW:
+        return None
+    noun = bool(s & MEDW)
+    cats = [c for c, ws in (("pause", M_PAUSE), ("play", M_PLAY), ("next", M_NEXT), ("prev", M_PREV)) if s & ws]
+    if len(cats) != 1:
+        return None
+    c = cats[0]
+    if any(x not in MEDW | MFILL | M_PAUSE | M_PLAY | M_NEXT | M_PREV for x in w):
+        return None  # something else in the sentence (a song title, an app): not a plain music command
+    if not noun and not (c == "pause" and s & {"pause", "pose", "पॉज"}) and not (c == "play" and s & {"resume", "continue"}):
+        return None
+    en = {"pause": "Pausing the music", "play": "Playing the music", "next": "Next song", "prev": "Previous song"}[c]
+    hi = {"pause": "गाना रोक रहा हूँ", "play": "गाना चला रहा हूँ", "next": "अगला गाना लगा रहा हूँ", "prev": "पिछला गाना लगा रहा हूँ"}[c]
+    return {"type": "media", "cmd": c}, f"{en}, sir.", f"{hi} सर।"
+
+
+WAKO = {"ko", "को"}
+WAFILL = FILL | {"pe", "par", "पर", "पे", "on", "me", "mein", "में", "se", "से", "via", "using", "through", "ek", "a"}
+WAVERB = set("bhejo bhej bhejna bhejiye bhej do de dena karo kar kr likho likh bolo bol batao bata message msg sms text send ki ke ka that say tell please plz jarvis sir bhai ji".split()) | {"भेजो", "भेज", "भेजना", "भेजिए", "करो", "कर", "लिखो", "बोलो", "बोल", "बता", "बताओ", "मैसेज", "की", "के", "दो", "दे", "सर", "जी", "भाई"}
+_TOK = r"[\w\u0900-\u097F']+"
+
+
+def wa_cmd(msg):
+    """(action, English text, Hindi text) for "Ammi ko WhatsApp pe hello bhejo", "Ammi ko whatsapp karo", "send hello to Ammi on WhatsApp".
+    It only OPENS the chat with the words filled in. The send button is the person's own tap. Java finds the number in the phone's contacts."""
+    m = msg.strip()
+    if "?" in m or len(m) > 200:
+        return None
+    toks = re.findall(_TOK, m)
+    low = [x.lower() for x in toks]
+    wi = [i for i, x in enumerate(low) if x == "whatsapp" or canon(x) == "WhatsApp"]
+    if not wi or len(toks) > 30:
+        return None
+    name = text = None
+    en = re.match(r"^(?:please\s+)?(?:send|text|message|msg)\s+(.+?)\s+to\s+([\w\u0900-\u097F]+(?: [\w\u0900-\u097F]+)?)\s+(?:on|via|in|using|through)\s+\S+\s*$", m, re.I)
+    if en:
+        text, name = en.group(1).strip(), en.group(2).strip()
+    else:
+        ko = [i for i, x in enumerate(low) if x in WAKO]
+        if not ko:
+            return None
+        k = ko[0]
+        nm = [toks[i] for i in range(k) if low[i] not in WAFILL and i not in wi and low[i] not in WAVERB]
+        if not nm or len(nm) > 3 or any(x.isdigit() for x in nm):
+            return None
+        name = " ".join(nm)
+        rest = [toks[i] for i in range(k + 1, len(toks)) if i not in wi]
+        rl = [x.lower() for x in rest]
+        while rest and rl[0] in WAFILL | WAVERB:
+            rest, rl = rest[1:], rl[1:]
+        while rest and rl[-1] in WAFILL | WAVERB:
+            rest, rl = rest[:-1], rl[:-1]
+        text = " ".join(rest).strip()
+    if not name or len(text or "") > 300:
+        return None
+    if lang.is_latin(name):
+        name = name.title()
+    act = {"type": "call", "via": "whatsapp", "name": name, "text": text or ""}
+    if not lang.is_latin(name):
+        act = {"type": "call", "via": "whatsapp", "name": lang.romanize(name) or name, "said": name, "text": text or ""}
+    shown = f' with "{text}"' if text else ""
+    shown_hi = f' में "{text}" लिखकर' if text else ""
+    return act, f"Opening the WhatsApp chat with {name}{shown}, sir. Please press send yourself.", f"{name} की WhatsApp चैट{shown_hi} खोल रहा हूँ सर। भेजने का बटन आप खुद दबाइए।"
+
+
 def handle(msg, hindi, control, in_app, ask):
     """None = not a command. Else (reply text, action dict or None). The page shows what REALLY happened after the app answers."""
     say = lambda hi, en: hi if hindi else en
@@ -289,6 +526,14 @@ def handle(msg, hindi, control, in_app, ask):
     msg = lang.norm(msg)
     if blocked(msg):
         return say("सर, मैं पासवर्ड, OTP, PIN या कार्ड नंबर कभी टाइप नहीं करता। कृपया आप खुद टाइप कीजिए।", "Sir, I never type passwords, OTPs, PINs or card numbers. Please type it yourself."), None
+    for fn in (wa_cmd, media_cmd, alarm_cmd, search_cmd):  # Part 66 (alarm, timer) and Part 60 (search inside an app). Only the person's own words, never the AI, never a task step.
+        got = fn(msg)
+        if got:
+            if not in_app:
+                return say("सर, फ़ोन कंट्रोल सिर्फ़ Jarvis ऐप में चलता है।", "Sir, phone control works only in the Jarvis Android app."), None
+            if not control:
+                return say("फ़ोन कंट्रोल बंद है सर। Settings में \"Phone control\" चालू कीजिए।", "Phone control is OFF, sir. Turn it on in Settings, under Phone control."), None
+            return say(got[2], got[1]), got[0]
     sc = screen_cmd(msg) or device_cmd(msg)  # Part 34 (screen steps) and Part 37 (settings pages, flashlight, volume)
     if sc and sc[0] and sc[0]["type"] == "type" and not (control and in_app):
         sc = None  # "type hello" is only a command when phone control is ON in the app; otherwise it is normal chat
