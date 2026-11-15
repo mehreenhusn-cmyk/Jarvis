@@ -4,7 +4,15 @@ import android.Manifest;
 import android.app.Activity;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
+import android.provider.Settings;
+import org.json.JSONObject;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.webkit.ValueCallback;
@@ -62,6 +70,15 @@ public class MainActivity extends Activity {
             @JavascriptInterface public String contact(String name) {
                 return allowed(Manifest.permission.READ_CONTACTS, 3) ? ContactsInfo.find(MainActivity.this, name) : "{\"perm\":false}";
             }
+            @JavascriptInterface public String screen() {
+                if (ScreenService.live == null) {
+                    runOnUiThread(() -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
+                    return "{\"perm\":false}";
+                }
+                runOnUiThread(() -> moveTaskToBack(true));
+                new Handler(Looper.getMainLooper()).postDelayed(() -> screenDone(), 6000);
+                return "{\"wait\":6}";
+            }
             @JavascriptInterface public String phoneInfo() { return PhoneInfo.json(MainActivity.this); }
             @JavascriptInterface public void saveToken(String t) {
                 getSharedPreferences("j", 0).edit().putString("token", t).apply();
@@ -69,6 +86,28 @@ public class MainActivity extends Activity {
             }
         }, "JarvisApp");
         web.loadUrl(URL);
+    }
+
+    static String pending;  // screen text waiting to be handed to the page
+
+    void screenDone() {
+        pending = ScreenService.snapshot();
+        try { startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NEW_TASK)); }
+        catch (Exception e) { /* the notification below still works */ }
+        NotificationManager nm = getSystemService(NotificationManager.class);
+        nm.createNotificationChannel(new NotificationChannel(NotifyService.ALERT, "Reminders", NotificationManager.IMPORTANCE_HIGH));
+        nm.notify(77, new Notification.Builder(this, NotifyService.ALERT).setSmallIcon(android.R.drawable.ic_popup_reminder)
+            .setContentTitle("Jarvis read your screen").setContentText("Tap to see the answer").setAutoCancel(true)
+            .setContentIntent(PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE)).build());
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (pending != null && web != null) {
+            String p = pending; pending = null;
+            getSystemService(NotificationManager.class).cancel(77);
+            web.evaluateJavascript("window.onScreen&&onScreen(" + JSONObject.quote(p) + ")", null);
+        }
     }
 
     @Override protected void onActivityResult(int req, int res, Intent data) {

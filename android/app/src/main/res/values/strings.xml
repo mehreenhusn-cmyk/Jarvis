@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="screen_desc">Jarvis reads the text on your screen only when you ask. It does not watch, record or send anything by itself.</string>
+</resources>

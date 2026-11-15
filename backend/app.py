@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import autostart, brief, calls, ledger, memory, people, phone, place, remind, see, tts, web
+import autostart, brief, calls, ledger, memory, people, phone, place, remind, screen, see, tts, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -314,10 +314,10 @@ class H(BaseHTTPRequestHandler):
                 return self.send(200, {"reply": mem, "via": "memory"})
             rows = c.execute("SELECT role, content FROM messages WHERE device=? ORDER BY id DESC LIMIT 10", (dev,)).fetchall()
             try:
-                reply, via = ask([{"role": r, "content": t} for r, t in reversed(rows)], style, memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + web.context(msg))
+                reply, via = ask([{"role": r, "content": t} for r, t in reversed(rows)], style, memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + web.context(msg))
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
-            c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", reply, time.time()))
+            c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", "(answer about your screen was shown, not saved)" if screen.used(data.get("screen")) else reply, time.time()))
             c.commit()
             return self.send(200, {"reply": reply, "via": via})
         self.send(404, {"error": "not found"})

@@ -79,8 +79,12 @@ $('f').onsubmit=async e=>{
   e.preventDefault();const t=$('msg').value.trim();if(!t)return;$('msg').value='';
   if(/^(gsk_|sk-or-|nvapi-|mstrl_|sk-[0-9a-f]{32}$)/.test(t)){$('set').hidden=false;$('chat').hidden=true;$('key').value=t;addKey();return;}
   if(/stop listening|sunna band|सुनना बंद/i.test(t)){add('user',t);stopAll();add('bot','🔒 Done, sir. Mic and voice are off. Tap "Turn mic on" to resume.');return;}
-  const vm=viaMic;viaMic=false;add('user',t);const w=add('bot','...');
-  try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:SLOW.test(t)?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null});
+  if(SCREENQ.test(t)&&!screenData){const r=sbridge();
+    if(!r){add('user',t);add('err','Screen reading works only in the Jarvis Android app.');return;}
+    if(r.perm===false){add('user',t);add('bot','Turn on "Jarvis screen reader" in Accessibility settings (I opened it for you), then ask again.');return;}
+    pendingMsg=t;add('bot','Switch to the app you want me to read. I will read it in '+r.wait+' seconds and come back.');return;}
+  const sc=screenData;screenData=null;const vm=viaMic;viaMic=false;add('user',t);const w=add('bot','...');
+  try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:SLOW.test(t)?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,screen:sc});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
     if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply,vm);}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}
@@ -158,6 +162,10 @@ const SLOW=/phone (?:is )?(?:slow|hang|lag)|why is my phone|phone health|phone c
 const pinfo=()=>{try{return window.JarvisApp&&JarvisApp.phoneInfo?JSON.parse(JarvisApp.phoneInfo()):null}catch(e){return null}};
 const CALLQ=/missed calls?|who called|recent calls|call history|call log|मिस्ड कॉल|किसका कॉल/i,CNQ=/^\s*(?:find contact|contact number of|contact for|contact)\s+(.{1,40}?)\s*\??\s*$/i;
 const bridge=(f,a)=>{try{return window.JarvisApp&&JarvisApp[f]?JSON.parse(JarvisApp[f](a)):null}catch(e){return null}};
+const SCREENQ=/(?:read|explain|summari[sz]e|what(?:'s| is) on)\s+(?:my |this |the )?screen|screen (?:read|check)|मेरी स्क्रीन|स्क्रीन पढ़/i;
+let screenData=null,pendingMsg=null;
+const sbridge=()=>{try{return window.JarvisApp&&JarvisApp.screen?JSON.parse(JarvisApp.screen()):null}catch(e){return null}};
+window.onScreen=s=>{if(!pendingMsg)return;try{screenData=JSON.parse(s)}catch(e){screenData={error:'could not read the screen'}}$('msg').value=pendingMsg;pendingMsg=null;$('f').requestSubmit();};
 const WHERE=/where am i|my location|near me|nearby|around me|nearest|mere paas|मैं कहाँ हूँ|मेरे पास/i;
 const getLoc=()=>new Promise(ok=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>ok({lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy}),()=>ok(null),{enableHighAccuracy:true,timeout:15000}):ok(null));
 async function shrink(file){
@@ -194,7 +202,7 @@ $('gear').onclick=()=>{if(!token)return;$('set').hidden=!$('set').hidden;$('chat
 const sty=()=>$('voice').value.includes('hi-IN')?'hindi':'english';
 let priv=localStorage.getItem('jpriv')=='1';
 function pv(){
-  $('pv').textContent=(priv?'🔒 Privacy mode: mic and voice off':'🟢 Mic: '+(rec?'on':'off')+' · Voice: '+($('say').checked?'on':'off'))+' · Camera, location and phone check: only when you ask';
+  $('pv').textContent=(priv?'🔒 Privacy mode: mic and voice off':'🟢 Mic: '+(rec?'on':'off')+' · Voice: '+($('say').checked?'on':'off'))+' · Camera, location, phone and screen: only when you ask';
   $('mon').hidden=!priv;$('mic').disabled=priv;
 }
 function stopAll(){
