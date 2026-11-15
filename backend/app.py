@@ -373,7 +373,7 @@ class H(BaseHTTPRequestHandler):
             if mem is None:  # where am I
                 mem = place.handle(msg, data.get("loc"), style == "hindi")
             if mem is None:  # "briefing" / "aaj ka plan"
-                mem = brief.handle(c, dev, msg, style == "hindi", now)
+                mem = brief.handle(c, dev, msg, style == "hindi", now, data.get("cal"))
             if mem is None:  # hisab: "Faisal ko 5000 dene hain"
                 mem = ledger.handle(c, dev, msg, style == "hindi", ask, now)
             if mem is None:  # reminder: "kal 9 baje chai yaad dilana"

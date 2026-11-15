@@ -107,7 +107,7 @@ $('f').onsubmit=async e=>{
     if(r.perm===false){add('user',t);add('bot','Turn on "Jarvis screen reader" in Accessibility settings (I opened it for you), then ask again.');return;}
     pendingMsg=t;add('bot','Switch to the app you want me to read. I will read it in '+r.wait+' seconds and come back.');return;}
   const sc=screenData;screenData=null;const vm=viaMic;viaMic=false;add('user',t);const w=add('bot','...');
-  let sp=false;try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:SLOW.test(t)?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,cal:CALQ2.test(t)?bridge('calendar',calSpec(t)):null,screen:sc,app:inApp(),control:inApp()&&ctl()});
+  let sp=false;try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:SLOW.test(t)?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,cal:CALQ2.test(t)?bridge('calendar',calSpec(t)):/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)?bridge('calendar','0,1'):null,screen:sc,app:inApp(),control:inApp()&&ctl()});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
     if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.action?await doAct(d.action,w):d.reply,vm,d.action?'TASK_CONFIRMATION':'');if(d.remember)askSave(w,d.remember);sp=vm||$('say').checked;}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}finally{if((wakeOn||convOn)&&!sp)heardBack();}
@@ -444,6 +444,7 @@ function dash(){
     if(id!='battery')r.appendChild(el('span','chip '+(d.run[id]?'warn':''),id=='notify'?(d.run[id]?'Reminder service ON':'Reminder service OFF'):d.run[id]?'RUNNING NOW':'Not running'));
     if(id!='battery')r.appendChild(el('span','chip','Last used: '+ago(d.last[id])));
     if(p==0){const g=el('button','g','Open settings');g.onclick=()=>JarvisApp.openSettings(go);r.appendChild(g);}
+    if(id=='screen'&&p==0){r.appendChild(el('small','','If \"Jarvis screen reader\" is grey and cannot be turned on: Android blocks apps installed outside Play Store. Tap the button below, then the 3 dots at the top right, then \"Allow restricted settings\". Then turn the switch on.'));const g2=el('button','g','Open Jarvis app info');g2.onclick=()=>JarvisApp.openSettings('');r.appendChild(g2);}
     box.appendChild(r);});
   box.appendChild(el('small','','Recent activity (feature and time only, nothing private is saved):'));
   const lg=(d.log||[]).slice(-8).reverse();box.appendChild(el('div','',lg.length?lg.map(x=>(nm[x[0]]||x[0])+' · '+new Date(x[1]).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})).join('\n'):'Nothing yet.'));box.lastChild.style.whiteSpace='pre-line';
@@ -456,11 +457,11 @@ async function sysCard(box){
   box=box||$('sys');if(!box||box.closest('[hidden]'))return;
   let sv={};try{const {s,d}=await api('/stats');if(s==200)sv=d;}catch(e){box.textContent='Server offline: no numbers.';return;}
   const ph=pinfo()||{},m=ph.ram_total?ph:sv,rows=[];
-  const bar=(n,p,t)=>{const r=el('div','kr'),b=el('div','bar'),i=el('i',p>=90?'b':p>=75?'w':'');i.style.width=Math.max(0,Math.min(100,p))+'%';b.appendChild(i);r.append(el('span',null,n),b,el('b',null,t));rows.push(r);};
+  const bar=(n,p,t,low)=>{const r=el('div','kr'),b=el('div','bar'),i=el('i',low?(p<=20?'b':p<=40?'w':''):p>=90?'b':p>=75?'w':'');i.style.width=Math.max(0,Math.min(100,p))+'%';b.appendChild(i);r.append(el('span',null,n),b,el('b',null,t));rows.push(r);};
   const txt=(n,t)=>{const r=el('div','kr');r.append(el('span',null,n),el('b',null,t));rows.push(r);};
   if(m.ram_total){const u=m.ram_total-m.ram_free;bar('Phone RAM',100*u/m.ram_total,GB(u)+' / '+GB(m.ram_total));}else txt('Phone RAM','not available');
   if(m.disk_total||sv.disk_total){const d=m.disk_total?m:sv,u=d.disk_total-d.disk_free;bar('Storage',100*u/d.disk_total,GB(u)+' / '+GB(d.disk_total));}
-  if(ph.battery!=null)bar('Battery'+(ph.charging?' (charging)':''),ph.battery,ph.battery+'%');else txt('Battery','open the Jarvis app to see it');
+  if(ph.battery!=null)bar('Battery'+(ph.charging?' (charging)':''),ph.battery,ph.battery+'%',true);else txt('Battery','open the Jarvis app to see it');
   if(ph.temp_c)bar('Battery heat',100*(ph.temp_c-20)/30,ph.temp_c+' °C');
   if(sv.srv_ram)txt('Jarvis server memory',MB(sv.srv_ram));
   if(sv.srv_cpu!=null&&sv.srv_cpu!==undefined)bar('Jarvis server CPU',sv.srv_cpu,sv.srv_cpu+'% of one core');

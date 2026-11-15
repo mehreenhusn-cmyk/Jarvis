@@ -4,3 +4,4 @@ __pycache__/
 *.zip
 keys.json
 voice.json
+brief.json
