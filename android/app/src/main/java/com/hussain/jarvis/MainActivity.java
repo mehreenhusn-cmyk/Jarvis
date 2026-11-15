@@ -18,6 +18,7 @@ import android.net.Uri;
 import android.webkit.ValueCallback;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -40,8 +41,15 @@ public class MainActivity extends Activity {
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setGeolocationEnabled(true);
+        s.setAllowFileAccess(false);
+        s.setAllowContentAccess(false);
         s.setMediaPlaybackRequiresUserGesture(false);
         web.setWebViewClient(new WebViewClient() {
+            // Part 26: the page can use phone features, so it must never leave the Jarvis server address.
+            @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
+                Uri u = r.getUrl();
+                return !("127.0.0.1".equals(u.getHost()) && u.getPort() == 8787);
+            }
             @Override public void onReceivedError(WebView v, int code, String d, String u) {
                 v.loadData("<body style='background:#0e1116;color:#e6e9ee;font:18px sans-serif;padding:32px'>"
                     + "<h3>Jarvis server is not running</h3><p>Open Termux and start Jarvis, then pull down to retry.</p>"

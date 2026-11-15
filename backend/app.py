@@ -145,15 +145,34 @@ def sync_note():
         return ""
 
 
+SECURE = {  # Part 26: the page may only talk to this server; no outside scripts, no framing
+    "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer", "X-Frame-Options": "DENY",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+                               "img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self'; base-uri 'none'; "
+                               "form-action 'none'; frame-ancestors 'none'"}
+
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
 
+    def allowed(self):
+        """Part 26: only this phone's own page may talk to the server (stops other websites using it, e.g. DNS rebinding)."""
+        host, port = self.server.server_address[:2]
+        if host != "127.0.0.1":
+            return True  # someone chose another HOST in .env: they accept the risk
+        ok = {f"http://127.0.0.1:{port}", f"http://localhost:{port}"}
+        return self.headers.get("Host", "").lower() in {f"127.0.0.1:{port}", f"localhost:{port}"} and self.headers.get("Origin", next(iter(ok))) in ok
+
     def send(self, code, obj):
+        if code >= 400 and isinstance(obj, dict) and "error" in obj:  # never show anything that looks like a key
+            obj["error"] = re.sub(r"[A-Za-z0-9_\-]{24,}", "***", str(obj["error"]))
         data = json.dumps(obj, ensure_ascii=False).encode()
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(data)))
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(data)
 
@@ -175,6 +194,8 @@ class H(BaseHTTPRequestHandler):
             return None
 
     def do_GET(self):
+        if not self.allowed():
+            return self.send(403, {"error": "blocked"})
         if self.path in FILES:
             fn, ctype = FILES[self.path]
             try:
@@ -184,6 +205,8 @@ class H(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(page)))
+            for k, v in SECURE.items():
+                self.send_header(k, v)
             self.end_headers()
             return self.wfile.write(page)
         if self.path == "/status":
@@ -208,6 +231,8 @@ class H(BaseHTTPRequestHandler):
         self.send(404, {"error": "not found"})
 
     def do_POST(self):
+        if not self.allowed():
+            return self.send(403, {"error": "blocked"})
         data = self.body(1500000 if self.path == "/see" and self.headers.get("Authorization") else 20000)
         if not isinstance(data, dict):
             return self.send(400, {"error": "galat request"})
@@ -290,6 +315,10 @@ class H(BaseHTTPRequestHandler):
             c = db()
             c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "user", msg, time.time()))
             c.commit()
+            if re.match(r"^\s*(?:clear|delete|erase)\s+(?:my\s+)?(?:chat\s+)?history\s*$", msg, re.I):
+                c.execute("DELETE FROM messages WHERE device=?", (dev,))
+                c.commit()
+                return self.send(200, {"reply": "Okay sir, the chat history is deleted. Saved memories, people and reminders are not touched.", "via": "memory"})
             style = str(data.get("style", ""))
             mem = memory.handle(c, dev, msg, style == "hindi")  # yaad rakho / bhool jao / kya yaad hai
             now = str(data.get("now", ""))

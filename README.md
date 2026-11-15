@@ -68,20 +68,38 @@ Auto-start (Part 11): Termux starts Jarvis when opened. Turn off with `JARVIS_NO
 | - | **Update status in the app header** (`~/.jarvis_last`, written by `sync.sh`): shows the last zip, time and result (pushed / skipped / PUSH FAILED). Note: the Android Files app can keep showing zips that Termux already moved away; those entries are empty ghosts | Built |
 | 24 | **Phone check** (`backend/phone.py` + `PhoneInfo.java`): ask "why is my phone slow". Jarvis reads numbers only (RAM, storage, battery, heat, battery saver, days since restart) and gives simple advice. In Chrome only RAM and storage are checked | Built, rules checked with fake numbers; app side not compiled |
 | - | **Catch-up zip** `Jarvis_part_24.zip`: Parts 15-21 and 24 were never pushed because of the `part114` zip name; this zip carries all of them plus the sync fix | Pushed? Check GitHub |
+| 26 | **Security check and polish:** only the phone's own page may use the server (Host and Origin check); security headers and a strict page policy (no outside scripts or connections); error messages never show anything key-like; the app page cannot navigate away from the Jarvis address; file access off in the app; no cloud backup of the app data; new command "clear history" | Built; checked by a real local test of the server; app side not compiled |
 | 17 | Build log is now saved on every run (artifact `build-log`). Real fixes need that log from the first build | Prepared; waiting for the first build |
 | 18 | **Reminder notifications with the app closed:** `NotifyService.java` checks `/due` every 30 sec and shows a phone notification. The page hands the pairing token to the app. Termux must stay running | Built, never compiled or run |
 
-## 7. Roadmap (about 26 parts, each under 350 lines; sizes are estimates)
-Done so far (1-25): about 39 files, about 2,550 lines of code. Hey Jarvis works only while the app is open (not from the background or with the screen off). 
-| Part | What | New files | Lines |
-|---|---|---|---|
-| 26 | Security check and final polish | 0-1 | ~100 |
-| **Remaining (26)** | | **0-1 files** | **~100 lines** |
-| **Final total** | | **~40 files** | **~2,650 lines** |
+## 7. Plan: finished (26 parts)
+All planned parts are built. About 40 files and 2,650 lines of code. What is still open is TESTING on the phone, not building:
+1. Download the zip, check the app header says "pushed". 2. Voice: Settings drawer, "Test voice". 3. APK: GitHub > Actions > Build APK > download `Jarvis-apk`; if it fails send `build-log`.
+4. Try each feature once (cheat sheet below) and report what fails. Each fix is a small zip.
+Ideas for later, not planned: wake word while the app is closed (needs a different Android method), real payments (never), WhatsApp messages (not allowed by WhatsApp).
 
-Safety rules for later parts: ask before sending a message, deleting or paying; never use mic or camera secretly; call log is metadata only;
-"stop listening" turns the mic off at once.
+## 8. Cheat sheet (type or say)
+| Say or type | What happens |
+|---|---|
+| remember this: ... / what do you remember / forget 1 | Memory (no passwords or OTPs) |
+| remind me tomorrow 9 am to ... / my reminders | Reminders (notification in the app) |
+| I owe Faisal 5000, due 15 Nov / show ledger / paid 3 | Money ledger (notes only) |
+| note about Faisal: old friend / who is Faisal / my people | People notes |
+| briefing | Morning briefing |
+| search: ... or paste a link | Internet read |
+| why is my phone slow | Phone check (app: full, Chrome: memory and storage) |
+| where am I / near me | Location, only for that message |
+| missed calls / recent calls today / contact Faisal | Calls and contacts (app only, not saved) |
+| read my screen | Screen reader (app only, Accessibility, not saved) |
+| camera button | Describe one photo |
+| Hey Jarvis (button in voice drawer) | Wake mode while the app is open |
+| stop listening | Mic and voice off |
+| clear history | Delete the chat history |
 
-## 8. Security so far
-Server listens on 127.0.0.1 only. Token is stored as a hash. Pairing locks after 5 wrong tries. Keys never go back to the browser.
-Location is sent to OpenStreetMap (internet) only when you ask a location question, and is never saved. Spoken text goes to Microsoft's voice service over the internet, so keep voice off for private talk.
+## 9. Security and privacy
+- Server listens on 127.0.0.1 only. Only the page from that address may call it (Host and Origin are checked). Pairing code: 10 minutes, one use, locks after 5 wrong tries.
+- Token is stored as a hash on the server. Keys are stored in `backend/keys.json` (owner-only file, never in Git, never sent back to the browser).
+- Passwords, OTPs and PINs are never saved. Calls, contacts and screen text are never saved. Chat history is saved on the phone only; "clear history" deletes it.
+- These go to the internet only when you use them: your question to the AI provider; voice text to Microsoft (online voice); photo to the vision AI; location to OpenStreetMap; screen text to the AI for that one answer.
+- The Android app only opens the Jarvis address, has no file access, and is excluded from cloud backup. Accessibility is used only to read text when you ask.
+- Zips: only put zips you trust in Downloads. A zip can replace any file in the repo, including scripts.

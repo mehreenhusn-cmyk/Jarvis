@@ -31,7 +31,7 @@ def look(image, question, hindi, providers, getkey, names):
             with urllib.request.urlopen(req, timeout=60) as r:
                 return json.load(r)["choices"][0]["message"]["content"].strip(), n
         except urllib.error.HTTPError as e:
-            errs.append(f"{n}: error {e.code} {e.read()[:100].decode(errors='ignore')}")
+            errs.append(f"{n}: error {e.code}")
         except Exception as e:
             errs.append(f"{n}: {type(e).__name__}")
     raise RuntimeError(" | ".join(errs) or "no key for a vision AI (groq, openrouter, mistral or nvidia). Add one in Settings.")
