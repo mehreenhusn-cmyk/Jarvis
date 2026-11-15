@@ -4,7 +4,7 @@ import os, re
 
 README = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "README.md")
 BASE = 26  # Parts 1 to 26 were finished before the 11.6 table starts
-ASK = re.compile(r"kahan tak|kahaan tak|कहाँ तक|कहां तक|progress|प्रोग्रेस|how far|where are we|next part|kitne part|कितने पार्ट|what(?:'s| is) left|kya kya baaki|क्या क्या बाकी|कौन सा पार्ट|कौन-सा पार्ट|status of (?:the )?(?:app|jarvis)", re.I)
+ASK = re.compile(r"kitna (?:kaam|work) (?:ho gaya|hua|complete)|कितना काम (?:हो गया|हुआ)|kitna ho gaya|work status|status of (?:the )?(?:app|project)|kahan tak|kahaan tak|कहाँ तक|कहां तक|progress|प्रोग्रेस|how far|where are we|next part|kitne part|कितने पार्ट|what(?:'s| is) left|kya kya baaki|क्या क्या बाकी|कौन सा पार्ट|कौन-सा पार्ट|status of (?:the )?(?:app|jarvis)", re.I)
 ABOUT = re.compile(r"\bapp\b|jarvis|\bparts?\b|kaam|काम|ऐप|एप|पार्ट|project|feature|plan", re.I)
 
 

@@ -21,6 +21,7 @@ select{width:auto;max-width:100%;padding:8px 10px;font-size:14px}
 #vp{padding:12px 16px;background:var(--sf);border-bottom:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:14px;color:var(--mut)}
 #log{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
 .m{max-width:86%;padding:11px 14px;border-radius:16px 16px 16px 4px;background:var(--sf);border:1px solid var(--line);white-space:pre-wrap;word-wrap:break-word}
+.m::after{content:attr(data-t);display:block;font-size:11px;color:var(--mut);text-align:right;margin-top:3px;opacity:.8}.ds{align-self:center;font-size:12px;color:var(--mut);background:var(--sf);border:1px solid var(--line);border-radius:10px;padding:2px 10px;margin:6px 0}
 .m.user{align-self:flex-end;background:var(--me);border-color:transparent;border-radius:16px 16px 4px 16px}.m.err{color:var(--bad)}
 form{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:var(--sf);border-top:1px solid var(--line);align-items:center}
 form input{border-radius:24px}#mic{width:52px;height:52px;padding:0;border-radius:50%;font-size:22px;flex:none}#send{border-radius:24px}
@@ -53,7 +54,12 @@ async function api(path,body){
   let d={};try{d=await r.json()}catch(e){}
   return {s:r.status,d};
 }
-function add(role,text){const m=document.createElement('div');m.className='m '+role;m.textContent=text;$('log').appendChild(m);m.scrollIntoView();return m;}
+let lastDay='';  // Part 36: day of the last message shown, so a date line appears when the day changes
+const p2=n=>String(n).padStart(2,'0');
+function dayName(d){const t=new Date(),y=new Date(Date.now()-864e5),k=x=>x.getFullYear()+'-'+x.getMonth()+'-'+x.getDate();return k(d)==k(t)?'Today':k(d)==k(y)?'Yesterday':d.getDate()+' '+d.toLocaleString('en',{month:'short'})+(d.getFullYear()!=t.getFullYear()?' '+d.getFullYear():'');}
+function add(role,text,ts){const d=ts?new Date(ts*1000):new Date(),day=d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();
+  if(day!=lastDay){lastDay=day;const x=document.createElement('div');x.className='ds';x.textContent=dayName(d);$('log').appendChild(x);}
+  const m=document.createElement('div');m.className='m '+role;m.dataset.t=p2(d.getHours())+':'+p2(d.getMinutes());m.textContent=text;$('log').appendChild(m);m.scrollIntoView();return m;}
 function show(){$('pair').hidden=!!token;$('chat').hidden=!token;if(!token)$('set').hidden=true;}
 let boot='';
 const nowS=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16).replace('T',' ');
@@ -71,8 +77,8 @@ async function ping(){
     if(down>=2){$('off').hidden=false;$('off').textContent='Jarvis server is not running (since '+since+'). Open the Termux app and wait 5 seconds. I keep trying every 5 seconds.';}}
 }
 async function history(){
-  $('log').textContent='';
-  try{const {s,d}=await api('/history');if(s==200)d.messages.forEach(m=>add(m.role,m.content));}catch(e){}
+  $('log').textContent='';lastDay='';
+  try{const {s,d}=await api('/history');if(s==200)d.messages.forEach(m=>add(m.role,m.content,m.ts));}catch(e){}
 }
 $('go').onclick=async()=>{
   try{const {s,d}=await api('/pair',{code:$('code').value.trim(),name:'phone browser'});
@@ -341,6 +347,13 @@ function dash(){
   pc.appendChild(el('span','chip '+(d.control?'warn':''),d.control?'ON':'OFF'));
   const cb=el('button','g',d.control?'Turn off':'Turn on');cb.onclick=()=>{let r={};try{r=JSON.parse(JarvisApp.setControl(!d.control))}catch(e){}if(!r.ok)add('err','Phone control did not change. Tap the button with your finger, and Jarvis must not be stopped.');setTimeout(dash,300);};
   pc.appendChild(cb);box.appendChild(pc);
+  if(window.JarvisApp&&JarvisApp.lockState){  // Part 36: app lock with Android's own prompt
+    let ls={};try{ls=JSON.parse(JarvisApp.lockState())}catch(e){}
+    const al=el('div','dr');al.appendChild(el('b','','App lock'));al.appendChild(el('small','','Asks for your fingerprint, face or phone PIN when you open Jarvis. Jarvis keeps no PIN of its own. Needs a screen lock on the phone.'));
+    al.appendChild(el('span','chip '+(ls.on?'ok':''),ls.on?'ON':'OFF'));
+    const ab=el('button','g',ls.on?'Turn off':'Turn on');ab.onclick=()=>{let r={};try{r=JSON.parse(JarvisApp.appLock(!ls.on))}catch(e){}
+      if(r.err=='nolock')add('err','Set a screen lock (PIN, pattern or fingerprint) in Android settings first, then try again.');else if(!r.ok)add('err','App lock did not change.');setTimeout(dash,500);};
+    al.appendChild(ab);box.appendChild(al);}
   const nm={};
   DASH.forEach(([id,name,why,go])=>{nm[id]=name;const p=d.perm[id],r=el('div','dr');r.appendChild(el('b','',name));r.appendChild(el('small','',why));
     const L=id=='battery'?['Limited by Android','Not limited']:id=='screen'?['Accessibility OFF','Accessibility ON']:['Not allowed','Allowed'];
@@ -352,6 +365,7 @@ function dash(){
   box.appendChild(el('small','','Recent activity (feature and time only, nothing private is saved):'));
   const lg=(d.log||[]).slice(-8).reverse();box.appendChild(el('div','',lg.length?lg.map(x=>(nm[x[0]]||x[0])+' · '+new Date(x[1]).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})).join('\n'):'Nothing yet.'));box.lastChild.style.whiteSpace='pre-line';
 }
+window.onLock=()=>setTimeout(dash,300);
 setInterval(()=>{if(!$('set').hidden)dash();},3000);
 // Part 50: system card. In the app, phone numbers come from Android (JarvisApp.phoneInfo); in Chrome, from the Termux server (/stats).
 const GB=b=>(b/1073741824).toFixed(1)+' GB',MB=b=>Math.round(b/1048576)+' MB';

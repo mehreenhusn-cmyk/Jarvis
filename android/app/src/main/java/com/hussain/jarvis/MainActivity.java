@@ -36,6 +36,7 @@ public class MainActivity extends Activity {
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         Privacy.init(this);
+        AppLock.init(this);
         web = new WebView(this);
         web.setBackgroundColor(Color.parseColor("#0e1116"));
         setContentView(web);
@@ -91,16 +92,19 @@ public class MainActivity extends Activity {
                 return false;
             }
             @JavascriptInterface public String calls(int days) {
+                if (AppLock.locked()) return "{\"locked\":true}";
                 if (!allowed(Manifest.permission.READ_CALL_LOG, 2)) return "{\"perm\":false}";
                 Privacy.used("calls");
                 return ContactsInfo.calls(MainActivity.this, days);
             }
             @JavascriptInterface public String contact(String name) {
+                if (AppLock.locked()) return "{\"locked\":true}";
                 if (!allowed(Manifest.permission.READ_CONTACTS, 3)) return "{\"perm\":false}";
                 Privacy.used("contacts");
                 return ContactsInfo.find(MainActivity.this, name);
             }
             @JavascriptInterface public void listen(String lang, boolean wake) {
+                if (AppLock.locked()) return;
                 if (Privacy.stopped) { web.post(() -> web.evaluateJavascript("window.onHeardErr&&onHeardErr('Jarvis is stopped. Tap Turn mic on first',false)", null)); return; }
                 if (!allowed(Manifest.permission.RECORD_AUDIO, 1)) { web.post(() -> web.evaluateJavascript("window.onHeardErr&&onHeardErr('allow the microphone, then tap the mic again',false)", null)); return; }
                 runOnUiThread(() -> { if (ears == null) ears = new Ears(MainActivity.this, web); ears.start(lang, wake); });
@@ -123,6 +127,7 @@ public class MainActivity extends Activity {
             @JavascriptInterface public String stopAll() { return Privacy.stopAll(MainActivity.this); }
             @JavascriptInterface public String restart() { return "{\"ok\":" + Privacy.restart() + "}"; }
             @JavascriptInterface public String screen() {
+                if (AppLock.locked()) return "{\"locked\":true}";
                 if (Privacy.stopped) return "{\"stopped\":true}";
                 if (ScreenService.live == null) {
                     runOnUiThread(() -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
@@ -135,6 +140,7 @@ public class MainActivity extends Activity {
             }
             // Part 30/31: the ONE door for phone actions. Java checks Stop and the master switch itself, so the page cannot skip them.
             @JavascriptInterface public String act(String json) {
+                if (AppLock.locked()) return "{\"ok\":false,\"err\":\"locked\"}";
                 try {
                     JSONObject a = new JSONObject(json);
                     if (Privacy.stopped) return "{\"ok\":false,\"err\":\"stopped\"}";
@@ -162,8 +168,20 @@ public class MainActivity extends Activity {
                 } catch (Exception e) { /* fall through */ }
                 return "{\"ok\":false,\"err\":\"unknown\"}";
             }
+            // Part 36: turning the lock ON needs a phone screen lock; turning it OFF needs the Android prompt first
+            @JavascriptInterface public String lockState() { return AppLock.state(MainActivity.this); }
+            @JavascriptInterface public String appLock(boolean on) {
+                if (AppLock.locked()) return "{\"ok\":false,\"err\":\"locked\"}";
+                if (on) {
+                    if (!AppLock.available(MainActivity.this)) return "{\"ok\":false,\"err\":\"nolock\"}";
+                    AppLock.set(MainActivity.this, true);
+                    return "{\"ok\":true}";
+                }
+                runOnUiThread(() -> { if (!AppLock.ask(MainActivity.this, AppLock.TURN_OFF, "Confirm to turn off the Jarvis app lock")) AppLock.set(MainActivity.this, false); });
+                return "{\"ok\":true,\"wait\":true}";
+            }
             @JavascriptInterface public String setControl(boolean on) { return Privacy.setControl(on); }
-            @JavascriptInterface public String phoneInfo() { return PhoneInfo.json(MainActivity.this); }
+            @JavascriptInterface public String phoneInfo() { if (AppLock.locked()) return "{\"locked\":true}"; return PhoneInfo.json(MainActivity.this); }
             @JavascriptInterface public void saveToken(String t) {
                 getSharedPreferences("j", 0).edit().putString("token", t).apply();
                 // Part 27: ask for notifications once, now that reminders are used (Android 13+)
@@ -215,13 +233,28 @@ public class MainActivity extends Activity {
             .setContentIntent(PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE)).build());
     }
 
+    boolean asking, closing;
+
+    /** Part 36: while the lock is on, the page stays hidden until Android's own prompt says yes. */
+    void gate() {
+        if (web == null || closing) return;
+        if (!AppLock.locked()) { web.setVisibility(android.view.View.VISIBLE); AppLock.opened(); return; }
+        web.setVisibility(android.view.View.INVISIBLE);
+        if (asking) return;
+        asking = true;
+        if (!AppLock.ask(this, AppLock.ASK, "Unlock Jarvis")) { asking = false; AppLock.set(this, false); gate(); }
+    }
+
     @Override protected void onPause() {
-        super.onPause();  // Android does not let apps listen from the background, so Hey Jarvis pauses here
+        super.onPause();
+        AppLock.left();  // Android does not let apps listen from the background, so Hey Jarvis pauses here
         if (ears != null && ears.on) { ears.stop(); ears.js("onHeardErr", "Hey Jarvis paused because the app went to the background"); }
     }
 
     @Override protected void onResume() {
         super.onResume();
+        gate();
+        if (AppLock.locked()) return;  // nothing is handed to the page while it is locked
         if (pendingAct != null && web != null) {
             String q = pendingAct; pendingAct = null;
             getSystemService(NotificationManager.class).cancel(78);
@@ -235,7 +268,14 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onActivityResult(int req, int res, Intent data) {
-        if (req == 7 && picker != null) { picker.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(res, data)); picker = null; }
+        if (req == AppLock.ASK) {
+            asking = false;
+            if (res == RESULT_OK) { AppLock.opened(); gate(); }
+            else { closing = true; finish(); }  // cancelled or failed: the app closes, nothing is shown
+        } else if (req == AppLock.TURN_OFF) {
+            if (res == RESULT_OK) AppLock.set(this, false);
+            web.evaluateJavascript("window.onLock&&onLock()", null);
+        } else if (req == 7 && picker != null) { picker.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(res, data)); picker = null; }
         else super.onActivityResult(req, res, data);
     }
 

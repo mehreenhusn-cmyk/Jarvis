@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, autostart, brief, calls, ledger, memory, people, phone, place, progress, remind, screen, see, sysinfo, tts, web
+import actions, autostart, brief, calls, clock, ledger, memory, people, phone, place, progress, remind, screen, see, sysinfo, tts, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -220,8 +220,8 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/keys":  # keys kabhi wapas nahi bhejte, sirf masked
             return self.send(200, {"providers": [{"name": n, "saved": bool(getkey(n)), "masked": mask(getkey(n)) if getkey(n) else ""} for n in PROVIDERS]})
         if self.path == "/history":
-            rows = db().execute("SELECT role, content FROM messages WHERE device=? ORDER BY id DESC LIMIT 50", (dev,)).fetchall()
-            return self.send(200, {"messages": [{"role": r, "content": c} for r, c in reversed(rows)]})
+            rows = db().execute("SELECT role, content, ts FROM messages WHERE device=? ORDER BY id DESC LIMIT 50", (dev,)).fetchall()
+            return self.send(200, {"messages": [{"role": r, "content": c, "ts": int(t or 0)} for r, c, t in reversed(rows)]})  # Part 36: ts so the page can show WhatsApp-style times
         if self.path == "/ledger":
             r = ledger.rows(db(), dev)
             dn, ln = ledger.totals(r)
@@ -315,6 +315,8 @@ class H(BaseHTTPRequestHandler):
             if not msg or len(msg) > 4000:
                 return self.send(400, {"error": "message khali ya bahut bada"})
             c = db()
+            last = c.execute("SELECT ts FROM messages WHERE device=? AND role='user' ORDER BY id DESC LIMIT 1", (dev,)).fetchone()  # Part 36: when did the user last write?
+            prev_ts = last[0] if last else None
             c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "user", msg, time.time()))
             c.commit()
             if re.match(r"^\s*(?:clear|delete|erase)\s+(?:my\s+)?(?:chat\s+)?history\s*$", msg, re.I):
@@ -350,9 +352,10 @@ class H(BaseHTTPRequestHandler):
                 c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", keep, time.time()))
                 c.commit()
                 return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {})))
-            rows = c.execute("SELECT role, content FROM messages WHERE device=? ORDER BY id DESC LIMIT 10", (dev,)).fetchall()
+            rows = c.execute("SELECT role, content, ts FROM messages WHERE device=? ORDER BY id DESC LIMIT 10", (dev,)).fetchall()
+            tctx = clock.context([(r, t) for r, _, t in reversed(rows)], prev_ts)
             try:
-                reply, via = ask([{"role": r, "content": t} for r, t in reversed(rows)], style, memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + web.context(msg))
+                reply, via = ask([{"role": r, "content": t} for r, t, _ in reversed(rows)], style, tctx + memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + web.context(msg))
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
             c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", "(answer about your screen was shown, not saved)" if screen.used(data.get("screen")) else reply, time.time()))

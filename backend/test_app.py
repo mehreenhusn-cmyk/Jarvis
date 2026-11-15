@@ -23,6 +23,11 @@ def _unit():
     ok("33: paise bhejo -> pay confirm", a("paise bhejo Faisal ko")[1] == {"type": "confirm", "risk": "pay"})
     ok("33: delete / buy / install / logout -> confirm", all((a(m) or (0, {}))[1].get("type") == "confirm" for m in ("delete this chat", "buy shoes", "install Telegram", "logout karo")))
     ok("33: switch OFF par confirm nahi, chat chalti hai", a("delete this chat", False) is None)
+    import clock as CK
+    ok("36: gap shabd sahi", CK.gap(40) == "40 seconds" and CK.gap(300) == "5 minutes" and CK.gap(7200) == "2 hours")
+    ok("36: AI ko gap aur time rule milta hai", "5 minutes ago" in CK.context([("user", time.time() - 300)], time.time() - 300) and "Never write timestamps" in CK.context([], None))
+    ok("36: 1 ghante se purani baat par naya shuru", "fresh start" in CK.context([], time.time() - 7200) and "fresh start" not in CK.context([], time.time() - 60))
+    ok("36: 'kitna kaam ho gaya' samjha jata hai", PG.handle("bhai kitna kaam ho gaya short me", False) is not None)
     ok("33: sawaal par confirm nahi", a("how to delete a file?") is None and a("send me a joke") is None)
     ok("33: password type karna hamesha mana", a("mera password type karo", False)[1] is None and "never type" in a("enter my OTP 1234")[0])
     ok("33: Chrome kholo ab bhi bina confirm", a("Chrome kholo")[1]["type"] == "open_app")

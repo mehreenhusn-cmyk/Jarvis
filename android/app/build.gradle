@@ -2,6 +2,11 @@ plugins { id 'com.android.application' }
 android {
     namespace 'com.hussain.jarvis'
     compileSdk 34
-    defaultConfig { applicationId 'com.hussain.jarvis'; minSdk 24; targetSdk 34; versionCode 2; versionName '1.0' }
+    defaultConfig { applicationId 'com.hussain.jarvis'; minSdk 24; targetSdk 34; versionCode 3; versionName '1.1' }
+    // Part 36 fix: ONE fixed signing key for every build. GitHub made a new random key each time, so Android refused to update the app
+    // and you had to uninstall it (that wiped the pairing). With this fixed key an update installs over the old app and keeps the pairing.
+    signingConfigs {
+        debug { storeFile file('../jarvis-debug.keystore'); storePassword 'android'; keyAlias 'jarvis'; keyPassword 'android' }
+    }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
