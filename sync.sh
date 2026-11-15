@@ -6,6 +6,7 @@ REPO="$(cd "$(dirname "$0")" && pwd)"
 DL="${JARVIS_DL:-$HOME/storage/downloads}"
 DONE="$HOME/.jarvis_done"; mkdir -p "$DONE"
 
+note() { echo "$b|$(date +%H:%M)|$1" > "$HOME/.jarvis_last"; }  # the app shows this, so you can see if the update worked
 main() {
   shopt -s nullglob
   [ -d "$DL" ] || { echo "Downloads nahi mila. Pehle: termux-setup-storage"; return 1; }
@@ -14,15 +15,15 @@ main() {
       b="$(basename "$z")"
       h="$(sha256sum "$z" | cut -d' ' -f1)"
       if sha256sum "$DONE"/*.zip </dev/null 2>/dev/null | grep -q "$h"; then
-        echo "[sync] $b pehle ho chuka hai, skip (dobara push nahi)"; mv "$z" "$DONE/dup_$b"; continue
+        echo "[sync] $b pehle ho chuka hai, skip (dobara push nahi)"; note "skipped, same zip already done"; mv "$z" "$DONE/dup_$b"; continue
       fi
       echo "[sync] $b"
-      unzip -oq "$z" -x sync.sh -d "$REPO" || { echo "[sync] unzip fail"; continue; }
+      unzip -oq "$z" -x sync.sh -d "$REPO" || { echo "[sync] unzip fail"; note "unzip failed"; continue; }
       mv "$z" "$DONE/$b"
       cd "$REPO" && git add -A
       if git diff --cached --quiet; then echo "[sync] repo mein kuch naya nahi (commit nahi)"; else git commit -qm "Update from $b"; fi
       git pull --rebase -q origin main 2>/dev/null
-      git push -q origin HEAD && echo "[sync] GitHub par push ho gaya / pehle se up-to-date" || echo "[sync] push fail (token/net check karo)"
+      if git push -q origin HEAD; then echo "[sync] GitHub par push ho gaya / pehle se up-to-date"; note "pushed to GitHub"; else echo "[sync] push fail (token/net check karo)"; note "PUSH FAILED (check GitHub token)"; fi
     done
     [ "$1" = "watch" ] || return 0
     sleep 10

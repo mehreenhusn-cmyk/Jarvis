@@ -105,7 +105,8 @@ function loadVoices(){
   const rk=v=>{const l=v.lang.replace('_','-').toLowerCase();return l=='en-in'?0:l=='hi-in'?1:l.startsWith('en')?2:3;};
   const vs=speechSynthesis.getVoices().sort((a,b)=>rk(a)-rk(b));
   $('voice').innerHTML=NV.map(([id,n])=>`<option value="neural:${id}">⭐ ${n} (net)</option>`).join('')+vs.map(v=>`<option value="${v.name}">${v.name} (${v.lang})</option>`).join('');
-  $('voice').value=localStorage.getItem('jvoice')||'neural:hi-IN-MadhurNeural';
+  const want=localStorage.getItem('jvoice')||'';$('voice').value=want;
+  if(!want||$('voice').value!==want)$('voice').value='neural:hi-IN-MadhurNeural'; // old saved voice no longer in the list
 }
 async function neural(t,v){
   const r=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text:t,voice:v,pitch:Math.round(($('pt').value-1)*100),rate:Math.round(($('rt').value-1)*100)})});
@@ -118,11 +119,12 @@ function local(t){
   if(v){u.voice=v;u.lang=v.lang;}else u.lang='en-IN';speechSynthesis.speak(u);
 }
 async function speak(t,force){
-  if(!force&&!$('say').checked)return;const v=$('voice').value;
+  if(!force&&!$('say').checked)return;const v=$('voice').value||'neural:hi-IN-MadhurNeural';
   if(v.startsWith('neural:')){
-    try{await neural(t,v.slice(7));return;}catch(e){if(!warned){warned=true;add('err','Online voice failed ('+e.message+'). Using the phone voice.');}}
+    try{await neural(t,v.slice(7));return;}catch(e){add('err','Online voice failed: '+(e.name=='NotAllowedError'?'the browser blocked sound. Tap the page once and try again.':e.message)+'. Trying the phone voice.');}
   }
-  if(window.speechSynthesis)local(t);
+  if(window.speechSynthesis&&speechSynthesis.getVoices().length)local(t);
+  else add('err','No voice on this phone. Install a text-to-speech voice in Android settings, or fix the online voice (pip install edge-tts, internet on).');
 }
 if(window.speechSynthesis){speechSynthesis.onvoiceschanged=loadVoices;loadVoices();}
 $('say').checked=localStorage.getItem('jsay')=='1';$('lang').value=localStorage.getItem('jlang')||'hi-IN';
