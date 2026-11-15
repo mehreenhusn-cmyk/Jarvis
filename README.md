@@ -103,3 +103,28 @@ Ideas for later, not planned: wake word while the app is closed (needs a differe
 - These go to the internet only when you use them: your question to the AI provider; voice text to Microsoft (online voice); photo to the vision AI; location to OpenStreetMap; screen text to the AI for that one answer.
 - The Android app only opens the Jarvis address, has no file access, and is excluded from cloud backup. Accessibility is used only to read text when you ask.
 - Zips: only put zips you trust in Downloads. A zip can replace any file in the repo, including scripts.
+
+## 10. Future roadmap (NOT started, not part of the MVP)
+Rules for all future work: (1) finish and TEST one batch on the phone before starting the next; (2) every feature is one handler in the existing chat chain in `backend/app.py` plus, if it needs Android, one method in the existing `JarvisApp` bridge: no new server, no second database, no second scheduler; (3) every feature that reads private data is opt-in, shows up in the privacy dashboard, and never saves what it reads unless stated; (4) sensitive text (OTP, passwords, card numbers) is filtered with the same filter as memory (`memory.SECRET`, extended); (5) nothing here uses OpenJarvis code today (it was never installed); if one of its ideas is reused later, check its license first and credit it in a NOTICE file.
+
+**Shared services we already have, to be reused:** SQLite database and `messages` history; chat chain in `app.py`; `remind.py` (time parsing, due check, notifications through `NotifyService`); `people.py`; `memory.py` and its secret filter; `brief.py`; `phone.py` rules; the `JarvisApp` bridge pattern (`PhoneInfo`, `ContactsInfo`, `ScreenService`, `Ears`); privacy bar and "stop listening"; zip update and push pipeline.
+
+| # | Wish | Decision | How (reuse) | Batch |
+|---|---|---|---|---|
+| 7 | Privacy and permission dashboard | Yes, FIRST: every later feature adds a permission | Settings card: one row per feature (mic, location, screen reader, notification access, accounts/keys) with ON/OFF and a button to Android settings; small log of sensitive reads (time and feature only, never content) | A |
+| 9 | PC online/offline, safe reconnect | Reshaped: there is no PC part today. Build only server health and auto-reconnect in the app. PC monitoring only if a PC component is ever added | Existing `/status` plus header; app retries and shows "server offline" | A |
+| 3 | Calendar, birthdays, recurring events | Yes, by extending, not by a new calendar | Add a repeat field to reminders (daily, weekly, monthly, yearly); "birthday" notes in people become yearly reminders; read the phone calendar with a bridge method (read permission, only when asked or in briefing) | B |
+| 2 | Richer daily briefing | Yes, extend `brief.py` | Add calendar events and pending tasks (a task is a reminder without a time); dues and totals already there | C |
+| 12 | Proactive suggestions, never intrusive | Yes, but small and capped | A few fixed rules (payment due tomorrow, birthday, low storage from phone check); each can be switched off; max 3 per day; quiet hours; shown in the app, optional notification; no AI needed | C |
+| 5 | Multi-step routines, automation | Yes, as saved lists of EXISTING commands | A routine = a name plus commands run through the same chat chain (for example "good morning" = briefing + phone check). Only read-only or safe commands; anything that deletes, sends or pays is never allowed in a routine. Time triggers use reminders | D |
+| 8 | Task history, failure report, recovery | Yes, small | One `jobs` table for long actions (web read, photo, routine): status, error, retry button; on server start show "restarted, missed reminders: N" (reminders already survive restarts) | D |
+| 6 | Encrypted backup, export, restore, delete | Yes | Export memory, people, reminders and ledger (chat history optional) into one file encrypted with a passphrase; restore with a preview and merge; "delete everything" with a typed confirmation. Pick the encryption tool at build time (`openssl` from Termux is the likely choice); never write our own encryption | E |
+| 1 | Notification intelligence and daily summaries | Maybe, high risk, opt-in, after A to E | Android notification access (special permission) only for apps the user picks; skip OTP and password text; keep only app name, time and a short title for a few days; summary made on request from that short list; the text is never stored in full | F |
+| 10 | Clipboard assistance | Maybe, small | Only when the user taps a button (Android blocks background reads anyway); filter sensitive text; never monitor | F |
+| 4 | Authorized Claude, ChatGPT, browser help | Reshaped: official ways only | (a) "Share to Jarvis" from the Android share menu (the user sends text or a link on purpose); (b) a "handoff summary" the user can paste into any chat app. No reading of logged-in sessions, cookies or private accounts, and no controlling other people's accounts | G |
+| 11 | Lost-phone help | Guidance only | A card with steps and a link to Google's Find Hub and the SIM block steps. No remote control of the phone through Jarvis: that would need the server reachable from the internet, which is a bigger risk than the benefit | G |
+
+**Batch size estimates (code only, each under 350 lines):** A about 250 lines, 2-3 files. B about 250, 1-2 files. C about 200, 1 file. D about 300, 2 files. E about 200, 1 file. F about 350, 3 files (optional). G about 180, 2 files. Total about 1,700 lines, about 12 files, spread over 7 tested batches.
+
+**Not planned:** reading private accounts or sessions of other services; remote phone control; WhatsApp or SMS sending without a confirm tap; payments.
+
