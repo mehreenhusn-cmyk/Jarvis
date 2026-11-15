@@ -144,7 +144,7 @@ $('go').onclick=async()=>{
     if(s==200){token=d.token;localStorage.setItem('jtoken',token);if(window.JarvisApp)JarvisApp.saveToken(token);show();history();}else $('pe').textContent=d.error||'Pairing failed';
   }catch(e){$('pe').textContent='Cannot reach the server. Is Jarvis running in Termux?';}
 };
-const BATQ=/(battery|charging|charge|बैटरी|चार्जिंग|चार्ज)/i,BATNO=/(settings|setting|सेटिंग|kholo|खोलो|open|ओपन|saver|सेवर|kaise bachao|tips)/i;
+const BATQ=/(battery|charging|charge|बैटरी|चार्जिंग|चार्ज)/i,BATNO=/(settings|setting|सेटिंग|kholo|खोलो|open|ओपन|saver|सेवर|kaise bachao|tips|health|kharab|jaldi|drain|problem|dikkat|garam)/i;
 $('f').onsubmit=async e=>{
   e.preventDefault();const t=$('msg').value.trim();if(!t)return;$('msg').value='';
   if(/^(gsk_|sk-or-|nvapi-|mstrl_|sk-[0-9a-f]{32}$)/.test(t)){go('set');$('key').value=t;addKey();return;}
@@ -158,7 +158,7 @@ $('f').onsubmit=async e=>{
     if(r.perm===false){add('user',t);add('bot','Turn on "Jarvis screen reader" in Accessibility settings (I opened it for you), then ask again.');return;}
     pendingMsg=t;add('bot','Switch to the app you want me to read. I will read it in '+r.wait+' seconds and come back.');return;}
   const sc=screenData;screenData=null;const vm=viaMic;viaMic=false;add('user',t);const w=add('bot','...');
-  let sp=false;busy=true;try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:SLOW.test(t)?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,cal:CALQ2.test(t)?bridge('calendar',calSpec(t)):/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)?bridge('calendar','0,1'):null,screen:sc,app:inApp(),control:inApp()&&ctl(),mode:MODE});
+  let sp=false;busy=true;try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:(t.length<=90&&PHQ.test(t))?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,cal:CALQ2.test(t)?bridge('calendar',calSpec(t)):/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)?bridge('calendar','0,1'):null,screen:sc,app:inApp(),control:inApp()&&ctl(),mode:MODE});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
     if(s==200){w.textContent=d.reply;w.title='via '+d.via;if(d.mode)setMode(d.mode);const said=d.action?await doAct(d.action,w):d.reply.split('\n\nSources:')[0].split('\n\nस्रोत:')[0];if(MODE!='quiet')speak(said,vm,d.action?'TASK_CONFIRMATION':'');if(d.remember)askSave(w,d.remember);extras(w,t);sp=MODE!='quiet'&&(vm||$('say').checked);}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}finally{busy=false;if((wakeOn||convOn)&&!sp)heardBack();}
@@ -329,6 +329,8 @@ async function ppl(){
     const b=document.createElement('button');b.className='g';b.textContent='Remove';b.onclick=async()=>{await api('/people/delete',{name:p.name});ppl();};r.append(l,b);L.appendChild(r);});
 }
 const SLOW=/phone (?:is )?(?:slow|hang|lag)|why is my phone|phone health|phone check|slow phone|फ़ोन धीमा|फोन धीमा/i;
+// Part 65: the server decides what is a phone question; the page only sends the phone numbers (from Android, nothing saved) when the words could be one
+const PHQ=/phone|mobile|फोन|फ़ोन|bluetooth|ब्लूटूथ|\bbt\b|earbud|airpod|headphone|wi-?fi|वाईफाई|internet|इंटरनेट|\bnet\b|network|storage|स्टोरेज|memory|मेमोरी|\bram\b|space|battery health|wrong with my/i;
 const pinfo=()=>{try{return window.JarvisApp&&JarvisApp.phoneInfo?JSON.parse(JarvisApp.phoneInfo()):null}catch(e){return null}};
 const CALQ2=/\b(?:my calendar|calendar events?|upcoming events|events (?:today|tomorrow|this week)|calendar (?:mein|me) kya|calendar dikhao|aaj ke events|kal ke events)\b|कैलेंडर/i,calSpec=t=>/tomorrow|kal ke|कल/i.test(t)?'1,1':/week/i.test(t)?'0,7':/today|aaj|आज/i.test(t)?'0,1':'0,3';
 const CALLQ=/missed calls?|who called|recent calls|call history|call log|मिस्ड कॉल|किसका कॉल/i,CNQ=/^\s*(?:find contact|contact number of|contact for|contact)\s+(.{1,40}?)\s*\??\s*$/i;
