@@ -41,7 +41,7 @@ form input{border-radius:24px}#mic{width:52px;height:52px;padding:0;border-radiu
 <input id="code" inputmode="numeric" maxlength="6" placeholder="••••••"><p><button id="go">Pair this phone</button> <button id="nc" class="g">Show code in Termux</button></p><p id="pe" class="bad"></p></div>
 <div id="home" hidden><div style="text-align:center"><div id="orb">J</div><b id="hg"></b><div id="hd" style="color:var(--mut);font-size:13px"></div><div id="hs0" style="font-size:13px;margin-top:4px"></div></div>
 <h4>Today</h4><div class="card" id="ht">...</div><h4>Quick</h4><div class="card" id="hq" style="display:flex;flex-wrap:wrap;gap:8px"></div><h4>Phone and server</h4><div class="card" id="hs"></div></div>
-<div id="set" hidden><h4>Voice personality</h4><div class="card" id="vcard"></div><h4>System</h4><div class="card" id="sys"></div><h4>Privacy and permissions</h4><div class="card" id="dash"></div><h4>Background listening test</h4><div class="card" id="bgt"></div><h4>API key</h4><div class="card"><p style="margin-top:0;color:var(--mut)">Paste a key. Jarvis finds the company and checks it.</p>
+<div id="set" hidden><h4>Voice personality</h4><div class="card" id="vcard"></div><h4>System</h4><div class="card" id="sys"></div><h4>Privacy and permissions</h4><div class="card" id="dash"></div><h4>Backup</h4><div class="card" id="bk"></div><h4>Background listening test</h4><div class="card" id="bgt"></div><h4>API key</h4><div class="card"><p style="margin-top:0;color:var(--mut)">Paste a key. Jarvis finds the company and checks it.</p>
 <input id="key" placeholder="Paste key here" autocomplete="off"><p><button id="kp">Paste from clipboard</button> <button id="kc" class="g">Check</button></p><p id="kr"></p><div id="kl"></div></div>
 <h4>People</h4><div class="card" id="pl"></div><h4>Memory</h4><div class="card" id="ml"></div><h4>Money ledger</h4><div class="card" id="ll"></div></div>
 <div id="off" class="bad" hidden style="padding:8px 16px;font-size:13px;background:var(--sf);border-bottom:1px solid var(--line)"></div><div id="pv"></div><div id="chat" hidden>
@@ -500,6 +500,26 @@ $('pre').onchange=()=>{
   if(code!='n'){$('voice').value=code=='b'?'neural:en-GB-RyanNeural':'neural:hi-IN-MadhurNeural';localStorage.setItem('jvoice',$('voice').value);}
   speak($('voice').value.includes('hi-IN')?'नमस्ते सर, मैं जार्विस हूँ। बताइए, मैं आपकी क्या सेवा कर सकता हूँ?':'Hello sir, I am Jarvis. How can I help you?',true);
 };
+// Part 47: Backup card. The passphrase stays in this box, goes once to the server, and is never saved or typed into chat.
+async function bkLoad(){
+  const box=$('bk');if(!box)return;
+  const pw=el('input'),ch=el('input'),cl=el('label'),mk=el('button','g','Make backup'),msg=el('p',''),list=el('div');
+  pw.type='password';pw.placeholder='Passphrase (8 or more characters)';pw.autocomplete='off';ch.type='checkbox';cl.append(ch,' Also include chat history');mk.type='button';
+  const say=(t,bad)=>{msg.className=bad?'bad':'';msg.textContent=t;},cnt=o=>Object.entries(o).map(([k,v])=>k+': '+(typeof v=='object'?v.new+' new of '+v.total:v)).join(', ');
+  mk.onclick=async()=>{if(!pw.value){say('Type a passphrase first.',1);return;}say('Working...');
+    try{const {s,d}=await api('/backup/make',{pass:pw.value,chat:ch.checked});if(s!=200){say(d.error||'Backup failed.',1);return;}say('Saved in Downloads: '+d.file+' ('+cnt(d.counts)+'). Copy it somewhere safe outside this phone too.');pw.value='';bkLoad();}catch(e){say('Server offline.',1);}};
+  const note=el('p','','Saves memory, people, pending reminders, open ledger entries and routines in one locked file in Downloads. Without the passphrase nobody can open it, not even Jarvis, so do not forget it. API keys and pairing are never included.');note.style.cssText='margin-top:0;color:var(--mut)';
+  let fl=[];try{const {s,d}=await api('/backup/list');if(s==200)fl=d.files||[];}catch(e){}
+  fl.forEach(f=>{const r=el('div','dr');r.appendChild(el('b','',f.name));const b=el('button','g','Restore...');b.type='button';
+    b.onclick=async()=>{if(!pw.value){say('Type the passphrase of that backup first.',1);return;}say('Checking...');
+      try{const {s,d}=await api('/backup/preview',{name:f.name,pass:pw.value});if(s!=200){say(d.error||'Could not open the backup.',1);return;}
+        say('This backup would ADD only what is new here: '+cnt(d.preview)+'. Nothing is overwritten or deleted.');b.remove();
+        const y=el('button','g','Yes, add it');y.type='button';y.onclick=async ev=>{if(!ev.isTrusted)return;y.disabled=true;
+          try{const {s,d}=await api('/backup/restore',{name:f.name,pass:pw.value,confirm:true});say(s==200?'Restored (added): '+cnt(d.added):(d.error||'Restore failed.'),s!=200);pw.value='';}catch(e){say('Server offline.',1);}};r.appendChild(y);}catch(e){say('Server offline.',1);}};
+    r.appendChild(b);list.appendChild(r);});
+  if(!fl.length)list.appendChild(el('small','','No backup files found in Downloads yet.'));
+  box.replaceChildren(note,pw,cl,mk,msg,list);
+}
 async function brief(){
   if(!token||priv)return;const day=nowS().slice(0,10);if(localStorage.getItem('jbrief')==day)return;localStorage.setItem('jbrief',day);
   try{const {s,d}=await api('/brief',{now:nowS(),style:sty(),auto:true});if(s==200&&d.text){add('bot',d.text);speak(d.text,false,'BRIEFING');}}catch(e){}
@@ -507,7 +527,7 @@ async function brief(){
 // Part 56: Home tab (orb, today, quick buttons, phone and server numbers). Chat stays the main screen.
 function go(v){view=v;const t=!!token;$('chat').hidden=!t||v!='chat';$('set').hidden=!t||v!='set';$('home').hidden=!t||v!='home';$('tabs').hidden=!t;
   $('tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
-  if(t&&v=='home')homeLoad(true);if(t&&v=='set'){keys();mem();led();ppl();dash();sysCard();bgt();voiceLoad();}}
+  if(t&&v=='home')homeLoad(true);if(t&&v=='set'){keys();mem();led();ppl();dash();sysCard();bgt();voiceLoad();bkLoad();}}
 $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>go(b.dataset.v));
 const greet=()=>{const h=new Date().getHours();return h<5?'Good night, sir':h<12?'Good morning, sir':h<17?'Good afternoon, sir':'Good evening, sir';};
 let tj=null,homeT=0;

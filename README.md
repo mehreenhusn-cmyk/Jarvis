@@ -4,10 +4,10 @@
 > runs out often. This README has the full plan: what we build, why, how, the rules, where we are, and what is next.
 > Read it, then start the next part. Do not ask him to resend the old chat. Repo: https://github.com/mehreenhusn-cmyk/Jarvis
 
-## 0. AT A GLANCE (updated 16 Nov 2026, after Part 46)
+## 0. AT A GLANCE (updated 16 Nov 2026, after Part 47)
 **What:** Jarvis, a personal AI assistant on Hussain's phone (Termux server + Android app). **Why:** one app on the phone, no PC, works by download only.
-**Done:** 51 of 56 Parts built (about 4,250 lines of code, 73 files). Only Parts 1 to 26 were partly phone tested; Parts 27 to 39, 41 to 46, 50, 51, 52, 54, 55 and 56 are built but NOT phone tested. Java is still not compiled: the GitHub Build APK is the first compile test.
-**Pending:** 5 Parts, about 1,060 lines (about 390 required: Parts 47 and 48; about 120 only if needed: Part 53; about 550 optional: Parts 40 and 49). Next Part is **47**. Part 53 only if the two voices sound too alike. Full table in section 11.6, order in the "Build order" line.
+**Done:** 52 of 56 Parts built (about 4,460 lines of code, 74 files). Only Parts 1 to 26 were partly phone tested; Parts 27 to 39, 41 to 47, 50, 51, 52, 54, 55 and 56 are built but NOT phone tested. Java is still not compiled: the GitHub Build APK is the first compile test.
+**Pending:** 4 Parts, about 850 lines (about 180 required: Part 48; about 120 only if needed: Part 53; about 550 optional: Parts 40 and 49). Next Part is **48**. Part 53 only if the two voices sound too alike. Full table in section 11.6, order in the "Build order" line.
 | Group | Parts | Status |
 |---|---|---|
 | Base: server, chat, voice, reminders, app, privacy | 1 to 29 | DONE |
@@ -20,7 +20,8 @@
 | Repeat reminders, birthdays, phone calendar | 44 | BUILT (this zip) |
 | Richer briefing, suggestions, quiet hours | 45 | BUILT (this zip) |
 | Routines (saved task sentences) | 46 | BUILT (this zip) |
-| Backup, share | 47, 48 | PENDING |
+| Backup (encrypted file, restore with preview, delete everything) | 47 | BUILT (this zip) |
+| Share to Jarvis, handoff, lost phone | 48 | PENDING |
 | Two voices (Tony and JARVIS): engine and Settings cards | 51, 52 | BUILT (this zip) |
 | Second voice provider (Google), only if needed | 53 | PENDING |
 | Home tab (orb, today, quick buttons, stats) | 56 | BUILT (this zip) |
@@ -65,12 +66,12 @@ Chrome or Android app  -->  Python server in Termux (127.0.0.1:8787)  -->  AI pr
 11. Phone control rules: see section 11. Plan first, code only after Hussain says OK to a Part. Every Part must list files, lines and benefit.
 
 ## 5. Setup (phone, Termux)
-Once: `pkg install git python unzip && termux-setup-storage`, `pip install edge-tts`, GitHub login (`git config --global credential.helper store`).
+Once: `pkg install git python unzip openssl-tool && termux-setup-storage` (openssl-tool is for backups, Part 47), `pip install edge-tts`, GitHub login (`git config --global credential.helper store`).
 The GitHub token must also allow **workflow** files (needed from Part 16, or the push is rejected).
 Daily: `cd ~/Jarvis && bash run.sh`. Open **http://127.0.0.1:8787** (or the Jarvis app). First time: pairing code, then Settings for the key.
 Auto-start (Part 11): Termux starts Jarvis when opened. Turn off with `JARVIS_NO_AUTOSTART=1` in `.env`.
 
-## 6. STATUS (16 Nov 2026): Parts 1 to 39, 41 to 46, 50, 51, 52, 54, 55 and 56 are built
+## 6. STATUS (16 Nov 2026): Parts 1 to 39, 41 to 47, 50, 51, 52, 54, 55 and 56 are built
 Everything below is built and pushed. "Phone test" says only what Hussain has already seen working on his phone. Anything not marked YES still needs one quick try (a bug found there = one small fix zip, not unfinished work).
 | Part | What | Status | Phone test |
 |---|---|---|---|
@@ -115,6 +116,7 @@ Everything below is built and pushed. "Phone test" says only what Hussain has al
 | 44 | Repeat reminders and birthdays (server): say "roz subah 9 baje chai yaad dilana", "har hafte", "har mahine", "har saal" (or daily, every week, monthly, yearly) and the reminder repeats; one new column `rep` in `reminders` (old rows untouched). "Faisal ka birthday 15 Nov" saves a yearly reminder at 09:00 and a note in People; "birthdays" lists them; "my reminders" now only lists (before it could create a new reminder by mistake). Phone calendar (app): "my calendar", "aaj ke events", "events tomorrow", "events this week" read title, time and place for up to 14 days through the new `CalendarInfo.java`; permission READ_CALENDAR asked when first used; a Calendar row in the privacy dashboard; never saved, not sent to the AI | BUILT | NOT YET (Python logic run here; Java not compiled; page JS syntax checked only) |
 | 45 | Richer briefing: "briefing" now also shows today's phone calendar events (app only, only when you type or say briefing, never at the automatic morning briefing so no surprise permission prompt). Suggestions: up to 3 a day in total, three fixed rules (late ledger entries, a birthday in the next 3 days, reminders tomorrow), no AI. The automatic morning briefing stays silent in quiet hours (default 22:00 to 07:00). Switch by chat: `suggestions off/on`, `money|birthday|tomorrow suggestions off/on`, `quiet hours 22 to 7`, `briefing settings`. Settings live in `brief.json` (gitignored, survives restart). **Also in this zip:** battery bar is green when full and red only when low (20 percent or less; amber 40 or less); Settings > Privacy card now explains how to turn on "Jarvis screen reader" when Android greys it out (Restricted settings: Jarvis app info > 3 dots > Allow restricted settings) | BUILT | NOT YET (Python logic run here; page JS syntax checked only) |
 | 46 | Routines: a routine is a name for a task sentence. `routine banao subah: Chrome kholo aur neeche scroll karo` saves it (2 to 6 steps, checked when saved: no send, pay, delete, typing; lock only last). Run it with `routine subah` (or `run routine subah`, `subah routine chalao`). `my routines` lists, `routine delete subah` removes; max 10; same name replaces. Running plans the sentence again through the task engine, so the Phone control switch, app-only rule, Stop, app lock and per-step checks apply every time and the run shows in task history. New table `routines` (name and sentence only). Home tab has a Routines button. No time trigger yet (use a reminder to remember it) | BUILT | NOT YET (Python logic run here; page JS syntax checked only; steps run by the Part 42 Java runner, not compiled) |
+| 47 | Backup: Settings > Backup card. Type a passphrase (8+ characters), tap Make backup: memory, people, pending reminders (with repeat), open ledger entries and routines go into ONE file `Jarvis_backup_DATE.jbk` in Downloads, locked with OpenSSL AES-256 (pbkdf2, 200000 rounds), no home-made encryption. Chat history only if you tick the box. API keys, pairing, tasks and paid/old items are never in it. Restore: type the passphrase, tap Restore on a file, see a preview (how many NEW rows per kind), then tap Yes. It only ADDS what is new, never overwrites or deletes; password/OTP/PIN words are skipped; People and Memory keep their limits. Works on a new phone after pairing. Wrong passphrase or a damaged file is refused (a SHA-256 check inside the file catches damage, it is not protection against someone who knows your passphrase). Delete everything: say `delete everything`, Jarvis explains, then only the exact capital-letter phrase DELETE ALL MY JARVIS DATA wipes memory, people, reminders, ledger, routines, tasks and chat (keys and pairing stay). The passphrase is never typed in chat, never saved, never logged. Needs once: `pkg install openssl-tool` | BUILT | NOT YET (Python logic run here with real OpenSSL; page JS syntax checked only) |
 | 50 | System card in Settings: phone RAM, storage, battery, heat, Jarvis server memory and CPU, uptime, internet. Server tests pass; page JS syntax checked only | BUILT | NOT YET |
 Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): Hey Jarvis works only while the app is open; mic in Chrome and in the app use different engines; the real actor's voice cannot be copied, only approached with the free voices; Android Files app may show empty ghost entries for zips that Termux already moved to `~/.jarvis_done`.
 
@@ -124,7 +126,7 @@ Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): He
    Termux closing by itself: Android kills it to save battery. Settings > Apps > Termux > Battery > No restriction; keep the Termux notification (wake lock) visible; install the Termux:Boot app for restarts.
 1. Download the zip, wait for "pushed" in the app header, run **Build APK** on GitHub, install it. If the build fails, send `build-log`.
 2. Test Parts 27, 28 and 29 with the list in section 11.8, plus the old cheat sheet. Report what fails with a screenshot.
-3. Parts 30 to 39, 41 to 46, 50, 51, 52, 54, 55 and 56 are BUILT. Download the zip, wait for "pushed", run **Build APK**, install, then test with section 11.8. Next Part: **47**, then the rest in order (section 11.6, Build order line). Dual voice: Parts 51 and 52 are built, Part 53 is planned in section 11.6b. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
+3. Parts 30 to 39, 41 to 47, 50, 51, 52, 54, 55 and 56 are BUILT. Download the zip, wait for "pushed", run **Build APK**, install, then test with section 11.8. Next Part: **48**, then the rest in order (section 11.6, Build order line). Dual voice: Parts 51 and 52 are built, Part 53 is planned in section 11.6b. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
 
 ## 8. Cheat sheet (type or say)
 | Say or type | What happens |
@@ -137,6 +139,7 @@ Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): He
 | remind me tomorrow 9 am to ... / my reminders | Reminders (notification in the app) |
 | roz subah 9 baje chai yaad dilana / every week ... / har mahine ... / har saal ... | Repeating reminder (daily, weekly, monthly, yearly). `my reminders` shows a repeat mark |
 | Faisal ka birthday 15 Nov / birthday of Sara on Mar 3 / birthdays | Yearly reminder at 09:00 plus a People note; list of birthdays |
+| delete everything | Explains, then wipes your Jarvis data only after you type the exact capital-letter phrase it shows. Backups: Settings > Backup (never type the passphrase in chat) |
 | routine banao subah: Chrome kholo aur neeche scroll karo / routine subah / my routines / routine delete subah | Saved multi-step task (app only, switch ON). Same safety checks on every run |
 | suggestions off / money suggestions off / quiet hours 22 to 7 / briefing settings | Controls the 3-a-day suggestions in the briefing |
 | my calendar / aaj ke events / events tomorrow / events this week | Phone calendar events (app only, permission asked first time, not saved) |
@@ -277,7 +280,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 44 DONE | (old Batch B) Repeat reminders, birthdays, phone calendar | remind.py, people.py, calls.py, app.py, CalendarInfo.java*, MainActivity, Privacy, AndroidManifest, index.html | ~250 (real: about 130) | Python logic run, Java without | Birthdays and repeat jobs are remembered |
 | 45 DONE | (old Batch C) Richer briefing, max 3 suggestions a day, quiet hours, each can be switched off | brief.py, app.py, index.html | ~200 (real: about 140) | With | One useful morning summary, not noise |
 | 46 DONE | (old Batch D, smaller) Routines = saved task lists. Uses the task engine, no second system | tasks.py, app.py, index.html | ~115 (real: about 75) | With | One command runs a safe set of steps |
-| 47 | (old Batch E) Encrypted backup, restore with preview, delete everything | backup.py*, app.py, index.html | ~210 | With | Memory is safe and can move to a new phone |
+| 47 DONE | (old Batch E) Encrypted backup, restore with preview, delete everything | backup.py*, app.py, index.html | ~210 (real: about 210) | With | Memory is safe and can move to a new phone |
 | 48 | (old Batch G) Share to Jarvis, handoff summary for Claude or ChatGPT, lost-phone steps card | AndroidManifest, MainActivity, index.html, app.py | ~180 | Without | Official sharing only, no private sessions |
 | 49 | OPTIONAL, risky (old Batch F) Notification summary for chosen apps, clipboard button | NotifySummary.java*, MainActivity, AndroidManifest, index.html, app.py | ~350 | Without | Day summary. Needs special notification access |
 | 50 DONE | Live system card (like the PC screenshot): RAM used/free, storage, battery and heat, Jarvis server own memory and CPU, uptime, net online. New `/stats` route, refreshed every 5 s only while the card is open. Honest "not available" if Android blocks a number | sysinfo.py*, app.py, index.html | ~110 | With (Python) | Hussain sees what Jarvis and the phone are using |
@@ -302,7 +305,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 Estimates are rough (plus or minus 25 percent). Real numbers go into this table after each Part.
 
 
-**Build order (next first):** 47, 47, 48, then 53 only if the two voices sound too alike. Optional: 40, 49 (40 is decided after the Part 39 phone test). Optional: 40, 49 (40 is decided after the Part 39 phone test).
+**Build order (next first):** 48, 47, 48, then 53 only if the two voices sound too alike. Optional: 40, 49 (40 is decided after the Part 39 phone test). Optional: 40, 49 (40 is decided after the Part 39 phone test).
 
 ### 11.6b Dual voice personality plan (added 15 Nov 2026; Parts 51 and 52 built 16 Nov 2026, Part 53 not built)
 Goal: two default voices that switch by themselves. Default from the first start: Tony and JARVIS with Auto routing ON (Hussain asked for this on 16 Nov 2026); the classic voice is only used if he switches it on in Settings. TONY = conversation (confident, witty, Hinglish). JARVIS = information, tasks, reminders, briefings, alerts (calm, deep, precise). No cloning of Rajesh Khattar or Atul Kapoor. Original or licensed voices only.
@@ -349,6 +352,7 @@ Why this order: Parts 27 to 29 come first because every later power needs a safe
 | 54 | "mere bhatije ka naam Arman hai" | Asks "Should I remember this?"; saves only on Yes |
 | 55 | Tap Conversation | Mic reopens by itself; ends on "bas" |
 | 56 | Open Home tab | Orb, today's list, quick buttons, numbers |
+| 47 | Settings > Backup: type a passphrase, tap Make backup; then type it again and tap Restore... on the file | "Saved in Downloads: Jarvis_backup_...jbk" with counts; restore shows "0 new" because everything is already here; a wrong passphrase is refused. (Do not test "delete everything" unless you have a backup.) First time may say openssl is missing: run `pkg install openssl-tool` |
 | 46 | Turn Phone control ON. Say "routine banao subah: Chrome kholo aur neeche scroll karo", then "my routines", then "routine subah" | Saved; listed; Chrome opens and scrolls, result in chat. With the switch OFF it says so and does nothing |
 | 45 | Say "briefing", then "briefing settings", then "suggestions off" | Calendar events and up to 3 suggestions; settings reply; no suggestions after off. Home > Phone and server: battery bar is not red when high |
 | 44 | Say "roz subah 9 baje chai yaad dilana", then "my reminders"; say "Faisal ka birthday 15 Nov", then "birthdays"; then "my calendar" | Reminder shows a repeat mark; birthday listed; first calendar ask shows the Android calendar permission, then your events or "no events" |
@@ -390,6 +394,7 @@ What changes for Hussain: the first mic tap asks for the microphone; the first "
 | 43 | BUILT | ~80 | about 40 (README only: checklist table and status lines; no test file) | NOT YET |
 | 51 | BUILT | ~170 | 90 (`voiceengine.py` 76 new, `app.py` 13, `.gitignore` 1). `tts.py` needed no change | NOT YET. Python syntax checked only. Not run: server, voice |
 | 52 | BUILT | ~160 | 46 (`index.html` only; the routes were already in Part 51) | NOT YET. Page JS syntax checked only. Not run: phone |
+| 47 | BUILT | ~210 | about 210 (`backup.py` 170 new, `index.html` +22, `app.py` +17, README setup line) | NOT YET. Python logic run here with real OpenSSL (lock, wrong passphrase, damage, path trick, merge, wipe); page not run |
 | 46 | BUILT | ~115 | about 75 (`tasks.py` +70, `app.py` 1, `index.html` 1) | NOT YET. Python logic run here (save, run, refusals, limit 10, switch OFF); Java runner not compiled |
 | 45 | BUILT | ~200 | about 140 (`brief.py` +100, `index.html` +4, `app.py` 1, `.gitignore` 1) | NOT YET. Python logic run here (cap, quiet hours, next day, settings); page not run |
 | 44 | BUILT | ~250 | about 130 (`remind.py` +85, `calls.py` +22, `people.py` +14, `CalendarInfo.java` 39 new, `index.html` +3, `MainActivity` +6, `Privacy` +2, `app.py` 2, manifest 1) | NOT YET. Python logic run here (repeat, month end, 29 Feb, duplicate birthday, calendar text); Java not compiled |

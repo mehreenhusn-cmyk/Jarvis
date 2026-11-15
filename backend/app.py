@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, autostart, brief, calls, clock, ledger, memory, people, phone, place, progress, remind, screen, see, sysinfo, tasks, tts, voiceengine, web
+import actions, autostart, backup, brief, calls, clock, ledger, memory, people, phone, place, progress, remind, screen, see, sysinfo, tasks, tts, voiceengine, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -216,6 +216,8 @@ class H(BaseHTTPRequestHandler):
         dev = self.device()
         if dev is None:
             return self.send(401, {"error": "pehle pair karo"})
+        if self.path == "/backup/list":  # Part 47: backup files in Downloads (names only)
+            return self.send(200, {"files": backup.files(), "dir": backup.DIR})
         if self.path == "/tasks":  # Part 41: the last few tasks and how they ended
             return self.send(200, {"tasks": tasks.recent(db(), dev)})
         if self.path == "/voice":  # Part 51: Tony and JARVIS settings (login needed)
@@ -313,6 +315,18 @@ class H(BaseHTTPRequestHandler):
             c.execute("UPDATE ledger SET paid=1 WHERE id=? AND device=?", (int(data.get("id") or 0), dev))
             c.commit()
             return self.send(200, {"ok": True})
+        if self.path in ("/backup/make", "/backup/preview", "/backup/restore"):  # Part 47: the passphrase is used once and never kept
+            try:
+                pw = str(data.get("pass", ""))
+                if self.path == "/backup/make":
+                    return self.send(200, backup.make(db(), dev, pw, data.get("chat") is True))
+                if self.path == "/backup/preview":
+                    return self.send(200, {"preview": backup.preview(db(), dev, str(data.get("name", "")), pw)})
+                if data.get("confirm") is not True:
+                    return self.send(400, {"error": "restore needs your confirm tap"})
+                return self.send(200, {"added": backup.restore(db(), dev, str(data.get("name", "")), pw)})
+            except RuntimeError as e:
+                return self.send(400, {"error": str(e)})
         if self.path == "/people/delete":
             c = db()
             return self.send(200, {"ok": bool(people.delete(c, dev, str(data.get("name", ""))))})
@@ -364,6 +378,8 @@ class H(BaseHTTPRequestHandler):
             style = str(data.get("style", ""))
             mem = memory.handle(c, dev, msg, style == "hindi")  # yaad rakho / bhool jao / kya yaad hai
             now = str(data.get("now", ""))
+            if mem is None:  # Part 47: "backup", "delete everything" (typed phrase). Never takes a passphrase
+                mem = backup.handle(c, dev, msg, style == "hindi")
             if mem is None:  # missed calls / contact Faisal (made here, no AI)
                 mem = calls.handle(msg, data.get("calls"), data.get("contact"), style == "hindi", data.get("cal"))
             if mem is None:  # note about Faisal: ... / who is Faisal
