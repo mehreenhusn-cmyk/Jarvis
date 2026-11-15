@@ -21,6 +21,19 @@ def all_people(c, dev):
     return [{"name": n, "notes": notes(c, dev, n)} for n in names]
 
 
+def add(c, dev, name, note):
+    """Part 44: birthday jaisa chhota note chupchap jodta hai. Hadd poori ho ya secret ho to kuch nahi karta (True/False)."""
+    if memory.SECRET.search(note) or len(notes(c, dev, name)) >= 20:
+        return False
+    if len(all_people(c, dev)) >= 40 and name.lower() not in [p["name"].lower() for p in all_people(c, dev)]:
+        return False
+    if note in notes(c, dev, name):
+        return True
+    c.execute("INSERT INTO people(device, name, note, ts) VALUES(?,?,?,?)", (dev, name, note, time.time()))
+    c.commit()
+    return True
+
+
 def delete(c, dev, name):
     k = c.execute("DELETE FROM people WHERE device=? AND lower(name)=?", (dev, name.lower().strip())).rowcount
     c.commit()

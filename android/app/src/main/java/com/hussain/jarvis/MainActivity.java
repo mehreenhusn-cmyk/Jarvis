@@ -99,6 +99,12 @@ public class MainActivity extends Activity {
                 Privacy.used("calls");
                 return ContactsInfo.calls(MainActivity.this, days);
             }
+            @JavascriptInterface public String calendar(String spec) {  // Part 44: events only when you ask, nothing saved
+                if (AppLock.locked()) return "{\"locked\":true}";
+                if (!allowed(Manifest.permission.READ_CALENDAR, 4)) return "{\"perm\":false}";
+                Privacy.used("calendar");
+                return CalendarInfo.events(MainActivity.this, spec);
+            }
             @JavascriptInterface public String contact(String name) {
                 if (AppLock.locked()) return "{\"locked\":true}";
                 if (!allowed(Manifest.permission.READ_CONTACTS, 3)) return "{\"perm\":false}";

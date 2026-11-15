@@ -365,7 +365,7 @@ class H(BaseHTTPRequestHandler):
             mem = memory.handle(c, dev, msg, style == "hindi")  # yaad rakho / bhool jao / kya yaad hai
             now = str(data.get("now", ""))
             if mem is None:  # missed calls / contact Faisal (made here, no AI)
-                mem = calls.handle(msg, data.get("calls"), data.get("contact"), style == "hindi")
+                mem = calls.handle(msg, data.get("calls"), data.get("contact"), style == "hindi", data.get("cal"))
             if mem is None:  # note about Faisal: ... / who is Faisal
                 mem = people.handle(c, dev, msg, style == "hindi")
             if mem is None:  # why is my phone slow
@@ -386,7 +386,7 @@ class H(BaseHTTPRequestHandler):
                 if got:
                     mem, action = got
             if mem is not None:
-                keep = "(call and contact info was shown, not saved)" if calls.private(msg) else ("(phone action) " + mem if action else mem)
+                keep = "(call, contact and calendar info was shown, not saved)" if calls.private(msg) else ("(phone action) " + mem if action else mem)
                 c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", keep, time.time()))
                 c.commit()
                 return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {})))
