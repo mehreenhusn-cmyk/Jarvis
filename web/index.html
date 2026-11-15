@@ -233,7 +233,17 @@ $('vbtn').onclick=()=>{$('vp').hidden=!$('vp').hidden;};
 // Part 30 and 31: phone actions. The server only proposes; the app (Java) checks the switch, Stop and the real app list, then tells us what happened.
 const inApp=()=>!!(window.JarvisApp&&JarvisApp.act);
 const ctl=()=>{try{return JSON.parse(JarvisApp.privacy()).control===true}catch(e){return false}};
+// Part 33: dangerous things (send, pay, buy, delete, install, account) are never done by themselves. The buttons work only for a real finger tap (not a script), and expire in 60 seconds.
+function askYes(w){
+  const hi=sty()=='hindi',say=(h,e)=>hi?h:e,t=w.textContent,row=document.createElement('div');let done=false;
+  const end=m=>{if(done)return;done=true;row.remove();w.textContent=m;};
+  const mk=(label,cls,fn)=>{const b=document.createElement('button');b.type='button';b.className=cls;b.textContent=label;b.style.margin='8px 8px 0 0';b.onclick=ev=>{if(ev.isTrusted)fn();};return b;};
+  row.append(mk(say('हाँ, करो','Yes, go ahead'),'',()=>end(say('हाँ दर्ज हुई सर। पर मैं अभी दूसरे ऐप में टैप या टाइप नहीं कर सकता, इसलिए कुछ भेजा या बदला नहीं गया। (Part 34 में यह आएगा, और तब भी पहले पूछूँगा।)','Your Yes is noted, sir. But I cannot tap or type inside other apps yet, so nothing was sent or changed. (Part 34 adds that, and it will still ask first.)'))),
+    mk(say('नहीं','No'),'g',()=>end(say('ठीक है सर, रद्द किया। कुछ नहीं किया गया।','Okay sir, cancelled. Nothing was done.'))));
+  w.appendChild(row);setTimeout(()=>end(say('समय खत्म हुआ सर, कुछ नहीं किया गया।','Timed out, sir. Nothing was done.')),60000);return t;
+}
 async function doAct(a,w){
+  if(a.type=='confirm')return askYes(w);
   let r;try{r=JSON.parse(JarvisApp.act(JSON.stringify(a)));}catch(e){r={ok:false,err:'unknown'};}
   const hi=sty()=='hindi',say=(h,e)=>hi?h:e;let t;
   if(r.ok)t=say('ठीक है सर, '+r.app+' खोल रहा हूँ।','Opening '+r.app+', sir.');

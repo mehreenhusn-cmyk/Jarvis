@@ -5,6 +5,29 @@ import stat
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import app as A
 
+import screen as SC, actions as AC
+_r = lambda t: SC.redact(t)[0]
+def _unit():
+    ok = lambda n, c: print(("PASS " if c else "FAIL ") + n) or (c or sys.exit(1))
+    ok("32: OTP chhupta hai", "483921" not in _r("Your OTP is 483921. Do not share."))
+    ok("32: OTP agli line mein bhi chhupta hai", "123456" not in _r("Verification code\n123 456").replace(" ", ""))
+    ok("32: card number chhupta hai", "4111" not in _r("Card 4111 1111 1111 1111 exp 12/29") and "12/29" in _r("Card 4111 1111 1111 1111 exp 12/29"))
+    ok("32: Aadhaar aur PAN chhupte hain", "2345" not in _r("Aadhaar 2345 6789 0123") and "ABCDE1234F" not in _r("PAN ABCDE1234F"))
+    ok("32: password value chhupti hai", "hunter2" not in _r("Password: hunter2"))
+    ok("32: UPI PIN chhupta hai", "1234" not in _r("UPI PIN\n1234"))
+    ok("32: normal paise aur phone number nahi chhupte", _r("Total Rs 4500 for 3 items") == "Total Rs 4500 for 3 items" and "9876543210" in _r("Call 9876543210 now"))
+    ok("32: khali screen par imaandar sandesh", "no readable text" in SC.context({"app": "com.bank", "text": "  "}))
+    ok("32: context mein secret nahi jata", "483921" not in SC.context({"app": "a.b", "text": "OTP 483921 Send"}))
+    a = lambda m, ctl=True: AC.handle(m, False, ctl, True, lambda h, s, e: ("x", "y"))
+    ok("33: message bhejo -> confirm", a("message bhejo")[1] == {"type": "confirm", "risk": "send"})
+    ok("33: paise bhejo -> pay confirm", a("paise bhejo Faisal ko")[1] == {"type": "confirm", "risk": "pay"})
+    ok("33: delete / buy / install / logout -> confirm", all((a(m) or (0, {}))[1].get("type") == "confirm" for m in ("delete this chat", "buy shoes", "install Telegram", "logout karo")))
+    ok("33: switch OFF par confirm nahi, chat chalti hai", a("delete this chat", False) is None)
+    ok("33: sawaal par confirm nahi", a("how to delete a file?") is None and a("send me a joke") is None)
+    ok("33: password type karna hamesha mana", a("mera password type karo", False)[1] is None and "never type" in a("enter my OTP 1234")[0])
+    ok("33: Chrome kholo ab bhi bina confirm", a("Chrome kholo")[1]["type"] == "open_app")
+_unit()
+
 PORT = "8799"
 URL = "http://127.0.0.1:" + PORT
 env = dict(os.environ, PROVIDER="bogus,mock", PORT=PORT, JARVIS_DB=os.path.join(tempfile.mkdtemp(), "t.db"), PYTHONUNBUFFERED="1", JARVIS_KEYS=os.path.join(tempfile.mkdtemp(), "k.json"))

@@ -3,6 +3,7 @@
 import json, re
 
 ACTIONS = {"open_app"}  # the fixed list. Later Parts add names here, nothing else can run.
+SAFE = {"open_app"}  # Part 33: these run after the master switch. Anything else needs a preview and Hussain's own tap on Yes, every single time.
 EN = {"open", "launch", "start", "run"}
 HI = {"kholo", "khol", "kholna", "kholiye", "kholiyega", "kholen", "chalao", "chala", "chalu", "shuru", "खोलो", "खोल", "खोलना", "खोलिए", "खोलिये", "खोलें", "चलाओ", "चला", "चालू", "चालु", "शुरू"}
 FILL = set("please plz pls jarvis जार्विस जारविस sir सर ko को app ap application ek एक zara jara जरा na ना kar karo kr कर करो do दो de दे dena dijiye दीजिए the my mera mere meri मेरा मेरे मेरी mujhe मुझे hai है hain chahiye चाहिए can could will you hey ok okay tum aap आप तुम bhai भाई जी ji phir fir अब ab".split())
@@ -73,9 +74,50 @@ def ai_name(msg, ask):
     return name or None
 
 
+# ---- Part 33: risk and confirm rules. Only Hussain's own words decide this, never screen or web text. ----
+RISK = [  # checked in this order; Hindi words have no \b because Devanagari marks break it
+    ("pay", r"\b(?:pay|payment|transfer|upi|paise bhej\w*|paisa bhej\w*|rupe\w* bhej\w*)\b|भुगतान|पेमेंट|ट्रांसफर|पैसे भेज|पैसा भेज", "a payment or money transfer", "पैसे भेजना या भुगतान"),
+    ("buy", r"\b(?:buy|purchase|order|kharid\w*|mangao|mangwao)\b|खरीद|ऑर्डर|मंगा", "buying or ordering something", "कुछ खरीदना या ऑर्डर करना"),
+    ("install", r"\b(?:install|download)\b|इंस्टॉल|इंस्टाल|डाउनलोड", "installing or downloading an app", "ऐप इंस्टॉल या डाउनलोड करना"),
+    ("delete", r"\b(?:delete|remove|uninstall|erase|hatao|hata do|mita do|mitao)\b|डिलीट|हटाओ|हटा दो|मिटा|अनइंस्टॉल", "deleting something", "कुछ डिलीट करना"),
+    ("account", r"\b(?:log ?out|sign ?out|log ?in|sign ?in|account|password (?:change|badal\w*|reset))\b|लॉग ?आउट|साइन ?आउट|अकाउंट|पासवर्ड (?:बदल|रीसेट)", "an account change (login, logout, password)", "अकाउंट बदलना (लॉगिन, लॉगआउट, पासवर्ड)"),
+    ("send", r"(?=.*(?:\b(?:bhej\w*|send|forward)\b|भेज))(?=.*(?:\b(?:message|msg|sms|whatsapp|mail|email|text|sandesh|photo|pic)\b|मैसेज|संदेश|ईमेल|व्हाट्सएप|फोटो))", "sending a message or file", "मैसेज या फ़ाइल भेजना"),
+]
+RISK = [(k, re.compile(rx, re.I | re.S), en, hi) for k, rx, en, hi in RISK]
+NOTYPE = re.compile(r"(?=.*(?:\b(?:type|enter|fill|put|write|daal\w*|dal\w*|likho|likh|bharo|bhar)\b|डालो|डाल|भरो|लिखो))"
+                    r"(?=.*(?:\b(?:password|passcode|otp|pin|cvv|card (?:number|no))\b|पासवर्ड|ओटीपी|पिन|कार्ड नंबर))", re.I | re.S)
+
+
+def _command_like(msg):
+    w = _words(msg)
+    return "?" not in msg and len(msg) <= 120 and 0 < len(w) <= 12 and not (QW & set(w))
+
+
+def risk_of(msg):
+    """(kind, English label, Hindi label) if the message asks for a dangerous thing, else None."""
+    if not _command_like(msg):
+        return None
+    for k, rx, en, hi in RISK:
+        if rx.search(msg):
+            return k, en, hi
+    return None
+
+
+def blocked(msg):
+    """True if the message asks Jarvis to type a password, OTP, PIN or card number. Jarvis never does that, switch ON or OFF."""
+    return _command_like(msg) and bool(NOTYPE.search(msg))
+
+
 def handle(msg, hindi, control, in_app, ask):
     """None = not a command. Else (reply text, action dict or None). The page shows what REALLY happened after the app answers."""
     say = lambda hi, en: hi if hindi else en
+    if blocked(msg):
+        return say("सर, मैं पासवर्ड, OTP, PIN या कार्ड नंबर कभी टाइप नहीं करता। कृपया आप खुद टाइप कीजिए।", "Sir, I never type passwords, OTPs, PINs or card numbers. Please type it yourself."), None
+    rk = risk_of(msg) if (control and in_app) else None
+    if rk:  # never runs by itself: the page shows the preview and waits for a real tap on Yes
+        k, en, hi = rk
+        return say(f"सर, यह आपकी हाँ मांगता है: {hi}। आपने कहा: \"{msg.strip()[:120]}\"। आपके Yes दबाने तक मैं कुछ नहीं करूँगा।",
+                   f"Sir, this needs your Yes first: {en}. You said: \"{msg.strip()[:120]}\". I will do nothing until you tap Yes."), {"type": "confirm", "risk": k}
     name = parse(msg)
     if name is None:
         name = ai_name(msg, ask) if (control and in_app) else None
