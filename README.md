@@ -38,6 +38,9 @@ Chrome or Android app  -->  Python server in Termux (127.0.0.1:8787)  -->  AI pr
 6. Never save passwords, OTPs, PINs or CVVs. Never put keys or tokens in chat, code or Git.
 7. His OWL1 trading repo is separate. Never touch it.
 8. After each part, tell him in a table: next files and lines, and totals so far vs remaining.
+9. Zip content (from Part 27): each zip holds this Part's files PLUS every file changed in earlier Parts whose push the app header has not yet shown as "pushed". Never the whole repo. This stops the "see.py was missing" crash from happening again.
+10. Before each Part, say first if it is WITH tests or WITHOUT tests, and why. Python logic is tested (it can be run). Android Java cannot be compiled by Claude: the GitHub build is its compile test and Hussain's phone is its real test. Anything not run is written as "Not run".
+11. Phone control rules: see section 11. Plan first, code only after Hussain says OK to a Part. Every Part must list files, lines and benefit.
 
 ## 5. Setup (phone, Termux)
 Once: `pkg install git python unzip && termux-setup-storage`, `pip install edge-tts`, GitHub login (`git config --global credential.helper store`).
@@ -69,7 +72,9 @@ Everything below is built and pushed. "Phone test" says only what Hussain has al
 Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): Hey Jarvis works only while the app is open; mic in Chrome and in the app use different engines; the real actor's voice cannot be copied, only approached with the free voices; Android Files app may show empty ghost entries for zips that Termux already moved to `~/.jarvis_done`.
 
 ## 7. What to do next
-Only testing. Try each feature once with the cheat sheet below. Report what fails with a screenshot. For the APK: GitHub > Actions > Build APK > download `Jarvis-apk`; if it fails send `build-log`. Then follow section 10 (future batches), one batch at a time.
+1. Test what is built (cheat sheet below). Report what fails with a screenshot or `build-log`.
+2. In parallel, the phone-control plan in **section 11** is ready and waits for Hussain's OK. First Part: **27**, then 28 and 29.
+3. Old roadmap letters (Batch A to G in section 10) are merged into section 11. Do not build them twice.
 
 ## 8. Cheat sheet (type or say)
 | Say or type | What happens |
@@ -98,6 +103,7 @@ Only testing. Try each feature once with the cheat sheet below. Report what fail
 - Zips: only put zips you trust in Downloads. A zip can replace any file in the repo, including scripts.
 
 ## 10. Future roadmap (NOT started, not part of the MVP)
+> Update 15 Nov 2026: the batches A to G below are now Parts 27 to 49 in section 11 (map in 11.7). Section 11 is the plan to follow.
 Rules for all future work: (1) finish and TEST one batch on the phone before starting the next; (2) every feature is one handler in the existing chat chain in `backend/app.py` plus, if it needs Android, one method in the existing `JarvisApp` bridge: no new server, no second database, no second scheduler; (3) every feature that reads private data is opt-in, shows up in the privacy dashboard, and never saves what it reads unless stated; (4) sensitive text (OTP, passwords, card numbers) is filtered with the same filter as memory (`memory.SECRET`, extended); (5) nothing here uses OpenJarvis code today (it was never installed); if one of its ideas is reused later, check its license first and credit it in a NOTICE file.
 
 **Shared services we already have, to be reused:** SQLite database and `messages` history; chat chain in `app.py`; `remind.py` (time parsing, due check, notifications through `NotifyService`); `people.py`; `memory.py` and its secret filter; `brief.py`; `phone.py` rules; the `JarvisApp` bridge pattern (`PhoneInfo`, `ContactsInfo`, `ScreenService`, `Ears`); privacy bar and "stop listening"; zip update and push pipeline.
@@ -120,4 +126,134 @@ Rules for all future work: (1) finish and TEST one batch on the phone before sta
 **Batch size estimates (code only, each under 350 lines):** A about 250 lines, 2-3 files. B about 250, 1-2 files. C about 200, 1 file. D about 300, 2 files. E about 200, 1 file. F about 350, 3 files (optional). G about 180, 2 files. Total about 1,700 lines, about 12 files, spread over 7 tested batches.
 
 **Not planned:** reading private accounts or sessions of other services; remote phone control; WhatsApp or SMS sending without a confirm tap; payments.
+
+## 11. MASTER PLAN: real phone control (PLAN ONLY, nothing below is built yet)
+Audit date: 15 Nov 2026. Written from the real repo files, not from old README claims.
+
+### 11.1 Goal in simple words
+Hussain speaks in Hindi, English or Hinglish. Jarvis understands the request, opens apps, reads the screen, taps, scrolls, types, goes back, locks the phone, opens settings, and runs safe multi-step jobs. It always says what really happened. It never bypasses Android security. One Stop command switches everything off. Everything reuses the existing server, database and app. No second server, no second database, no second scheduler.
+
+### 11.2 Audit: what exists today (file and line)
+Read in full: `app.py`, `memory.py`, `web.py`, `screen.py`, `MainActivity.java`, `ScreenService.java`, `Ears.java`, `NotifyService.java`, `AndroidManifest.xml`, `screen_service.xml`, `build.gradle`, `apk.yml`, `run.sh`, `scripts/sync.sh`, and the stop, privacy, wake and screen parts of `index.html`. Only skimmed (will be read in full before the Part that touches them): `calls.py`, `place.py`, `phone.py`, `see.py`, `remind.py`, `ledger.py`, `brief.py`, `tts.py`, `autostart.py`, `PhoneInfo.java`, `ContactsInfo.java`, `test_app.py`.
+| Wish | Real state | Evidence |
+|---|---|---|
+| Open an app | MISSING | The page bridge has only calls, contact, listen, stopListen, screen, phoneInfo, saveToken (`MainActivity.java` 70-99) |
+| Read screen | Built, NOT phone tested | `ScreenService.java` 19-47; password fields skipped at line 37; 3000 characters max; the app goes to the background and waits 6 seconds (`MainActivity.java` 88-96) |
+| Tap, scroll, type, back, swipe | MISSING | `ScreenService` ignores all events (line 15) and has no click, scroll, text or global action. `screen_service.xml` has only window-change events and read access |
+| Lock phone | MISSING | No lock code. Android lock-screen action needs Android 9 (API 28). App minSdk is 24 (`app/build.gradle` line 5) |
+| Lock the Jarvis app | MISSING | No biometric code, no androidx.biometric |
+| Settings, volume, flashlight, brightness | MISSING | Nothing in any Java file |
+| Stop listening completely | PARTIAL | Only page JavaScript (`index.html` 81 and `stopAll` 235). The native `listen` (`MainActivity.java` 82) never checks a stop flag. The 6 second screen wait (line 94) cannot be cancelled. No camera or screen state exists |
+| Privacy bar | Built, shows page flags only | `index.html` `pv()`. It shows what the page thinks, not what services really do |
+| Permission dashboard | MISSING | No permission status code |
+| Hey Jarvis | Built, works only while app is open, NOT phone tested | `onPause` stops it (`MainActivity.java` 119-122). It uses the Google recognizer, not a wake-word engine |
+| Background microphone | MISSING | No microphone foreground service (`AndroidManifest.xml` 12-13 has only data-sync) |
+| Understand natural speech | PARTIAL | Chat chain is keyword handlers (`app.py` 323-338). The AI only answers chat. It cannot choose an action |
+| Multi-step tasks | MISSING | No task table, no states, no cancel |
+| Memory, people, calls, location, camera, phone check, ledger, reminders, briefing, web | Built, NOT phone tested (see section 6) | `app.py` 311-351 and helper files |
+| Line count claim | README was wrong | README said about 2,650 lines. The repo has about 2,000 lines in about 30 files (README, gradle files and images not counted). Plan numbers below use the real count |
+
+### 11.3 Security findings (to fix, in order)
+| # | Finding | Evidence | Fixed in |
+|---|---|---|---|
+| S1 | WebView grants every permission request and always grants location | `MainActivity.java` 67 and 60 | Part 27 |
+| S2 | Plain http allowed for the whole app | `AndroidManifest.xml` 15 | Part 27 |
+| S3 | Mic, notification and location asked at app start, not when used | `MainActivity.java` 36 | Part 27 |
+| S4 | Stop exists only in page JavaScript. Native code can still listen | `index.html` 235, `MainActivity.java` 82 | Part 28 |
+| S5 | Bridge methods have no stop or lock check. New power (click, lock) must be checked in Java, not in the page | `MainActivity.java` 70-99 | Parts 28, 36 |
+| S6 | Screen text goes to the AI with only password fields skipped and a prompt rule. No OTP or card removal in code. `memory.SECRET` has only words (password, otp, pin, cvv), no card number pattern | `ScreenService.java` 37, `screen.py` 13-14, `memory.py` 4 | Part 32 |
+| S7 | ANY file named `Jarvis_part*.zip` in Downloads is unzipped into the repo and the server restarts. Another app with storage access could drop a zip and run code in Termux | `run.sh` 16-22, `scripts/sync.sh` 14-21 | Not by zip (scripts cannot change by zip). Owner decision D5 |
+| S8 | Pairing token is in plain app storage (backup is off, so risk is low) | `MainActivity.java` 99, `NotifyService.java` 44 | Part 36 (optional) |
+| S9 | `ScreenService` will gain click power. It is exported as every accessibility service is, protected by the Android bind permission | `AndroidManifest.xml` 17 | Parts 33-34 rules |
+| S10 | A request with no Origin header is allowed (needed by the reminder service, token still required). A changed HOST turns the check off | `app.py` 162-165 | Keep, document |
+| S11 | `web.py` checks the address, then opens it again. Small DNS gap | `web.py` 9-28 | Later, low |
+
+### 11.4 Android limits (honest list, to be verified on the phone)
+| Wish | Android reality | What Jarvis will do |
+|---|---|---|
+| Lock phone | Accessibility global lock action, Android 9+. Needs the Jarvis accessibility switch ON. Some makers may block it | Call it, then check the screen state. If still on, say it failed. Never unlock |
+| Tap, scroll, type, back | Accessibility node actions. Work only if the app shows its controls. Banking apps, games and some apps show nothing | Use controls by meaning, re-find them before acting. If not found, ask Hussain. Say "this app does not allow it" |
+| Swipe | Needs a gesture permission, fragile | Fallback only, with a confirm |
+| Wi-Fi and Bluetooth on/off | Apps cannot switch them silently on new Android | Open the right settings or panel and explain the one tap |
+| Brightness | Needs the special "modify system settings" permission | Default: open Display settings (decision D1) |
+| Flashlight, volume | Allowed without risky permission | Do it, then check the state |
+| Do Not Disturb | Needs notification-policy access | Open the access page and explain |
+| Close other apps | Android does not allow it | Say so, show the safe steps |
+| Background microphone | Android 14+: needs a microphone foreground service, a visible notification, and it must start while the app is visible. Makers may kill it | Test first (Part 39). No promise until it works on this phone |
+| Wake word with screen off | The Google recognizer may not run there | Part 39 measures it. Alternative: Quick Settings tile and shortcut (Part 38) |
+| Voice on lock screen | Jarvis may listen, but must not do sensitive actions while locked | Check lock state first |
+Phone brand and Android version are NOT known yet (decision D4).
+
+### 11.5 Architecture (reuse, no duplicates)
+- New `backend/actions.py`: first a cheap Hindi, English, Hinglish grammar ("WhatsApp kholo", "neeche scroll karo"). If nothing matches and it looks like a command, the AI may only return a JSON action from a FIXED list. The server checks the action name and arguments. The AI never gives code, shell, coordinates or package names that were not found on the phone.
+- `/chat` returns an optional `action` next to `reply`. The page runs it through ONE new bridge method, `JarvisApp.act(json)`. Java checks stop, lock and permission flags itself.
+- Risk levels: READ (open app, open settings page, read screen when asked) runs. CHANGE (scroll, type, tap normal button) runs after the plan is shown. SENSITIVE (send message, delete, pay, buy, install, permission, account change) needs a preview and an explicit yes. BLOCKED (password field, OTP, PIN, banking data) never runs.
+- Screen text and web text are DATA. An action may only come from Hussain's own message in the same turn.
+- Master switch "Phone control" starts OFF. It is shown on the privacy dashboard.
+- Task engine `tasks.py` uses the same SQLite file (one new table, nothing removed). Page runs the steps because the phone actions are in the app. Each step is verified before the next.
+- Task states: CREATED, PLANNING, WAITING_FOR_PERMISSION, WAITING_FOR_CONFIRMATION, RUNNING, VERIFYING, COMPLETED, PARTIAL, FAILED, CANCELLED. After a server or phone restart a RUNNING task becomes FAILED with a note. A risky step is never repeated by itself.
+
+### 11.6 Parts (plan; * = new file). "With tests" = Python logic run in Termux. "Without tests" = Android Java: GitHub build plus Hussain's phone.
+| Part | What | Files | Lines | Tests | Benefit |
+|---|---|---|---|---|---|
+| 27 | Close WebView and manifest holes: permission checks, local-only http, ask permissions when used | MainActivity, AndroidManifest, res/xml/network_security_config.xml* | ~50 | Without | The page cannot get mic, camera or location by tricks |
+| 28 | Real Stop: one `Privacy.java` holds mic, wake, screen, camera state. Stop cancels all in Java. Voice cannot turn mic back on, only a visible button | Privacy.java*, MainActivity, Ears, index.html | ~140 | Without | "Stop listening completely" really stops everything |
+| 29 | Privacy dashboard: ON/OFF per feature, permission given vs service running, last used, small log (feature and time only), settings buttons, server-offline banner and auto-reconnect | index.html, Privacy.java, app.py, MainActivity | ~140 | Without | One screen shows what Jarvis can do and is doing |
+| 30 | Command layer: Hindi/English/Hinglish grammar plus limited AI fallback, master switch OFF by default | actions.py*, app.py, index.html | ~150 | With | Jarvis understands "WhatsApp kholo" without guessing |
+| 31 | App launch: list launchable apps, fuzzy name, ask when two match, never open unknown | Apps.java*, MainActivity, AndroidManifest, index.html, actions.py | ~110 | Without | "Chrome open karo" works safely |
+| 32 | Better screen reading: visible buttons, fields, scroll areas; remove OTP, card, PIN text before sending; honest message when an app shows nothing | ScreenService, screen.py, screen_service.xml, index.html, MainActivity | ~90 | With (redaction), Java without | Screen help without leaking secrets |
+| 33 | Risk and confirm rules: preview and explicit yes for send, delete, pay, buy, install, account; block password fields | actions.py, index.html | ~100 | With | No dangerous action without Hussain's yes |
+| 34 | Safe screen actions: click, scroll, type in a field, back, home, current app; re-find the control before acting; verify the result; swipe only as confirmed fallback | ScreenService, MainActivity, index.html, screen_service.xml | ~165 | Without | "Is button ko dabao", "neeche scroll karo", "peeche jao" |
+| 35 | Lock phone with the Android lock action, check the result, honest failure | ScreenService, MainActivity, index.html, actions.py | ~60 | Without | "Phone lock kar do". Never unlocks |
+| 36 | Lock the Jarvis app with the real Android fingerprint, face or phone PIN prompt. Bridge refuses while locked. Turn off only after authenticating. Optional: token in Android Keystore | AppLock.java*, MainActivity, app/build.gradle, index.html | ~140 | Without | Nobody else can use Jarvis on your phone |
+| 37 | Settings help: open Wi-Fi, Bluetooth, location, sound, battery, app permissions, notifications pages; flashlight, volume; explain when Android blocks a change | Settings.java*, MainActivity, actions.py, index.html, AndroidManifest | ~140 | Without | Settings by voice, no hacks, no false "done" |
+| 38 | Quick Settings tile and app shortcut to start listening | JarvisTile.java*, AndroidManifest, res/xml/shortcuts.xml*, MainActivity | ~70 | Without | Hands-free start even if wake word is weak |
+| 39 | Background mic test: microphone foreground service, notification with Stop button, battery check, no sensitive action while locked | ListenService.java*, AndroidManifest, MainActivity, Privacy, index.html, Ears | ~140 | Without, plus one day phone test | We learn if "Hey Jarvis" works with the app closed |
+| 40 | OPTIONAL: offline wake-word engine, only if Part 39 shows the Google recognizer is not enough | decided after 39 | ~200 | decided later | Reliable hands-free. Bigger app and more battery, needs Hussain's OK |
+| 41 | Task engine backend: tasks table, 10 states, steps, restart rule | tasks.py*, app.py | ~180 | With | Multi-step jobs are tracked honestly |
+| 42 | Task runner in the page: shows steps, runs them through the bridge, verifies each, Cancel button, stops on failure | index.html, MainActivity, ScreenService, Privacy | ~120 | Without | "Chrome kholo aur ..." sequences, cancel any time |
+| 43 | Test pack: server tests for Parts 30-41, phone checklist table, regression of old features | test_app.py, README | ~80 | With (server) | We know what works before more features |
+| 44 | (old Batch B) Repeat reminders, birthdays, phone calendar | remind.py, people.py, CalendarInfo.java*, MainActivity, AndroidManifest, index.html | ~250 | With (Python) | Birthdays and repeat jobs are remembered |
+| 45 | (old Batch C) Richer briefing, max 3 suggestions a day, quiet hours, each can be switched off | brief.py, app.py, index.html | ~200 | With | One useful morning summary, not noise |
+| 46 | (old Batch D, smaller) Routines = saved task lists. Uses the task engine, no second system | tasks.py, app.py, index.html | ~115 | With | One command runs a safe set of steps |
+| 47 | (old Batch E) Encrypted backup, restore with preview, delete everything | backup.py*, app.py, index.html | ~210 | With | Memory is safe and can move to a new phone |
+| 48 | (old Batch G) Share to Jarvis, handoff summary for Claude or ChatGPT, lost-phone steps card | AndroidManifest, MainActivity, index.html, app.py | ~180 | Without | Official sharing only, no private sessions |
+| 49 | OPTIONAL, risky (old Batch F) Notification summary for chosen apps, clipboard button | NotifySummary.java*, MainActivity, AndroidManifest, index.html, app.py | ~350 | Without | Day summary. Needs special notification access |
+
+**Totals** (code lines added or changed, README excluded):
+| Group | Parts | New files | Lines |
+|---|---|---|---|
+| Phone control core | 27 to 39, 41 to 43 (16 Parts) | 10 | about 1,900 |
+| Old batches B to E and G | 44 to 48 (5 Parts) | 2 | about 950 |
+| Required total | 21 Parts | 12 | about 2,800 |
+| Optional (40 and 49) | 2 Parts | about 4 | about 550 |
+| Repo today | - | - | about 2,000 lines, about 30 files |
+| Repo after required Parts | - | - | about 4,800 lines, about 42 files |
+| Repo after everything | - | - | about 5,400 lines, about 46 files |
+Estimates are rough (plus or minus 25 percent). Real numbers go into this table after each Part.
+
+### 11.7 Order and map of old batches
+Why this order: Parts 27 to 29 come first because every later power needs a safe base and a real Stop. 30 before 31 and 37 because they use the command layer. 32 and 33 before 34 because clicking needs safe reading and confirm rules first. 35 and 36 before background voice. 41 and 42 only after single actions work. Real phone tests between groups.
+| Old name | Now |
+|---|---|
+| Batch A (privacy dashboard, server health) | Parts 28, 29 |
+| Batch B (recurring, birthdays) | Part 44 |
+| Batch C (briefing, suggestions) | Part 45 |
+| Batch D (routines, task history) | Parts 41, 42 and 46 |
+| Batch E (backup) | Part 47 |
+| Batch F (notifications, clipboard) | Part 49 (optional) |
+| Batch G (share, handoff, lost phone) | Part 48 |
+
+### 11.8 Acceptance tests on Hussain's phone (one line per Part)
+27: open app, mic asked only on first mic use; page cannot open another site. 28: say "stop listening completely", mic icon goes off, saying "Jarvis" does nothing, tap Restart and it works again. 29: switch accessibility off, dashboard shows OFF; stop Termux, banner shows offline, start it, banner clears. 30: say "WhatsApp kholo" and a nonsense phrase; nonsense does nothing. 31: "Chrome kholo" opens Chrome; "xyz app kholo" says not found; two similar apps: Jarvis asks. 32: on a screen with a code, the code is not sent. 33: "message bhejo" shows a preview and waits for yes. 34: in Settings say "neeche scroll karo", then "peeche jao". 35: "phone lock kar do": screen locks, or an honest failure. 36: turn app lock on, close and open: real Android prompt. 37: "Bluetooth settings kholo", "flashlight on karo" and the light is on. 38: tile starts listening, status shows it. 39: screen off for 10 minutes, note what works and battery use. 41-42: a 3 step task runs, Cancel stops it, killing the server marks it failed. 43: all server tests pass. Regression in every Part: chat, providers, memory, reminders, ledger, voice, APK build.
+
+### 11.9 Decisions (a default is set; say OK or change it)
+- D1 Brightness: default is to open Display settings (no extra permission). Alternative: allow "modify system settings".
+- D2 App lock: default is Android's own prompt only. Jarvis will not keep its own PIN.
+- D3 Phone control master switch starts OFF.
+- D4 Needed before Part 35 and 39: phone brand and Android version (Settings > About phone).
+- D5 Zip trap (S7): later, Hussain decides if he wants a one-time script that checks zips.
+
+### 11.10 Risks and rollback
+Every Part is its own zip and its own commit. To undo a Part: GitHub > the commit > Revert. Older APKs stay in Actions artifacts. The only database change is one new `tasks` table (Part 41), nothing is removed. Phone control can be switched OFF without removing code. Rules that never change: no root, no lock-screen bypass, no hidden recording, no secret saving, no payments, no messages without a confirm tap, no OWL1 changes.
 
