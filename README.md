@@ -77,7 +77,7 @@ Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): He
 ## 7. What to do next
 1. Download the zip, wait for "pushed" in the app header, run **Build APK** on GitHub, install it. If the build fails, send `build-log`.
 2. Test Parts 27, 28 and 29 with the list in section 11.8, plus the old cheat sheet. Report what fails with a screenshot.
-3. Next Part to build after Hussain says OK: **30** (command layer), then 31 and 32. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
+3. Next Part to build after Hussain says OK: **50** (live system card, small and visible), then **51 to 53** (dual voice engine, section 11.6b), then **30** (command layer), 31 and 32. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
 
 ## 8. Cheat sheet (type or say)
 | Say or type | What happens |
@@ -224,6 +224,10 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 47 | (old Batch E) Encrypted backup, restore with preview, delete everything | backup.py*, app.py, index.html | ~210 | With | Memory is safe and can move to a new phone |
 | 48 | (old Batch G) Share to Jarvis, handoff summary for Claude or ChatGPT, lost-phone steps card | AndroidManifest, MainActivity, index.html, app.py | ~180 | Without | Official sharing only, no private sessions |
 | 49 | OPTIONAL, risky (old Batch F) Notification summary for chosen apps, clipboard button | NotifySummary.java*, MainActivity, AndroidManifest, index.html, app.py | ~350 | Without | Day summary. Needs special notification access |
+| 50 | Live system card (like the PC screenshot): RAM used/free, storage, battery and heat, Jarvis server own memory and CPU, uptime, net online. New `/stats` route, refreshed every 5 s only while the card is open. Honest "not available" if Android blocks a number | sysinfo.py*, app.py, index.html | ~110 | With (Python) | Hussain sees what Jarvis and the phone are using |
+| 51 | Voice Personality Engine, backend: intent classifier (CONVERSATION, INFORMATION, TASK_CONFIRMATION, REMINDER, BRIEFING, ALERT), policy table, JARVIS fallback, two voice profiles, `/tts` takes `intent` or `profile` | voiceengine.py*, tts.py, app.py | ~170 | With | The right voice is chosen by intent, not by keywords |
+| 52 | Voice Personality settings: Tony and JARVIS cards, Auto routing ON, manual override, Test Tony, Test JARVIS, active-voice badge, saved in `voice.json` on the server (survives restart), stop and switch while speaking | index.html, app.py | ~160 | Without (page) plus Python route tests | One clear place to control both voices |
+| 53 | Second voice provider only if the Edge test shows the two voices are too alike: Google Cloud Chirp 3 HD, key kept in `keys.json`, Edge stays as fallback | tts.py, app.py, backend/.env.example | ~120 | With, needs Hussain's key | Two truly different voices |
 
 **Totals** (code lines added or changed, README excluded):
 | Group | Parts | New files | Lines |
@@ -232,10 +236,20 @@ Phone brand and Android version are NOT known yet (decision D4).
 | Old batches B to E and G | 44 to 48 (5 Parts) | 2 | about 950 |
 | Required total | 21 Parts | 12 | about 2,800 |
 | Optional (40 and 49) | 2 Parts | about 4 | about 550 |
+| Stats card and dual voice (Parts 50 to 53) | 4 Parts | 2 or 3 (sysinfo.py, voiceengine.py, voice.json is data) | about 560 |
 | Repo today | - | - | about 2,000 lines, about 30 files |
 | Repo after required Parts | - | - | about 4,800 lines, about 42 files |
 | Repo after everything | - | - | about 5,400 lines, about 46 files |
 Estimates are rough (plus or minus 25 percent). Real numbers go into this table after each Part.
+
+
+### 11.6b Dual voice personality plan (added 15 Nov 2026, AUDIT ONLY, no code yet)
+Goal: two default voices that switch by themselves. TONY = conversation (confident, witty, Hinglish). JARVIS = information, tasks, reminders, briefings, alerts (calm, deep, precise). No cloning of Rajesh Khattar or Atul Kapoor. Original or licensed voices only.
+**What exists today (read from the repo):** `backend/tts.py` (35 lines) runs `edge_tts` with a fixed list `VOICES` (line 4): en-GB-Ryan, en-IN-Prabhat, hi-IN-Madhur, en-IN-Neerja, hi-IN-Swara. `app.py` route `POST /tts` (line 292) returns mp3. `index.html`: `neural()` (line 147) plays it, `speak()` (156) falls back to the browser voice, `#voice` and `#pre` select a voice and a preset (lines 41 to 42), `stopAll()` (262) stops sound, saved in `localStorage` (`jvoice`). There is no intent routing and no server-side voice settings.
+**Two real profiles today? NO.** Edge has only one Hindi male voice (Madhur). Khattar, Rolex and Jarvis studio are Madhur with different pitch and speed. That is one voice in two moods, not two voices. Prabhat is male but Indian-English and reads Hindi badly.
+**Rules for Parts 51 to 53:** reuse `tts.py` and `/tts`; no second server, no new database table, no new Android permission; keys only in `keys.json`; JARVIS is the fallback when intent is unclear; the voice that speaks is the voice that is shown; if a provider fails, fall back to Edge, then to the browser voice, and show which one spoke.
+**Provider choice:** step 1 (Part 51 and 52) uses Edge only: Tony = Madhur, normal pitch, a little faster; JARVIS = Madhur, lower and slower. Free, but the two will sound related. Step 2 (Part 53), only if Hussain agrees: Google Cloud Chirp 3 HD, which has several male Hindi voices. List price checked 15 Nov 2026: about 30 USD per 1 million characters, and free monthly amounts differ by source, so check the account before using. It needs internet, billing enabled and an API key. Must be tested for Hinglish before it is chosen.
+**Cost and internet:** Edge is free and needs internet. Google is pay as you go (a 200 character reply is about 0.006 USD at list price). Offline fallback is the browser voice, not Tony or JARVIS.
 
 ### 11.7 Order and map of old batches
 Why this order: Parts 27 to 29 come first because every later power needs a safe base and a real Stop. 30 before 31 and 37 because they use the command layer. 32 and 33 before 34 because clicking needs safe reading and confirm rules first. 35 and 36 before background voice. 41 and 42 only after single actions work. Real phone tests between groups.
