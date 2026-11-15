@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Part 38: long-press the Jarvis icon, then "Listen" -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="listen" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/listen">
+        <intent android:action="com.hussain.jarvis.LISTEN" android:targetPackage="com.hussain.jarvis" android:targetClass="com.hussain.jarvis.MainActivity"/>
+    </shortcut>
+</shortcuts>

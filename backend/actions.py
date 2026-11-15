@@ -3,7 +3,7 @@
 import json, re
 
 ACTIONS = {"open_app"}  # what the AI fallback may return. Only open_app, nothing else.
-SCREEN = {"click", "scroll", "swipe", "type", "back", "home", "current_app", "lock"}  # Part 34: only the user's own words can make these; the AI fallback never can.
+SCREEN = {"click", "scroll", "swipe", "type", "back", "home", "current_app", "lock", "settings", "torch", "volume"}  # Part 34: only the user's own words can make these; the AI fallback never can.
 SAFE = {"open_app"}  # Part 33: these run after the master switch. Anything else needs a preview and Hussain's own tap on Yes, every single time.
 EN = {"open", "launch", "start", "run"}
 HI = {"kholo", "khol", "kholna", "kholiye", "kholiyega", "kholen", "chalao", "chala", "chalu", "shuru", "खोलो", "खोल", "खोलना", "खोलिए", "खोलिये", "खोलें", "चलाओ", "चला", "चालू", "चालु", "शुरू"}
@@ -174,12 +174,56 @@ def screen_cmd(msg):
     return act, f"Pressing \"{n}\", sir.", f"ठीक है सर, \"{n}\" दबा रहा हूँ।"
 
 
+# Part 37: settings help. Only a FIXED list: open a settings page, flashlight, music volume. Wi-Fi, Bluetooth and location are never switched
+# by Jarvis (Android does not allow it): the page is opened and Jarvis says so.
+PAGES = {"wifi": ("wifi", "वाईफाई वायफाय वाईफ़ाई"), "bluetooth": ("bluetooth", "ब्लूटूथ ब्लूटुथ"), "location": ("location gps", "लोकेशन"),
+         "sound": ("sound awaaz", "आवाज़ आवाज"), "display": ("brightness display", "ब्राइटनेस डिस्प्ले चमक"), "battery": ("battery", "बैटरी"),
+         "network": ("network airplane flight", "नेटवर्क"), "notifications": ("notification notifications", "नोटिफिकेशन"),
+         "permissions": ("permission permissions", "परमिशन"), "accessibility": ("accessibility", "एक्सेसिबिलिटी")}
+PAGEOF = {w: k for k, (en, hi) in PAGES.items() for w in (en + " " + hi).split()}
+SETW = {"settings", "setting", "सेटिंग", "सेटिंग्स", "page"}
+ONW, OFFW = {"on", "chalu", "चालू", "चालु", "jalao", "jala", "जलाओ", "start", "shuru", "enable"}, {"off", "band", "बंद", "bujhao", "बुझाओ", "disable"}
+OPENW = {"open", "kholo", "khol", "खोलो", "खोल", "show", "dikhao", "दिखाओ", "turn", "switch", "kar", "karo", "करो", "कर", "do", "दो", "me", "mein", "में"}
+TORCHW = {"flashlight", "torch", "flash", "टॉर्च", "फ्लैशलाइट", "light"}
+VOLW = {"volume", "vol", "awaaz", "आवाज़", "आवाज", "sound"}
+VUP = {"up", "badhao", "badha", "बढ़ाओ", "बढ़ा", "increase", "zyada", "jyada", "ज़्यादा", "tez", "तेज़", "तेज", "louder", "more", "full"}
+VDOWN = {"down", "kam", "कम", "decrease", "lower", "dheere", "धीरे", "low", "less", "halka", "slow"}
+NICE = {"wifi": "Wi-Fi", "bluetooth": "Bluetooth", "location": "Location", "sound": "Sound", "display": "Display and brightness", "battery": "Battery",
+        "network": "Network", "notifications": "Notifications", "permissions": "App permissions", "accessibility": "Accessibility"}
+
+
+def device_cmd(msg):
+    """(action or None, English text, Hindi text) for settings pages, flashlight and volume. None = not such a command."""
+    m = re.sub(r"wi[\s\-]?fi", "wifi", msg.strip(), flags=re.I)
+    if "?" in m or len(m) > 70:
+        return None
+    w = _words(m)
+    s = set(w)
+    if not w or len(w) > 7 or s & QW:
+        return None
+    if s & TORCHW and s <= TORCHW | ONW | OFFW | GO | FILL | OPENW and bool(s & ONW) != bool(s & OFFW) and s & (TORCHW - {"light"}):
+        on = bool(s & ONW)
+        return {"type": "torch", "on": on}, ("Switching the flashlight on, sir." if on else "Switching the flashlight off, sir."), ("टॉर्च चालू कर रहा हूँ सर।" if on else "टॉर्च बंद कर रहा हूँ सर।")
+    if s & VOLW and s <= VOLW | VUP | VDOWN | GO | FILL | OPENW and bool(s & VUP) != bool(s & VDOWN):
+        d = "up" if s & VUP else "down"
+        return {"type": "volume", "dir": d}, f"Turning the volume {d}, sir.", ("आवाज़ बढ़ा रहा हूँ सर।" if d == "up" else "आवाज़ कम कर रहा हूँ सर।")
+    pages = {PAGEOF[x] for x in s if x in PAGEOF}
+    more = (VUP | VDOWN) if pages == {"display"} else set()  # "brightness kam karo": Jarvis cannot change it, so it opens the Display page
+    if len(pages) == 1 and s <= set(PAGEOF) | SETW | ONW | OFFW | OPENW | GO | FILL | more and (s & (SETW | OPENW | ONW | OFFW | more)):
+        p = pages.pop()
+        n = NICE[p]
+        if s & (ONW | OFFW | more) and p in ("wifi", "bluetooth", "location", "network", "display"):
+            return {"type": "settings", "page": p}, f"Sir, Android does not let any app switch {n} on or off by itself. I opened the {n} page, please tap the switch yourself.", f"सर, Android किसी ऐप को {n} खुद चालू या बंद नहीं करने देता। मैंने {n} का पेज खोल दिया है, स्विच आप दबा दीजिए।"
+        return {"type": "settings", "page": p}, f"Opening the {n} settings, sir.", f"{n} की सेटिंग खोल रहा हूँ सर।"
+    return None
+
+
 def handle(msg, hindi, control, in_app, ask):
     """None = not a command. Else (reply text, action dict or None). The page shows what REALLY happened after the app answers."""
     say = lambda hi, en: hi if hindi else en
     if blocked(msg):
         return say("सर, मैं पासवर्ड, OTP, PIN या कार्ड नंबर कभी टाइप नहीं करता। कृपया आप खुद टाइप कीजिए।", "Sir, I never type passwords, OTPs, PINs or card numbers. Please type it yourself."), None
-    sc = screen_cmd(msg)  # Part 34
+    sc = screen_cmd(msg) or device_cmd(msg)  # Part 34 (screen steps) and Part 37 (settings pages, flashlight, volume)
     if sc and sc[0] and sc[0]["type"] == "type" and not (control and in_app):
         sc = None  # "type hello" is only a command when phone control is ON in the app; otherwise it is normal chat
     rk = risk_of(msg) if (control and in_app) else None

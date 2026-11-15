@@ -238,6 +238,15 @@ class H(BaseHTTPRequestHandler):
         data = self.body(1500000 if self.path == "/see" and self.headers.get("Authorization") else 20000)
         if not isinstance(data, dict):
             return self.send(400, {"error": "galat request"})
+        if self.path == "/newcode":  # Part 37: the pairing screen asks Termux to show the code again (the code is NEVER sent to the page)
+            if time.time() < PAIR["lock"] or time.time() - PAIR.get("last", 0) < 5:
+                return self.send(429, {"error": "kuch der baad try karo"})
+            PAIR["last"] = time.time()
+            if time.time() > PAIR["exp"] - 60:
+                new_code()
+            else:
+                print(f"PAIRING CODE: {PAIR['code']}  (abhi bhi valid)", flush=True)
+            return self.send(200, {"ok": True})
         if self.path == "/pair":
             if time.time() < PAIR["lock"]:
                 return self.send(429, {"error": "kuch der baad try karo"})

@@ -29,6 +29,8 @@ import android.webkit.WebViewClient;
 /** Part 16: a thin shell. It only shows the Jarvis page served by the Termux server on this phone. */
 public class MainActivity extends Activity {
     static final String URL = "http://127.0.0.1:8787";
+    static final String LISTEN = "com.hussain.jarvis.LISTEN";  // Part 38: sent by the Quick Settings tile and the icon shortcut
+    boolean wantListen;
     WebView web;
     Ears ears;
     ValueCallback<Uri[]> picker;
@@ -160,6 +162,12 @@ public class MainActivity extends Activity {
                         Privacy.UI.postDelayed(Privacy.actJob, 1200);
                         return "{\"wait\":1}";
                     }
+                    if (java.util.Arrays.asList("settings", "torch", "volume").contains(ty)) {  // Part 37: fixed settings pages, flashlight, music volume. Answer comes back at once, read from Android.
+                        JSONObject r = PhoneSettings.run(MainActivity.this, a);
+                        if (r.optBoolean("ok")) Privacy.used("apps");
+                        try { r.put("type", ty); } catch (Exception e) { /* send what we have */ }
+                        return r.toString();
+                    }
                     if ("open_app".equals(a.optString("type"))) {
                         JSONObject r = Apps.open(MainActivity.this, a.optString("name"), a.optBoolean("exact"));
                         if (r.optBoolean("ok")) Privacy.used("apps");
@@ -192,7 +200,14 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> startForegroundService(new Intent(MainActivity.this, NotifyService.class)));
             }
         }, "JarvisApp");
+        wantListen = LISTEN.equals(getIntent().getAction());
         web.loadUrl(URL);
+    }
+
+    @Override protected void onNewIntent(Intent i) {
+        super.onNewIntent(i);
+        setIntent(i);
+        wantListen = LISTEN.equals(i.getAction());  // handled in onResume, after the app lock
     }
 
     static String pending;  // screen text waiting to be handed to the page
@@ -255,6 +270,10 @@ public class MainActivity extends Activity {
         super.onResume();
         gate();
         if (AppLock.locked()) return;  // nothing is handed to the page while it is locked
+        if (wantListen) {  // Part 38: tile or shortcut. Same as tapping the mic: the page checks Stop itself.
+            wantListen = false;
+            web.postDelayed(() -> web.evaluateJavascript("document.getElementById('mic')&&document.getElementById('mic').click()", null), 900);
+        }
         if (pendingAct != null && web != null) {
             String q = pendingAct; pendingAct = null;
             getSystemService(NotificationManager.class).cancel(78);

@@ -33,8 +33,8 @@ form input{border-radius:24px}#mic{width:52px;height:52px;padding:0;border-radiu
 .dr{padding:9px 0;border-top:1px solid var(--line)}.dr small{display:block;color:var(--mut);font-size:12px}.chip{display:inline-block;font-size:12px;padding:2px 8px;border-radius:10px;background:var(--sf2);margin:4px 6px 0 0}
 </style></head><body>
 <header><div class="logo">J</div><div><b>JARVIS</b><span id="st">...</span></div><span class="sp"></span><button id="vbtn" title="Voice">🔊</button><button id="gear" title="Settings">⚙</button></header>
-<div id="pair"><h2>Welcome, sir</h2><p>Enter the 6-digit pairing code shown in Termux.</p>
-<input id="code" inputmode="numeric" maxlength="6" placeholder="••••••"><p><button id="go">Pair this phone</button></p><p id="pe" class="bad"></p></div>
+<div id="pair"><h2>Welcome, sir</h2><p>Pair this phone with your Jarvis server:</p><p style="text-align:left;font-size:15px">1. Open the <b>Termux</b> app.<br>2. Find the line <b>PAIRING CODE: 123456</b> (the last one).<br>3. Type those 6 numbers below.<br>The code works for 10 minutes. No code, or too old? Tap the small button, then look in Termux again.</p>
+<input id="code" inputmode="numeric" maxlength="6" placeholder="••••••"><p><button id="go">Pair this phone</button> <button id="nc" class="g">Show code in Termux</button></p><p id="pe" class="bad"></p></div>
 <div id="set" hidden><h4>System</h4><div class="card" id="sys"></div><h4>Privacy and permissions</h4><div class="card" id="dash"></div><h4>API key</h4><div class="card"><p style="margin-top:0;color:var(--mut)">Paste a key. Jarvis finds the company and checks it.</p>
 <input id="key" placeholder="Paste key here" autocomplete="off"><p><button id="kp">Paste from clipboard</button> <button id="kc" class="g">Check</button></p><p id="kr"></p><div id="kl"></div></div>
 <h4>People</h4><div class="card" id="pl"></div><h4>Memory</h4><div class="card" id="ml"></div><h4>Money ledger</h4><div class="card" id="ll"></div></div>
@@ -60,7 +60,9 @@ function dayName(d){const t=new Date(),y=new Date(Date.now()-864e5),k=x=>x.getFu
 function add(role,text,ts){const d=ts?new Date(ts*1000):new Date(),day=d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();
   if(day!=lastDay){lastDay=day;const x=document.createElement('div');x.className='ds';x.textContent=dayName(d);$('log').appendChild(x);}
   const m=document.createElement('div');m.className='m '+role;m.dataset.t=p2(d.getHours())+':'+p2(d.getMinutes());m.textContent=text;$('log').appendChild(m);m.scrollIntoView();return m;}
-function show(){$('pair').hidden=!!token;$('chat').hidden=!token;if(!token)$('set').hidden=true;}
+let ncAuto=false;
+function show(){if(!token&&!ncAuto){ncAuto=true;api('/newcode',{}).catch(()=>{});}  // asks Termux to print a fresh code (it is never shown in the page)
+  $('pair').hidden=!!token;$('chat').hidden=!token;if(!token)$('set').hidden=true;}
 let boot='';
 const nowS=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16).replace('T',' ');
 async function checkDue(){
@@ -80,6 +82,7 @@ async function history(){
   $('log').textContent='';lastDay='';
   try{const {s,d}=await api('/history');if(s==200)d.messages.forEach(m=>add(m.role,m.content,m.ts));}catch(e){}
 }
+$('nc').onclick=async()=>{try{const {s:st}=await api('/newcode',{});$('pe').textContent=st==200?'Look in Termux now: the last line says PAIRING CODE.':'Wait a few seconds and tap again.';}catch(e){$('pe').textContent='Cannot reach the server. Is Termux running?';}};
 $('go').onclick=async()=>{
   try{const {s,d}=await api('/pair',{code:$('code').value.trim(),name:'phone browser'});
     if(s==200){token=d.token;localStorage.setItem('jtoken',token);if(window.JarvisApp)JarvisApp.saveToken(token);show();history();}else $('pe').textContent=d.error||'Pairing failed';
@@ -270,7 +273,11 @@ function askYes(w,a){
   w.appendChild(row);setTimeout(()=>end(say('समय खत्म हुआ सर, कुछ नहीं किया गया।','Timed out, sir. Nothing was done.')),60000);return t;
 }
 // Part 34: what really happened after a screen step. Words come from the Java result, never from guessing.
-const ACTERR={perm:['सर, Accessibility में "Jarvis screen reader" चालू कीजिए (मैंने वह पेज खोल दिया), फिर दोबारा बोलिए।','Sir, turn on "Jarvis screen reader" in Accessibility (I opened it), then ask again.'],
+const ACTERR={no_torch:['सर, इस फ़ोन में टॉर्च नहीं मिली।','Sir, I found no flashlight on this phone.'],
+  torch_busy:['सर, Android ने टॉर्च नहीं जलाने दी। शायद कोई और ऐप कैमरा इस्तेमाल कर रहा है।','Sir, Android did not let me switch the flashlight. Maybe another app is using the camera.'],
+  no_page:['सर, इस फ़ोन में वह सेटिंग पेज नहीं मिला।','Sir, this phone has no such settings page.'],
+  locked:['सर, Jarvis लॉक है। पहले अनलॉक कीजिए।','Sir, Jarvis is locked. Unlock it first.'],
+  perm:['सर, Accessibility में "Jarvis screen reader" चालू कीजिए (मैंने वह पेज खोल दिया), फिर दोबारा बोलिए।','Sir, turn on "Jarvis screen reader" in Accessibility (I opened it), then ask again.'],
   no_app:['सर, स्क्रीन पर कोई दूसरा ऐप नहीं दिखा, इसलिए कुछ नहीं किया।','Sir, I saw no other app on the screen, so I did nothing.'],
   not_found:['सर, स्क्रीन पर वह बटन नहीं मिला। कुछ नहीं दबाया।','Sir, I could not find that button on the screen. I pressed nothing.'],
   many:['सर, इस नाम के एक से ज़्यादा बटन हैं। पूरा नाम बोलिए। कुछ नहीं दबाया।','Sir, more than one button matches. Please say the full name. I pressed nothing.'],
@@ -290,6 +297,9 @@ function actMsg(r,a){
   if(r.ok){
     if(t=='current_app')return say('सर, अभी "'+r.app+'" खुला है।','Sir, "'+r.app+'" is open right now.');
     if(t=='lock')return r.locked?say('फ़ोन लॉक हो गया सर। अनलॉक मैं कभी नहीं करता, वो आप खुद कीजिए।','The phone is locked, sir. I never unlock it, you do that yourself.'):say('सर, मैंने Android से लॉक करने को कहा, पर पक्का नहीं कह सकता कि लॉक हुआ। हो सकता है फ़ोन में स्क्रीन लॉक सेट ही न हो।','Sir, I asked Android to lock the phone, but I cannot confirm it locked. The phone may have no screen lock set.');
+    if(t=='settings')return say('सेटिंग का पेज खुल गया सर।','The settings page is open, sir.');
+    if(t=='torch')return r.on?say('टॉर्च चालू हो गई सर।','The flashlight is on, sir.'):say('टॉर्च बंद हो गई सर।','The flashlight is off, sir.');
+    if(t=='volume')return r.changed===false?say('सर, आवाज़ पहले से '+(lastAct&&lastAct.dir=='up'?'सबसे ज़्यादा':'सबसे कम')+' है।','Sir, the volume is already at the '+(lastAct&&lastAct.dir=='up'?'top':'bottom')+'.'):say('आवाज़ अब '+r.vol+'/'+r.max+' है सर।','The volume is now '+r.vol+' of '+r.max+', sir.');
     if(t=='back'||t=='home'||t=='swipe')return say('हो गया सर।','Done, sir.');
     return r.changed===false?say('सर, मैंने कर दिया, पर स्क्रीन पर कोई बदलाव नहीं दिखा। एक बार देख लीजिए।','Sir, I did it, but I saw no change on the screen. Please check.'):say('हो गया सर, स्क्रीन बदल गई।','Done, sir. The screen changed.');
   }
