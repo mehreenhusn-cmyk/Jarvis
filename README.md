@@ -72,13 +72,15 @@ Everything below is built and pushed. "Phone test" says only what Hussain has al
 | 27 | Security: WebView permission checks, http only for 127.0.0.1, permissions asked when first used | BUILT | NOT YET (Java not compiled yet) |
 | 28 | Real Stop kept in Java (`Privacy.java`), saved across restarts, restart only by a finger tap | BUILT | NOT YET |
 | 29 | Privacy dashboard in Settings (allowed vs running, last used, activity log), server-offline banner | BUILT | NOT YET |
+| 30 | Command layer: "WhatsApp kholo" (Hindi, English, Hinglish) becomes one action from a fixed list. Master switch "Phone control" OFF by default, only a finger tap turns it on, Stop turns it off. Limited AI fallback, checked by the server | BUILT | NOT YET (server tests pass; Java not compiled) |
+| 31 | App launch: Java lists apps with a launcher icon, matches by name (Hindi names, small spelling mistakes), asks with buttons when two fit, never opens an app that is not on the phone | BUILT | NOT YET (Java not compiled) |
 | 50 | System card in Settings: phone RAM, storage, battery, heat, Jarvis server memory and CPU, uptime, internet. Server tests pass; page JS syntax checked only | BUILT | NOT YET |
 Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): Hey Jarvis works only while the app is open; mic in Chrome and in the app use different engines; the real actor's voice cannot be copied, only approached with the free voices; Android Files app may show empty ghost entries for zips that Termux already moved to `~/.jarvis_done`.
 
 ## 7. What to do next
 1. Download the zip, wait for "pushed" in the app header, run **Build APK** on GitHub, install it. If the build fails, send `build-log`.
 2. Test Parts 27, 28 and 29 with the list in section 11.8, plus the old cheat sheet. Report what fails with a screenshot.
-3. Part 50 (system card in Settings) is BUILT: look at it on the phone. Next Part: **30** (command layer), then 31, 32, 33 and on in order (section 11.6). Dual voice Parts 51 to 53 are planned in section 11.6b. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
+3. Parts 30 and 31 (command layer and app launch) are BUILT, with Part 50 (system card). Download the zip, wait for "pushed", run **Build APK**, install, then test with section 11.8. Next Part: **32** (better screen reading), then 33, 34 and on in order (section 11.6). Dual voice Parts 51 to 53 are planned in section 11.6b. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
 
 ## 8. Cheat sheet (type or say)
 | Say or type | What happens |
@@ -205,8 +207,8 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 27 DONE | Close WebView and manifest holes: permission checks, local-only http, ask permissions when used | MainActivity, AndroidManifest, res/xml/network_security_config.xml* | ~50 | Without | The page cannot get mic, camera or location by tricks |
 | 28 DONE | Real Stop: one `Privacy.java` holds mic, wake, screen, camera state. Stop cancels all in Java. Voice cannot turn mic back on, only a visible button | Privacy.java*, MainActivity, Ears, index.html | ~140 | Without | "Stop listening completely" really stops everything |
 | 29 DONE | Privacy dashboard: ON/OFF per feature, permission given vs service running, last used, small log (feature and time only), settings buttons, server-offline banner and auto-reconnect | index.html, Privacy.java, app.py, MainActivity | ~140 | Without | One screen shows what Jarvis can do and is doing |
-| 30 | Command layer: Hindi/English/Hinglish grammar plus limited AI fallback, master switch OFF by default | actions.py*, app.py, index.html | ~150 | With | Jarvis understands "WhatsApp kholo" without guessing |
-| 31 | App launch: list launchable apps, fuzzy name, ask when two match, never open unknown | Apps.java*, MainActivity, AndroidManifest, index.html, actions.py | ~110 | Without | "Chrome open karo" works safely |
+| 30 DONE | Command layer: Hindi/English/Hinglish grammar plus limited AI fallback, master switch OFF by default | actions.py*, app.py, index.html | ~150 | With | Jarvis understands "WhatsApp kholo" without guessing |
+| 31 DONE | App launch: list launchable apps, fuzzy name, ask when two match, never open unknown | Apps.java*, MainActivity, AndroidManifest, index.html, actions.py | ~110 | Without | "Chrome open karo" works safely |
 | 32 | Better screen reading: visible buttons, fields, scroll areas; remove OTP, card, PIN text before sending; honest message when an app shows nothing | ScreenService, screen.py, screen_service.xml, index.html, MainActivity | ~90 | With (redaction), Java without | Screen help without leaking secrets |
 | 33 | Risk and confirm rules: preview and explicit yes for send, delete, pay, buy, install, account; block password fields | actions.py, index.html | ~100 | With | No dangerous action without Hussain's yes |
 | 34 | Safe screen actions: click, scroll, type in a field, back, home, current app; re-find the control before acting; verify the result; swipe only as confirmed fallback | ScreenService, MainActivity, index.html, screen_service.xml | ~165 | Without | "Is button ko dabao", "neeche scroll karo", "peeche jao" |
@@ -285,6 +287,8 @@ Every Part is its own zip and its own commit. To undo a Part: GitHub > the commi
 Checks that were run for 27 and 28: XML parse, Java bracket balance, page script syntax, Python syntax. Nothing else was run (Not run: Java compile, phone test).
 What changes for Hussain: the first mic tap asks for the microphone; the first "where am I" asks for location and may answer "unavailable" once, so ask again; the notification question comes once after pairing.
 | 29 | BUILT | ~140 | 109 (`Privacy.java` +43, `index.html` 35, `MainActivity` 22, `NotifyService` 6, `app.py` 2, `Ears` 1) | NOT YET. Only the `/status` uptime field was run (server started, field checked: PASS). Java and page are Not run on a phone |
+| 30 | BUILT | ~150 | about 120 (`actions.py` 91 new, `app.py` 10, `index.html` about 8, tests 12) | NOT YET |
+| 31 | BUILT | ~110 | about 128 (`Apps.java` 74 new, `Privacy.java` 16 incl. the Part 30 switch, `MainActivity` 15, manifest 4, `index.html` about 19) | NOT YET. Java not compiled here, GitHub build is the first compile test |
 
 How the dashboard works (Part 29): open Settings (gear), the first card is "Privacy and permissions". Each row shows three separate things: permission (Allowed or Not allowed, from Android), running now (from Java, not from the page), and last used. A permission being allowed never means a feature is running. Screen reader shows "Accessibility ON" only when the Jarvis accessibility service is really connected. "Reminder service ON" means the background service is really up. The activity log keeps only the feature name and time (max 30 lines, one entry per feature per minute) and never any content. "Open settings" buttons open one fixed Android page each. If the server stops, a red banner appears after about 10 seconds and Jarvis retries every 5 seconds; it clears by itself when the server is back. Chrome shows only the server line, because Android permissions exist only in the app.
 

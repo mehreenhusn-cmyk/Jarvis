@@ -133,6 +133,21 @@ public class MainActivity extends Activity {
                 Privacy.UI.postDelayed(Privacy.screenJob, 6000);
                 return "{\"wait\":6}";
             }
+            // Part 30/31: the ONE door for phone actions. Java checks Stop and the master switch itself, so the page cannot skip them.
+            @JavascriptInterface public String act(String json) {
+                try {
+                    JSONObject a = new JSONObject(json);
+                    if (Privacy.stopped) return "{\"ok\":false,\"err\":\"stopped\"}";
+                    if (!Privacy.control) return "{\"ok\":false,\"err\":\"off\"}";
+                    if ("open_app".equals(a.optString("type"))) {
+                        JSONObject r = Apps.open(MainActivity.this, a.optString("name"), a.optBoolean("exact"));
+                        if (r.optBoolean("ok")) Privacy.used("apps");
+                        return r.toString();
+                    }
+                } catch (Exception e) { /* fall through */ }
+                return "{\"ok\":false,\"err\":\"unknown\"}";
+            }
+            @JavascriptInterface public String setControl(boolean on) { return Privacy.setControl(on); }
             @JavascriptInterface public String phoneInfo() { return PhoneInfo.json(MainActivity.this); }
             @JavascriptInterface public void saveToken(String t) {
                 getSharedPreferences("j", 0).edit().putString("token", t).apply();

@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import autostart, brief, calls, ledger, memory, people, phone, place, remind, screen, see, sysinfo, tts, web
+import actions, autostart, brief, calls, ledger, memory, people, phone, place, remind, screen, see, sysinfo, tts, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -338,11 +338,16 @@ class H(BaseHTTPRequestHandler):
                 mem = ledger.handle(c, dev, msg, style == "hindi", ask, now)
             if mem is None:  # reminder: "kal 9 baje chai yaad dilana"
                 mem = remind.handle(c, dev, msg, style == "hindi", ask, now)
+            action = None
+            if mem is None:  # Part 30: "WhatsApp kholo" (only proposes; the app checks the switch and Stop)
+                got = actions.handle(msg, style == "hindi", data.get("control") is True, data.get("app") is True, ask)
+                if got:
+                    mem, action = got
             if mem is not None:
-                keep = "(call and contact info was shown, not saved)" if calls.private(msg) else mem
+                keep = "(call and contact info was shown, not saved)" if calls.private(msg) else ("(phone action) " + mem if action else mem)
                 c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", keep, time.time()))
                 c.commit()
-                return self.send(200, {"reply": mem, "via": "memory"})
+                return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {})))
             rows = c.execute("SELECT role, content FROM messages WHERE device=? ORDER BY id DESC LIMIT 10", (dev,)).fetchall()
             try:
                 reply, via = ask([{"role": r, "content": t} for r, t in reversed(rows)], style, memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + web.context(msg))

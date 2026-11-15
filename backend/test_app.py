@@ -68,6 +68,15 @@ finally:
 p2, _ = start()
 try:
     check("restart ke baad token + history bachi", len(call("/history", token=token)[1]["messages"]) == 4)
+    cc = lambda m, ctl=True, ap=True: call("/chat", {"message": m, "control": ctl, "app": ap}, token)[1]
+    r = cc("WhatsApp kholo")
+    check("30: WhatsApp kholo -> open_app action", r.get("action") == {"type": "open_app", "name": "WhatsApp"})
+    check("30: Hindi naam (व्हाट्सएप खोलो) -> WhatsApp", cc("व्हाट्सएप खोलो").get("action", {}).get("name") == "WhatsApp")
+    check("30: switch OFF -> koi action nahi, OFF bataya", "action" not in cc("open chrome", False) and "OFF" in cc("open chrome", False)["reply"])
+    check("30: Chrome (browser) mein action nahi", "action" not in cc("open chrome", True, False))
+    check("30: bakwas phrase par action nahi", "action" not in cc("blah blah nonsense"))
+    check("30: sawaal (open source kya hai) par action nahi", "action" not in cc("open source kya hai"))
+    check("30: AI ne bakwas diya -> action nahi", "action" not in cc("please start the day with a joke now ok"))
 finally:
     p2.terminate()
     p2.wait()

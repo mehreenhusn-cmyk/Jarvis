@@ -89,9 +89,9 @@ $('f').onsubmit=async e=>{
     if(r.perm===false){add('user',t);add('bot','Turn on "Jarvis screen reader" in Accessibility settings (I opened it for you), then ask again.');return;}
     pendingMsg=t;add('bot','Switch to the app you want me to read. I will read it in '+r.wait+' seconds and come back.');return;}
   const sc=screenData;screenData=null;const vm=viaMic;viaMic=false;add('user',t);const w=add('bot','...');
-  let sp=false;try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:SLOW.test(t)?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,screen:sc});
+  let sp=false;try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:SLOW.test(t)?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,screen:sc,app:inApp(),control:inApp()&&ctl()});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
-    if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply,vm);sp=vm||$('say').checked;}else{w.className='m err';w.textContent=d.error||'error';}
+    if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.action?await doAct(d.action,w):d.reply,vm);sp=vm||$('say').checked;}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}finally{if(wakeOn&&!sp)heardBack();}
 };
 let viaMic=false,wakeOn=false,appListening=false,cmdNext=false;
@@ -230,7 +230,25 @@ async function addKey(){
 $('kc').onclick=addKey;$('key').onpaste=()=>setTimeout(addKey,150);
 $('kp').onclick=async()=>{try{$('key').value=await navigator.clipboard.readText();addKey();}catch(e){$('kr').textContent='Clipboard blocked. Long-press the box and paste.';}};
 $('vbtn').onclick=()=>{$('vp').hidden=!$('vp').hidden;};
-const DASH=[['mic','Microphone','Voice input, only after you tap the mic','app'],['wake','Hey Jarvis','Wake word, only while the app is open','app'],['camera','Camera and photos','Android photo picker, only when you tap the camera button',''],['screen','Screen reader','Needs the Jarvis accessibility switch. Reads text only when you ask','acc'],['location','Location','Only when you ask where you are','app'],['contacts','Contacts','Only when you ask for a contact','app'],['calls','Call log','Only when you ask for calls','app'],['notify','Reminders and notifications','Reminders show even when the app is closed','notif'],['battery','Battery limit','Android may stop Jarvis in the background to save battery','battery']];
+// Part 30 and 31: phone actions. The server only proposes; the app (Java) checks the switch, Stop and the real app list, then tells us what happened.
+const inApp=()=>!!(window.JarvisApp&&JarvisApp.act);
+const ctl=()=>{try{return JSON.parse(JarvisApp.privacy()).control===true}catch(e){return false}};
+async function doAct(a,w){
+  let r;try{r=JSON.parse(JarvisApp.act(JSON.stringify(a)));}catch(e){r={ok:false,err:'unknown'};}
+  const hi=sty()=='hindi',say=(h,e)=>hi?h:e;let t;
+  if(r.ok)t=say('ठीक है सर, '+r.app+' खोल रहा हूँ।','Opening '+r.app+', sir.');
+  else if(r.ask){
+    t=say('कौन सा सर?','Which one, sir?');w.textContent=t;const row=document.createElement('div');
+    r.ask.forEach(x=>{const b=document.createElement('button');b.type='button';b.className='g';b.textContent=x;b.style.margin='6px 6px 0 0';
+      b.onclick=async()=>{row.remove();w.textContent=await doAct({type:'open_app',name:x,exact:true},w);};row.appendChild(b);});
+    w.appendChild(row);return t;}
+  else if(r.err=='not_found')t=say('सर, इस फ़ोन में "'+a.name+'" नाम का ऐप नहीं मिला।','Sir, I could not find an app named "'+a.name+'" on this phone.');
+  else if(r.err=='stopped')t=say('Jarvis रुका हुआ है सर। पहले "Turn mic on" दबाइए।','Jarvis is stopped. Tap "Turn mic on" first.');
+  else if(r.err=='off')t=say('फ़ोन कंट्रोल बंद है सर। Settings में चालू कीजिए।','Phone control is OFF. Turn it on in Settings.');
+  else t=say('Android ने ऐप खोलने नहीं दिया सर।','Android did not let me open it, sir.');
+  w.textContent=t;if(!r.ok)w.className='m err';return t;
+}
+const DASH=[['mic','Microphone','Voice input, only after you tap the mic','app'],['wake','Hey Jarvis','Wake word, only while the app is open','app'],['camera','Camera and photos','Android photo picker, only when you tap the camera button',''],['screen','Screen reader','Needs the Jarvis accessibility switch. Reads text only when you ask','acc'],['location','Location','Only when you ask where you are','app'],['contacts','Contacts','Only when you ask for a contact','app'],['calls','Call log','Only when you ask for calls','app'],['notify','Reminders and notifications','Reminders show even when the app is closed','notif'],['battery','Battery limit','Android may stop Jarvis in the background to save battery','battery'],['apps','Phone control (open apps)','Opens an app only when you ask and the switch is ON. App names stay on the phone','']];
 const ago=t=>{if(!t)return 'never';const m=Math.round((Date.now()-t)/60000);return m<1?'just now':m<60?m+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' days ago';};
 function dash(){
   const box=$('dash');let d=null;try{d=window.JarvisApp&&JarvisApp.dashboard?JSON.parse(JarvisApp.dashboard()):null}catch(e){}
@@ -240,6 +258,10 @@ function dash(){
   if(!d){box.appendChild(el('p','','Permission status is shown in the Jarvis Android app. In Chrome the browser controls the microphone and location.'));return;}
   box.appendChild(el('p',d.stopped?'bad':'ok',d.stopped?'🔒 Jarvis is STOPPED. Nothing listens or reads.':'🟢 Jarvis is active. It listens or reads only when you ask.'));
   const b=el('button','g',d.stopped?'Turn mic on':'Stop everything');b.onclick=()=>{if(d.stopped)$('mon').click();else add('bot',stopAll());setTimeout(dash,400);};box.appendChild(b);
+  const pc=el('div','dr');pc.appendChild(el('b','','Phone control'));pc.appendChild(el('small','','Lets Jarvis open apps when you ask. OFF by default. Only a finger tap can turn it on. Stop everything turns it off.'));
+  pc.appendChild(el('span','chip '+(d.control?'warn':''),d.control?'ON':'OFF'));
+  const cb=el('button','g',d.control?'Turn off':'Turn on');cb.onclick=()=>{let r={};try{r=JSON.parse(JarvisApp.setControl(!d.control))}catch(e){}if(!r.ok)add('err','Phone control did not change. Tap the button with your finger, and Jarvis must not be stopped.');setTimeout(dash,300);};
+  pc.appendChild(cb);box.appendChild(pc);
   const nm={};
   DASH.forEach(([id,name,why,go])=>{nm[id]=name;const p=d.perm[id],r=el('div','dr');r.appendChild(el('b','',name));r.appendChild(el('small','',why));
     const L=id=='battery'?['Limited by Android','Not limited']:id=='screen'?['Accessibility OFF','Accessibility ON']:['Not allowed','Allowed'];
