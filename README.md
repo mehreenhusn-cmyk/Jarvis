@@ -4,10 +4,10 @@
 > runs out often. This README has the full plan: what we build, why, how, the rules, where we are, and what is next.
 > Read it, then start the next part. Do not ask him to resend the old chat. Repo: https://github.com/mehreenhusn-cmyk/Jarvis
 
-## 0. AT A GLANCE (updated 15 Nov 2026, after Parts 39 and 56)
+## 0. AT A GLANCE (updated 15 Nov 2026, after Parts 41 and 42)
 **What:** Jarvis, a personal AI assistant on Hussain's phone (Termux server + Android app). **Why:** one app on the phone, no PC, works by download only.
-**Done:** 43 of 56 Parts built (about 3,550 lines of code, 70 files). Only Parts 1 to 26 were partly phone tested; Parts 27 to 39, 50, 54, 55 and 56 are built but NOT phone tested. Java is still not compiled: the GitHub Build APK is the first compile test.
-**Pending:** 13 Parts, about 2,300 lines (about 1,750 required, 550 optional). Next Part is **41**. Full table in section 11.6, order in the "Build order" line.
+**Done:** 45 of 56 Parts built (about 3,860 lines of code, 72 files). Only Parts 1 to 26 were partly phone tested; Parts 27 to 39, 41, 42, 50, 54, 55 and 56 are built but NOT phone tested. Java is still not compiled: the GitHub Build APK is the first compile test.
+**Pending:** 11 Parts, about 2,000 lines (about 1,450 required, 550 optional). Next Part is **43**. Full table in section 11.6, order in the "Build order" line.
 | Group | Parts | Status |
 |---|---|---|
 | Base: server, chat, voice, reminders, app, privacy | 1 to 29 | DONE |
@@ -15,7 +15,8 @@
 | App lock, chat times, conversation wait | 36 | BUILT |
 | Settings by voice (pages, flashlight, volume), Quick Settings tile and shortcut | 37, 38 | BUILT |
 | Background mic test (Settings card, 8 h limit) | 39 | BUILT (this zip) |
-| Task engine, task runner, test pack | 41 to 43 | PENDING |
+| Task engine (server) and task runner (app): several steps in one sentence | 41, 42 | BUILT (this zip) |
+| Test pack | 43 | PENDING |
 | Calendar, briefing, routines, backup, share | 44 to 48 | PENDING |
 | Two voices (Tony and JARVIS) | 51 to 53 | PENDING |
 | Home tab (orb, today, quick buttons, stats) | 56 | BUILT (this zip) |
@@ -65,7 +66,7 @@ The GitHub token must also allow **workflow** files (needed from Part 16, or the
 Daily: `cd ~/Jarvis && bash run.sh`. Open **http://127.0.0.1:8787** (or the Jarvis app). First time: pairing code, then Settings for the key.
 Auto-start (Part 11): Termux starts Jarvis when opened. Turn off with `JARVIS_NO_AUTOSTART=1` in `.env`.
 
-## 6. STATUS (15 Nov 2026): Parts 1 to 39, 50, 54, 55 and 56 are built
+## 6. STATUS (15 Nov 2026): Parts 1 to 39, 41, 42, 50, 54, 55 and 56 are built
 Everything below is built and pushed. "Phone test" says only what Hussain has already seen working on his phone. Anything not marked YES still needs one quick try (a bug found there = one small fix zip, not unfinished work).
 | Part | What | Status | Phone test |
 |---|---|---|---|
@@ -100,6 +101,8 @@ Everything below is built and pushed. "Phone test" says only what Hussain has al
 | 38 DONE | Quick Settings tile \"Jarvis\" (swipe down, edit tiles, add it) and an icon shortcut (long-press the Jarvis icon, \"Listen\"). One tap opens Jarvis and starts the mic. Never works while Jarvis is stopped or locked | BUILT | NOT YET (Java not compiled) |
 | 39 | Background mic TEST (Settings > "Background listening test"): Start test, a notification with Stop stays visible, ends by itself after 8 h. It only COUNTS how often it heard "Jarvis", how often with the screen off and with the app closed. It keeps no words, sends nothing to the page or server, does no phone action. Starts only after your finger tap, never while Jarvis is stopped or locked. Stop everything ends it. Opening the mic in the app ends it (one listener at a time). The card also shows phone brand, Android version, battery limit and says if Android killed it | BUILT | NOT YET (Java not compiled; needs one day on the phone) |
 | 56 | Home tab: a Chat / Home switch under the header. Home shows the orb (gold = ready, pulsing = listening, red = stopped), greeting and date, today's reminders and money entries due today or late, quick buttons (Talk, Briefing, Reminders, Ledger, Settings, Stop everything) and the phone and server numbers. New server route `/today` | BUILT | NOT YET (page syntax checked only) |
+| 41 | Task engine (server): "Chrome kholo aur neeche scroll karo phir back jao" is split into up to 6 steps from the fixed action list (open app, back, home, scroll, click, torch, volume, settings page, which app is open, lock only as the last step). No AI is used to plan. Table `tasks` with the 10 states. Restart rule: when the server starts, RUNNING and VERIFYING tasks become FAILED with a note (also after 10 minutes of no news). Steps that need your Yes (send, pay, delete) or that type text or touch passwords are NEVER put in a task: Jarvis says so and does nothing | BUILT | NOT YET (server syntax checked only) |
+| 42 | Task runner (app): runs the steps in Java one at a time with Jarvis in the background. Before every step it checks Stop, Phone control, app lock and Cancel. After every step it checks the step really did something (a click or scroll that changed nothing counts as failed). It stops at the first failed step. Notification with a Cancel button while it runs. Result (steps with tick or cross, and why it stopped) comes back to the chat when you return. The server then sets COMPLETED, PARTIAL, FAILED or CANCELLED from what the app really reported. Stop everything ends it at once | BUILT | NOT YET (Java not compiled) |
 | 55 | Conversation mode (app only): button "Conversation" starts it. After each answer the phone mic opens by itself (0.5 s pause so it does not hear Jarvis). Ends after 2 silent rounds, on "bas" or "stop", after 20 turns, on Stop everything, or if the app goes to the background. Phone speech service may beep | BUILT | NOT YET (page and Java not run) |
 | 54 | Smart memory: when you state a personal fact ("mere bhatije ka naam Arman hai") Jarvis answers and shows "Should I remember this?" Yes / No. Only your finger tap on Yes saves it (normal "yaad rakho" path, so passwords and OTPs are still refused). Questions are never offered | BUILT | NOT YET (server tests pass; page JS syntax checked only) |
 | 50 | System card in Settings: phone RAM, storage, battery, heat, Jarvis server memory and CPU, uptime, internet. Server tests pass; page JS syntax checked only | BUILT | NOT YET |
@@ -111,11 +114,12 @@ Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): He
    Termux closing by itself: Android kills it to save battery. Settings > Apps > Termux > Battery > No restriction; keep the Termux notification (wake lock) visible; install the Termux:Boot app for restarts.
 1. Download the zip, wait for "pushed" in the app header, run **Build APK** on GitHub, install it. If the build fails, send `build-log`.
 2. Test Parts 27, 28 and 29 with the list in section 11.8, plus the old cheat sheet. Report what fails with a screenshot.
-3. Parts 30 to 39, 50, 54, 55 and 56 are BUILT. Download the zip, wait for "pushed", run **Build APK**, install, then test with section 11.8. Next Part: **41** (task engine), then 42, 43 and on in order (section 11.6, Build order line). Dual voice Parts 51 to 53 are planned in section 11.6b. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
+3. Parts 30 to 39, 41, 42, 50, 54, 55 and 56 are BUILT. Download the zip, wait for "pushed", run **Build APK**, install, then test with section 11.8. Next Part: **43** (test pack), then 44 and on in order (section 11.6, Build order line). Dual voice Parts 51 to 53 are planned in section 11.6b. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
 
 ## 8. Cheat sheet (type or say)
 | Say or type | What happens |
 |---|---|
+| Chrome kholo aur neeche scroll karo phir back jao (2 to 6 steps joined by aur / and / phir / then) | One task: steps shown, run one by one with checks, Cancel in the notification, result in chat (app only, switch ON). Send, pay, delete or typing steps are refused inside a task |
 | remember this: ... / what do you remember / forget 1 | Memory (no passwords or OTPs). Also: say "mere bhatije ka naam Arman hai" and tap Yes on "Should I remember this?" |
 | phone lock kar do / lock the phone | Locks the phone (app only, switch ON). Never unlocks |
 | Chrome kholo / go back / peeche jao / go home / neeche scroll karo / Settings dabao / type hello / kaun sa app khula hai | Phone control (app only, switch ON). Never types passwords, OTPs, PINs or card numbers |
@@ -252,8 +256,8 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 38 DONE | Quick Settings tile and app shortcut to start listening | JarvisTile.java*, AndroidManifest, res/xml/shortcuts.xml*, MainActivity | ~70 | Without | Hands-free start even if wake word is weak |
 | 39 DONE | Background mic test: microphone foreground service, notification with Stop button, battery check, no sensitive action while locked | ListenService.java*, AndroidManifest, MainActivity, Privacy, index.html, Ears | ~140 | Without, plus one day phone test | We learn if "Hey Jarvis" works with the app closed |
 | 40 | OPTIONAL: offline wake-word engine, only if Part 39 shows the Google recognizer is not enough | decided after 39 | ~200 | decided later | Reliable hands-free. Bigger app and more battery, needs Hussain's OK |
-| 41 | Task engine backend: tasks table, 10 states, steps, restart rule | tasks.py*, app.py | ~180 | With | Multi-step jobs are tracked honestly |
-| 42 | Task runner in the page: shows steps, runs them through the bridge, verifies each, Cancel button, stops on failure | index.html, MainActivity, ScreenService, Privacy | ~120 | Without | "Chrome kholo aur ..." sequences, cancel any time |
+| 41 DONE | Task engine backend: tasks table, 10 states, steps, restart rule | tasks.py*, app.py | ~180 | With | Multi-step jobs are tracked honestly |
+| 42 DONE | Task runner in the page: shows steps, runs them through the bridge, verifies each, Cancel button, stops on failure | index.html, MainActivity, ScreenService, Privacy | ~120 | Without | "Chrome kholo aur ..." sequences, cancel any time |
 | 43 | Test pack: server tests for Parts 30-41, phone checklist table, regression of old features | test_app.py, README | ~80 | With (server) | We know what works before more features |
 | 44 | (old Batch B) Repeat reminders, birthdays, phone calendar | remind.py, people.py, CalendarInfo.java*, MainActivity, AndroidManifest, index.html | ~250 | With (Python) | Birthdays and repeat jobs are remembered |
 | 45 | (old Batch C) Richer briefing, max 3 suggestions a day, quiet hours, each can be switched off | brief.py, app.py, index.html | ~200 | With | One useful morning summary, not noise |
@@ -283,7 +287,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 Estimates are rough (plus or minus 25 percent). Real numbers go into this table after each Part.
 
 
-**Build order (next first):** 41, 42, 43, 51, 52, 53, 44, 45, 46, 47, 48. Optional: 40, 49 (40 is decided after the Part 39 phone test).
+**Build order (next first):** 43, 51, 52, 53, 44, 45, 46, 47, 48. Optional: 40, 49 (40 is decided after the Part 39 phone test).
 
 ### 11.6b Dual voice personality plan (added 15 Nov 2026, AUDIT ONLY, no code yet)
 Goal: two default voices that switch by themselves. TONY = conversation (confident, witty, Hinglish). JARVIS = information, tasks, reminders, briefings, alerts (calm, deep, precise). No cloning of Rajesh Khattar or Atul Kapoor. Original or licensed voices only.
@@ -306,7 +310,7 @@ Why this order: Parts 27 to 29 come first because every later power needs a safe
 | Batch G (share, handoff, lost phone) | Part 48 |
 
 ### 11.8 Acceptance tests on Hussain's phone (one line per Part)
-27: open app, mic asked only on first mic use; page cannot open another site. 28: say "stop listening completely", mic icon goes off, saying "Jarvis" does nothing, tap Restart and it works again. 29: switch accessibility off, dashboard shows OFF; stop Termux, banner shows offline, start it, banner clears. 30: say "WhatsApp kholo" and a nonsense phrase; nonsense does nothing. 31: "Chrome kholo" opens Chrome; "xyz app kholo" says not found; two similar apps: Jarvis asks. 32: on a screen with a code, the code is not sent. 33: "message bhejo" shows a preview and waits for yes. 34: in Settings say "neeche scroll karo", then "peeche jao". 35: "phone lock kar do": screen locks, or an honest failure. 36: turn app lock on, close and open: real Android prompt. 37: "Bluetooth settings kholo", "flashlight on karo" and the light is on. 38: tile starts listening, status shows it. 39: screen off for 10 minutes, note what works and battery use. 41-42: a 3 step task runs, Cancel stops it, killing the server marks it failed. 43: all server tests pass. Regression in every Part: chat, providers, memory, reminders, ledger, voice, APK build.
+27: open app, mic asked only on first mic use; page cannot open another site. 28: say "stop listening completely", mic icon goes off, saying "Jarvis" does nothing, tap Restart and it works again. 29: switch accessibility off, dashboard shows OFF; stop Termux, banner shows offline, start it, banner clears. 30: say "WhatsApp kholo" and a nonsense phrase; nonsense does nothing. 31: "Chrome kholo" opens Chrome; "xyz app kholo" says not found; two similar apps: Jarvis asks. 32: on a screen with a code, the code is not sent. 33: "message bhejo" shows a preview and waits for yes. 34: in Settings say "neeche scroll karo", then "peeche jao". 35: "phone lock kar do": screen locks, or an honest failure. 36: turn app lock on, close and open: real Android prompt. 37: "Bluetooth settings kholo", "flashlight on karo" and the light is on. 38: tile starts listening, status shows it. 39: screen off for 10 minutes, note what works and battery use. 41-42: a 3 step task runs, Cancel stops it, killing the server marks it failed. 43: all server tests pass. Regression in every Part: chat, providers, memory, reminders, ledger, voice, APK build. 41/42: say "Chrome kholo aur neeche scroll karo phir back jao"; the chat lists 3 steps, Jarvis goes away, the notification has Cancel, and when you come back the chat shows a tick or cross per step. Try Cancel in the notification, and try "Chrome kholo aur send dabao" (must be refused).
 
 ### 11.9 Decisions (a default is set; say OK or change it)
 - D1 Brightness: default is to open Display settings (no extra permission). Alternative: allow "modify system settings".
@@ -339,6 +343,8 @@ What changes for Hussain: the first mic tap asks for the microphone; the first "
 | 36 | BUILT | ~140 | 176 (`AppLock.java` 56 new, `MainActivity` 43, `Ears` 2, `index.html` 17, `clock.py` 38 new, `app.py` 8, `progress.py` 1, `build.gradle` 6, tests 5; plus the fixed key file `android/jarvis-debug.keystore`) | NOT YET. Java not compiled here. Python tests: 68 PASS, 0 FAIL |
 | 55 | BUILT | ~80 | 31 (`index.html` about 29, `Ears.java` 2) | NOT YET. Page and Java not run on a phone |
 | 39 | BUILT | ~140 | about 216 (`ListenService.java` 157 new, `MainActivity` 19, `Privacy` 6, `Ears` 1, manifest 2, `index.html` about 31) | NOT YET. Java not compiled. Not run: phone test |
+| 41 | BUILT | ~180 | 133 (`tasks.py` 115 new, `app.py` 18) | NOT YET. Not run: nothing, syntax check only |
+| 42 | BUILT | ~120 | 181 (`TaskRunner.java` 129 new, `index.html` 34, `MainActivity` 15, `Privacy` 3). `ScreenService` needed no change | NOT YET. Java not compiled |
 | 56 | BUILT | ~130 | about 75 (`index.html` about 46, `remind.py` 11, `app.py` 4, plus fixes below) | NOT YET. Page syntax checked only |
 Fixes in the same zip: (1) the Settings system card used a helper (`el`) that only existed inside another function, so it would have stayed empty; it is global now. (2) Durations over 60 minutes now show as hours and minutes everywhere (page and `clock.py`, for example "1 h 15 min", never "75 minutes").
 

@@ -299,6 +299,13 @@ const ACTERR={no_torch:['सर, इस फ़ोन में टॉर्च �
   stopped:['Jarvis रुका हुआ है सर। पहले "Turn mic on" दबाइए।','Jarvis is stopped. Tap "Turn mic on" first.'],
   off:['फ़ोन कंट्रोल बंद है सर। Settings में चालू कीजिए।','Phone control is OFF. Turn it on in Settings.'],
   old_android:['सर, फ़ोन लॉक करने का यह तरीका Android 9 या उससे नए में ही चलता है। इस फ़ोन में नहीं चला।','Sir, this way of locking works only on Android 9 or newer. It did not work on this phone.'],
+  no_change:['सर, स्क्रीन पर कोई बदलाव नहीं दिखा, इसलिए यहीं रुक गया।','Sir, I saw no change on the screen, so I stopped here.'],
+  bad_plan:['सर, यह काम मुझे ठीक नहीं लगा। कुछ नहीं किया।','Sir, this task did not look right. I did nothing.'],
+  busy:['सर, एक काम पहले से चल रहा है।','Sir, another task is already running.'],
+  many_app:['सर, इस नाम के एक से ज़्यादा ऐप हैं। उसे अकेले खोलकर चुनिए।','Sir, more than one app has that name. Please open it by itself and pick one.'],
+  app_missing:['सर, इस फ़ोन में वह ऐप नहीं मिला।','Sir, I could not find that app on this phone.'],
+  not_opened:['सर, ऐप सामने नहीं आया, इसलिए रुक गया।','Sir, the app did not come to the front, so I stopped.'],
+  launch_failed:['सर, Android ने ऐप खोलने नहीं दिया।','Sir, Android did not let me open the app.'],
   unknown:['सर, मुझे यह कदम समझ नहीं आया। कुछ नहीं किया।','Sir, I did not understand this step. I did nothing.']};
 let lastAct=null;
 function actMsg(r,a){
@@ -332,7 +339,32 @@ function askSave(w,fact){
     mk(say('नहीं','No'),'g',end));
   w.appendChild(row);setTimeout(()=>{if(!done)end();},60000);
 }
+// Part 42: a task (several steps) runs in the app, one step at a time, each one checked. The result comes back when you return to Jarvis.
+async function runTask(a,w){
+  const hi=sty()=='hindi',say=(h,e)=>hi?h:e;let r={};
+  try{r=JSON.parse(JarvisApp.runTask(JSON.stringify({id:a.id,steps:a.steps})));}catch(e){r={ok:false,err:'unknown'};}
+  if(!r.ok){const m=ACTERR[r.err]||ACTERR.unknown;api('/task/update',{id:a.id,state:r.err=='perm'?'WAITING_FOR_PERMISSION':'FAILED',note:r.err||'unknown'}).catch(()=>{});w.className='m err';w.textContent=say(m[0],m[1]);return w.textContent;}
+  localStorage.setItem('jtask',JSON.stringify({id:a.id,texts:a.texts}));
+  api('/task/update',{id:a.id,state:'RUNNING',cur:0}).catch(()=>{});
+  const t=say('काम शुरू सर। हर कदम के बाद जाँचूँगा, गड़बड़ हुई तो रुक जाऊँगा। नतीजा नोटिफ़िकेशन दबाने पर यहाँ दिखेगा।','Started, sir. I check every step and stop if something goes wrong. The result shows here when you tap the notification.');
+  w.textContent=w.textContent+'\n\n'+t;
+  const b=el('button','g',say('काम रद्द करो','Cancel task'));b.type='button';b.style.marginTop='8px';b.onclick=ev=>{if(!ev.isTrusted)return;try{JarvisApp.cancelTask();}catch(e){}b.remove();};w.appendChild(b);
+  return t;
+}
+window.onTaskDone=s=>{
+  let r;try{r=JSON.parse(s);}catch(e){return;}
+  const hi=sty()=='hindi',say=(h,e)=>hi?h:e;let tk={};try{tk=JSON.parse(localStorage.getItem('jtask'))||{};}catch(e){}
+  const res=r.results||[],T=tk.texts||[],n=res.filter(x=>x.ok).length,total=Math.max(T.length,res.length),lines=[];
+  for(let i=0;i<total;i++){const x=res[i];lines.push((x?(x.ok?'✅ ':'❌ '):'⬜ ')+(i+1)+'. '+(T[i]||'').replace(/[.।]$/,''));}
+  const bad=res.find(x=>!x.ok);let head;
+  if(r.cancelled)head=say('सर, काम रद्द हुआ।','Task cancelled, sir.');
+  else if(!bad&&n==total)head=say('सर, सारे कदम पूरे हुए।','All steps are done, sir.');
+  else{const m=ACTERR[(bad||{}).err]||ACTERR.unknown;head=say('सर, '+total+' में से '+n+' कदम हुए, फिर रुक गया। ','Sir, '+n+' of '+total+' steps done, then I stopped. ')+m[hi?0:1];}
+  const w=add('bot',head+'\n'+lines.join('\n'));if(bad&&!r.cancelled)w.className='m err';
+  api('/task/done',{id:r.id,results:res,cancelled:!!r.cancelled}).catch(()=>{});localStorage.removeItem('jtask');speak(head,false);
+};
 async function doAct(a,w){
+  if(a.type=='task')return runTask(a,w);
   if(a.type=='confirm')return askYes(w,a);
   let r;try{r=JSON.parse(JarvisApp.act(JSON.stringify(a)));}catch(e){r={ok:false,err:'unknown'};}
   const hi=sty()=='hindi',say=(h,e)=>hi?h:e;let t;
@@ -415,8 +447,9 @@ function pv(){
   $('mon').hidden=!priv;$('mic').disabled=priv;
 }
 function stopAll(){
+  const tk=localStorage.getItem('jtask');if(tk){try{api('/task/update',{id:JSON.parse(tk).id,state:'CANCELLED',note:'stopped by you'}).catch(()=>{});}catch(e){}localStorage.removeItem('jtask');}  // Part 42
   const was=[];if(rec){was.push('microphone (Chrome)');rec.abort();}
-  if(window.JarvisApp&&JarvisApp.stopAll){try{const n=JSON.parse(JarvisApp.stopAll());if(n.mic)was.push('microphone');if(n.wake)was.push('Hey Jarvis');if(n.bg)was.push('background listening test');if(n.screen)was.push('screen reading');if(n.camera)was.push('photo picker');}catch(e){}}
+  if(window.JarvisApp&&JarvisApp.stopAll){try{const n=JSON.parse(JarvisApp.stopAll());if(n.mic)was.push('microphone');if(n.wake)was.push('Hey Jarvis');if(n.bg)was.push('background listening test');if(n.task)was.push('running task');if(n.screen)was.push('screen reading');if(n.camera)was.push('photo picker');}catch(e){}}
   else if(appEars())JarvisApp.stopListen();
   if(wakeOn&&!was.includes('Hey Jarvis'))was.push('Hey Jarvis');
   wakeOn=false;appListening=false;cmdNext=false;convOn=false;convMiss=0;convTurns=0;pendingMsg=null;screenData=null;if(appEars()){wakeBtn();convBtn();}

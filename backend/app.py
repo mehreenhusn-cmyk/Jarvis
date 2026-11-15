@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, autostart, brief, calls, clock, ledger, memory, people, phone, place, progress, remind, screen, see, sysinfo, tts, web
+import actions, autostart, brief, calls, clock, ledger, memory, people, phone, place, progress, remind, screen, see, sysinfo, tasks, tts, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -46,6 +46,7 @@ def db():
     people.init(c)
     remind.init(c)
     ledger.init(c)
+    tasks.init(c)  # Part 41: tracked multi-step tasks
     return c
 
 
@@ -215,6 +216,8 @@ class H(BaseHTTPRequestHandler):
         dev = self.device()
         if dev is None:
             return self.send(401, {"error": "pehle pair karo"})
+        if self.path == "/tasks":  # Part 41: the last few tasks and how they ended
+            return self.send(200, {"tasks": tasks.recent(db(), dev)})
         if self.path == "/stats":  # Part 50: system card numbers (login needed)
             return self.send(200, sysinfo.stats())
         if self.path == "/keys":  # keys kabhi wapas nahi bhejte, sirf masked
@@ -285,6 +288,18 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, {"ok": True})
         if self.path == "/due":  # page har 10 sec poochta hai: kisi reminder ka time hua?
             return self.send(200, {"due": remind.due(db(), dev, str(data.get("now", "")))})
+        if self.path == "/task/update":  # Part 41/42: the page tells how a task is going (RUNNING, WAITING_FOR_PERMISSION, ...)
+            try:
+                ok = tasks.update(db(), dev, int(data.get("id") or 0), str(data.get("state", "")), data.get("cur") if isinstance(data.get("cur"), int) else None, data.get("note", ""))
+            except (TypeError, ValueError):
+                ok = False
+            return self.send(200, {"ok": ok})
+        if self.path == "/task/done":  # Part 42: what the app really reported for every step; the server decides COMPLETED, PARTIAL, FAILED or CANCELLED
+            try:
+                st = tasks.finish(db(), dev, int(data.get("id") or 0), data.get("results"), data.get("cancelled") is True)
+            except (TypeError, ValueError):
+                st = ""
+            return self.send(200, {"ok": bool(st), "state": st})
         if self.path == "/today":  # Part 56: Home tab. Aaj ke reminders aur jin hisab ki tareekh aaj ya pehle ki hai
             now = str(data.get("now", ""))
             led = [{"id": i, "text": ledger.line(i, w, a, d, du), "late": du < now[:10]} for i, w, a, d, du in ledger.rows(db(), dev) if du and du <= now[:10]]
@@ -357,7 +372,7 @@ class H(BaseHTTPRequestHandler):
                 mem = progress.handle(msg, style == "hindi")
             action = None
             if mem is None:  # Part 30: "WhatsApp kholo" (only proposes; the app checks the switch and Stop)
-                got = actions.handle(msg, style == "hindi", data.get("control") is True, data.get("app") is True, ask)
+                got = tasks.make(c, dev, msg, style == "hindi", data.get("control") is True, data.get("app") is True) or actions.handle(msg, style == "hindi", data.get("control") is True, data.get("app") is True, ask)  # Part 41: several steps in one sentence become one task
                 if got:
                     mem, action = got
             if mem is not None:
@@ -384,5 +399,6 @@ if __name__ == "__main__":
     autostart.ensure(os.path.dirname(HERE))
     autostart.refresh_scripts(os.path.dirname(HERE))
     new_code()
+    tasks.restart(db())  # Part 41 restart rule: a task that was RUNNING before this start is FAILED now
     print(f"Jarvis chal raha hai: http://{host}:{port}  provider={','.join(names())}", flush=True)
     ThreadingHTTPServer((host, port), H).serve_forever()

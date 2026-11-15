@@ -126,6 +126,9 @@ public class MainActivity extends Activity {
                 });
                 return "{\"ok\":true}";
             }
+            // Part 42: a task (up to 6 steps) runs here in Java; the result is handed to the page when you come back. Cancel always works.
+            @JavascriptInterface public String runTask(String json) { return TaskRunner.start(MainActivity.this, json); }
+            @JavascriptInterface public String cancelTask() { TaskRunner.cancel = true; return "{\"ok\":true}"; }
             @JavascriptInterface public String bgInfo() { if (AppLock.locked()) return "{\"locked\":true}"; return ListenService.info(MainActivity.this); }
             @JavascriptInterface public void stopListen() {
                 runOnUiThread(() -> { if (ears != null) ears.stop(); });
@@ -217,6 +220,7 @@ public class MainActivity extends Activity {
             }
         }, "JarvisApp");
         wantListen = LISTEN.equals(getIntent().getAction());
+        if (TaskRunner.CANCEL.equals(getIntent().getAction())) TaskRunner.cancel = true;
         web.loadUrl(URL);
     }
 
@@ -224,9 +228,11 @@ public class MainActivity extends Activity {
         super.onNewIntent(i);
         setIntent(i);
         wantListen = LISTEN.equals(i.getAction());  // handled in onResume, after the app lock
+        if (TaskRunner.CANCEL.equals(i.getAction())) TaskRunner.cancel = true;  // Part 42: the Cancel button of the task notification
     }
 
     static String pending;  // screen text waiting to be handed to the page
+    static String pendingTask;  // Part 42: result of the last task, waiting to be shown in the chat
     static String pendingAct;  // Part 34: result of the last screen step, waiting to be shown in the chat
     static volatile long touch;  // time of the last finger tap (Part 28: needed to switch Jarvis on again)
 
@@ -303,6 +309,15 @@ public class MainActivity extends Activity {
             getSystemService(NotificationManager.class).cancel(77);
             web.evaluateJavascript("window.onScreen&&onScreen(" + JSONObject.quote(p) + ")", null);
         }
+        deliverTask();
+    }
+
+    /** Part 42: hands the finished task to the page (called when Jarvis is on screen again). */
+    void deliverTask() {
+        if (pendingTask == null || web == null) return;
+        String p = pendingTask; pendingTask = null;
+        getSystemService(NotificationManager.class).cancel(81);
+        web.evaluateJavascript("window.onTaskDone&&onTaskDone(" + JSONObject.quote(p) + ")", null);
     }
 
     @Override protected void onActivityResult(int req, int res, Intent data) {

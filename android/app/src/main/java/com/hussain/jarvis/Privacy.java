@@ -37,7 +37,7 @@ final class Privacy {
             Ears e = a.ears;
             boolean on = e != null && e.on;
             o.put("stopped", stopped).put("control", control).put("mic", on && !e.wake).put("wake", on && e.wake)
-                .put("screen", screenJob != null).put("camera", a.picker != null).put("bg", ListenService.up);
+                .put("screen", screenJob != null).put("camera", a.picker != null).put("bg", ListenService.up).put("task", TaskRunner.running);
         } catch (Exception x) { /* send what we have */ }
         return o;
     }
@@ -51,6 +51,8 @@ final class Privacy {
         a.runOnUiThread(() -> {
             if (a.ears != null) a.ears.stop();
             ListenService.halt(a);  // Part 39: the background listening test also ends
+            TaskRunner.abort(a);  // Part 42: a running task ends at once
+            MainActivity.pendingTask = null;
             a.getSystemService(NotificationManager.class).cancel(79);
             if (screenJob != null) { UI.removeCallbacks(screenJob); screenJob = null; }
             if (actJob != null) { UI.removeCallbacks(actJob); actJob = null; }
