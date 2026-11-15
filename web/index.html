@@ -528,7 +528,7 @@ async function homeLoad(force){
 }
 setInterval(()=>homeLoad(false),3000);
 function ask(t){go('chat');$('msg').value=t;$('f').requestSubmit();}
-[['🎤 Talk',()=>{go('chat');$('mic').click();}],['☀ Briefing',()=>ask('briefing')],['⏰ Reminders',()=>ask('my reminders')],['💰 Ledger',()=>ask('show ledger')],['⚙ Settings',()=>go('set')],['⏹ Stop everything',()=>{go('chat');add('bot',stopAll());}]]
+[['🎤 Talk',()=>{go('chat');$('mic').click();}],['☀ Briefing',()=>ask('briefing')],['⏰ Reminders',()=>ask('my reminders')],['🔁 Routines',()=>ask('my routines')],['💰 Ledger',()=>ask('show ledger')],['⚙ Settings',()=>go('set')],['⏹ Stop everything',()=>{go('chat');add('bot',stopAll());}]]
   .forEach(([n,f])=>{const b=el('button','g',n);b.type='button';b.onclick=f;$('hq').appendChild(b);});
 // Part 39: background listening test card (Settings). Numbers only: how often "Jarvis" was heard, with the screen off, with the app closed.
 let bgMsg='';

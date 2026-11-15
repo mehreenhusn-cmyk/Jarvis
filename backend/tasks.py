@@ -1,7 +1,9 @@
 """Jarvis task engine (Part 41): "Chrome kholo aur neeche scroll karo phir back jao" becomes ONE tracked task with steps.
 The server only PLANS (it splits your own words into steps from the fixed action list) and KEEPS THE RECORD. The steps run in the app (Java),
 which checks Stop, the phone-control switch and the app lock before every step and checks that each step really did something.
-A step that needs your Yes (send, pay, delete, ...) or that types text is never put in a task: those stay one-by-one, with your own tap."""
+A step that needs your Yes (send, pay, delete, ...) or that types text is never put in a task: those stay one-by-one, with your own tap.
+Part 46: a ROUTINE is a name for a task sentence you saved ("routine banao subah: Chrome kholo aur neeche scroll karo"). Running it plans the sentence again
+through make(), so every rule above (switch, app only, Stop, no send/pay/delete/typing, lock only last) is checked again on every run."""
 import json, re, time
 
 import actions
@@ -17,6 +19,7 @@ TYPEWORD = re.compile(r"\b(?:type|likho|likh)\b|टाइप|लिखो", re.I
 
 def init(c):
     c.execute("CREATE TABLE IF NOT EXISTS tasks(id INTEGER PRIMARY KEY, device INT, title TEXT, steps TEXT, state TEXT, cur INT DEFAULT 0, note TEXT DEFAULT '', ts REAL, upd REAL)")
+    c.execute("CREATE TABLE IF NOT EXISTS routines(id INTEGER PRIMARY KEY, device INT, name TEXT, phrase TEXT, ts REAL)")
     c.commit()
 
 
@@ -47,7 +50,7 @@ def split(msg):
     return parts if 2 <= len(parts) <= MAX_STEPS else []
 
 
-def make(c, dev, msg, hindi, control, in_app):
+def make(c, dev, msg, hindi, control, in_app, dry=False):
     """None = not a task (normal chat or single command). Else (reply text, action dict). The action {"type":"task",...} is run by the app."""
     say = lambda hi, en: hi if hindi else en
     parts = split(msg)
@@ -69,6 +72,8 @@ def make(c, dev, msg, hindi, control, in_app):
                    "Sir, this task has a step that needs your own Yes (send, pay, delete) or that I never do (passwords, OTPs). Please give those one at a time. I did nothing."), None
     if any(s["type"] == "lock" for s in steps[:-1]):
         return say("सर, फ़ोन लॉक सिर्फ़ आख़िरी कदम हो सकता है। मैंने कुछ नहीं किया।", "Sir, locking the phone can only be the last step. I did nothing."), None
+    if dry:  # Part 46: only check that the sentence is a valid task; nothing is created
+        return "", {"steps": steps, "texts": texts}
     if not in_app:
         return say("सर, फ़ोन कंट्रोल सिर्फ़ Jarvis ऐप में चलता है।", "Sir, phone control works only in the Jarvis Android app."), None
     if not control:
@@ -113,3 +118,58 @@ def recent(c, dev, n=5):
     sweep(c)
     rows = c.execute("SELECT id, title, state, cur, steps, note, ts FROM tasks WHERE device=? ORDER BY id DESC LIMIT ?", (dev, n)).fetchall()
     return [{"id": i, "title": t, "state": s, "done": k, "total": len(json.loads(st)), "note": nt, "ts": int(ts or 0)} for i, t, s, k, st, nt, ts in rows]
+
+
+RSAVE = re.compile(r"^\s*(?:routine banao|save routine|new routine|routine save karo)\s+(.{1,30}?)\s*[:\-]\s*(.+)$", re.I | re.S)
+RLIST = re.compile(r"^\s*(?:my\s+)?routines?(?:\s+list)?\s*\??\s*$", re.I)
+RDEL = re.compile(r"^\s*(?:routine\s+(?:delete|hatao|remove)|(?:delete|remove)\s+routine)\s+(.{1,30}?)\s*$", re.I)
+RRUN = (re.compile(r"^\s*(?:run routine|start routine|routine chalao|routine run)\s+(.{1,30}?)\s*$", re.I), re.compile(r"^\s*(.{1,30}?)\s+routine\s+(?:chalao|run|start)\s*$", re.I))
+RPLAIN = re.compile(r"^\s*routine\s+(.{1,30}?)\s*$", re.I)
+
+
+def routine(c, dev, msg, hindi, control, in_app):
+    """Part 46. None = not a routine command. Else (reply, action): the action is the same task action the app already runs."""
+    say = lambda hi, en: hi if hindi else en
+    m = RSAVE.match(msg)
+    if m:
+        name, phrase = m.group(1).strip().lower(), m.group(2).strip()[:220]
+        got = make(c, dev, phrase, hindi, True, True, dry=True)
+        if got is None:
+            return say("सर, इसमें 2 से 6 फ़ोन-कदम चाहिए, \"और\" या \"फिर\" से जुड़े। जैसे: routine banao subah: Chrome kholo aur neeche scroll karo", "Sir, a routine needs 2 to 6 phone steps joined by \"aur\" or \"then\". Example: routine banao subah: Chrome kholo aur neeche scroll karo"), None
+        if got[1] is None:
+            return got  # refused (send, pay, delete, password, lock not last...): nothing saved
+        n = c.execute("SELECT count(*) FROM routines WHERE device=? AND name<>?", (dev, name)).fetchone()[0]
+        if n >= 10:
+            return say("सर, 10 रूटीन की सीमा पूरी हो गई। एक हटाइए।", "Sir, the limit of 10 routines is full. Delete one first."), None
+        c.execute("DELETE FROM routines WHERE device=? AND name=?", (dev, name))
+        c.execute("INSERT INTO routines(device, name, phrase, ts) VALUES(?,?,?,?)", (dev, name, phrase, time.time()))
+        c.commit()
+        return say(f"ठीक है सर, रूटीन \"{name}\" सेव हो गया ({len(got[1]['steps'])} कदम)। चलाने के लिए: routine {name}", f"Okay sir, routine \"{name}\" saved ({len(got[1]['steps'])} steps). To run it say: routine {name}"), None
+    if RLIST.match(msg):
+        r = c.execute("SELECT name, phrase FROM routines WHERE device=? ORDER BY id", (dev,)).fetchall()
+        if not r:
+            return say("सर, कोई रूटीन सेव नहीं है। जैसे: routine banao subah: Chrome kholo aur neeche scroll karo", "Sir, no routines saved. Try: routine banao subah: Chrome kholo aur neeche scroll karo"), None
+        return say("सर, ये रूटीन हैं:\n", "Sir, your routines:\n") + "\n".join(f"- {n}: {p}" for n, p in r), None
+    m = RDEL.match(msg)
+    if m:
+        k = c.execute("DELETE FROM routines WHERE device=? AND name=?", (dev, m.group(1).strip().lower())).rowcount
+        c.commit()
+        return (say("ठीक है सर, रूटीन हटा दिया।", "Okay sir, routine removed.") if k else say("सर, ये रूटीन नहीं मिला।", "Sir, I did not find that routine.")), None
+    name, explicit = None, True
+    for rx in RRUN:
+        m = rx.match(msg)
+        if m:
+            name = m.group(1).strip().lower()
+            break
+    if name is None:
+        m = RPLAIN.match(msg)
+        name, explicit = (m.group(1).strip().lower() if m else None), False
+    if name is None:
+        return None
+    row = c.execute("SELECT phrase FROM routines WHERE device=? AND name=?", (dev, name)).fetchone()
+    if not row:
+        return (say("सर, ये रूटीन नहीं मिला। \"my routines\" बोलिए।", "Sir, I did not find that routine. Say \"my routines\".") , None) if explicit else None
+    got = make(c, dev, row[0], hindi, control, in_app)  # same checks as a normal task, again, on every run
+    if got is None:
+        return say("सर, ये रूटीन अब ठीक नहीं बैठता। इसे दोबारा बनाइए।", "Sir, this routine no longer works. Please save it again."), None
+    return (say(f"रूटीन \"{name}\":\n", f"Routine \"{name}\":\n") + got[0]), got[1]

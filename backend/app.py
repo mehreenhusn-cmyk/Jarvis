@@ -382,7 +382,7 @@ class H(BaseHTTPRequestHandler):
                 mem = progress.handle(msg, style == "hindi")
             action = None
             if mem is None:  # Part 30: "WhatsApp kholo" (only proposes; the app checks the switch and Stop)
-                got = tasks.make(c, dev, msg, style == "hindi", data.get("control") is True, data.get("app") is True) or actions.handle(msg, style == "hindi", data.get("control") is True, data.get("app") is True, ask)  # Part 41: several steps in one sentence become one task
+                got = tasks.routine(c, dev, msg, style == "hindi", data.get("control") is True, data.get("app") is True) or tasks.make(c, dev, msg, style == "hindi", data.get("control") is True, data.get("app") is True) or actions.handle(msg, style == "hindi", data.get("control") is True, data.get("app") is True, ask)  # Part 41: several steps in one sentence become one task
                 if got:
                     mem, action = got
             if mem is not None:
