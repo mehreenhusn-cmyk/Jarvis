@@ -72,12 +72,13 @@ Everything below is built and pushed. "Phone test" says only what Hussain has al
 | 27 | Security: WebView permission checks, http only for 127.0.0.1, permissions asked when first used | BUILT | NOT YET (Java not compiled yet) |
 | 28 | Real Stop kept in Java (`Privacy.java`), saved across restarts, restart only by a finger tap | BUILT | NOT YET |
 | 29 | Privacy dashboard in Settings (allowed vs running, last used, activity log), server-offline banner | BUILT | NOT YET |
+| 50 | System card in Settings: phone RAM, storage, battery, heat, Jarvis server memory and CPU, uptime, internet. Server tests pass; page JS syntax checked only | BUILT | NOT YET |
 Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): Hey Jarvis works only while the app is open; mic in Chrome and in the app use different engines; the real actor's voice cannot be copied, only approached with the free voices; Android Files app may show empty ghost entries for zips that Termux already moved to `~/.jarvis_done`.
 
 ## 7. What to do next
 1. Download the zip, wait for "pushed" in the app header, run **Build APK** on GitHub, install it. If the build fails, send `build-log`.
 2. Test Parts 27, 28 and 29 with the list in section 11.8, plus the old cheat sheet. Report what fails with a screenshot.
-3. Next Part to build after Hussain says OK: **50** (live system card, small and visible), then **51 to 53** (dual voice engine, section 11.6b), then **30** (command layer), 31 and 32. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
+3. Part 50 (system card in Settings) is BUILT: look at it on the phone. Next Part: **30** (command layer), then 31, 32, 33 and on in order (section 11.6). Dual voice Parts 51 to 53 are planned in section 11.6b. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
 
 ## 8. Cheat sheet (type or say)
 | Say or type | What happens |
@@ -224,7 +225,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 47 | (old Batch E) Encrypted backup, restore with preview, delete everything | backup.py*, app.py, index.html | ~210 | With | Memory is safe and can move to a new phone |
 | 48 | (old Batch G) Share to Jarvis, handoff summary for Claude or ChatGPT, lost-phone steps card | AndroidManifest, MainActivity, index.html, app.py | ~180 | Without | Official sharing only, no private sessions |
 | 49 | OPTIONAL, risky (old Batch F) Notification summary for chosen apps, clipboard button | NotifySummary.java*, MainActivity, AndroidManifest, index.html, app.py | ~350 | Without | Day summary. Needs special notification access |
-| 50 | Live system card (like the PC screenshot): RAM used/free, storage, battery and heat, Jarvis server own memory and CPU, uptime, net online. New `/stats` route, refreshed every 5 s only while the card is open. Honest "not available" if Android blocks a number | sysinfo.py*, app.py, index.html | ~110 | With (Python) | Hussain sees what Jarvis and the phone are using |
+| 50 DONE | Live system card (like the PC screenshot): RAM used/free, storage, battery and heat, Jarvis server own memory and CPU, uptime, net online. New `/stats` route, refreshed every 5 s only while the card is open. Honest "not available" if Android blocks a number | sysinfo.py*, app.py, index.html | ~110 | With (Python) | Hussain sees what Jarvis and the phone are using |
 | 51 | Voice Personality Engine, backend: intent classifier (CONVERSATION, INFORMATION, TASK_CONFIRMATION, REMINDER, BRIEFING, ALERT), policy table, JARVIS fallback, two voice profiles, `/tts` takes `intent` or `profile` | voiceengine.py*, tts.py, app.py | ~170 | With | The right voice is chosen by intent, not by keywords |
 | 52 | Voice Personality settings: Tony and JARVIS cards, Auto routing ON, manual override, Test Tony, Test JARVIS, active-voice badge, saved in `voice.json` on the server (survives restart), stop and switch while speaking | index.html, app.py | ~160 | Without (page) plus Python route tests | One clear place to control both voices |
 | 53 | Second voice provider only if the Edge test shows the two voices are too alike: Google Cloud Chirp 3 HD, key kept in `keys.json`, Edge stays as fallback | tts.py, app.py, backend/.env.example | ~120 | With, needs Hussain's key | Two truly different voices |

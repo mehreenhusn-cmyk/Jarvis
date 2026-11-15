@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import autostart, brief, calls, ledger, memory, people, phone, place, remind, screen, see, tts, web
+import autostart, brief, calls, ledger, memory, people, phone, place, remind, screen, see, sysinfo, tts, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -215,6 +215,8 @@ class H(BaseHTTPRequestHandler):
         dev = self.device()
         if dev is None:
             return self.send(401, {"error": "pehle pair karo"})
+        if self.path == "/stats":  # Part 50: system card numbers (login needed)
+            return self.send(200, sysinfo.stats())
         if self.path == "/keys":  # keys kabhi wapas nahi bhejte, sirf masked
             return self.send(200, {"providers": [{"name": n, "saved": bool(getkey(n)), "masked": mask(getkey(n)) if getkey(n) else ""} for n in PROVIDERS]})
         if self.path == "/history":

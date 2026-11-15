@@ -28,12 +28,13 @@ form input{border-radius:24px}#mic{width:52px;height:52px;padding:0;border-radiu
 #set{flex:1;overflow-y:auto;padding:18px 16px}#set h4{margin:22px 0 8px;color:var(--ac);font-size:13px;letter-spacing:.1em;text-transform:uppercase}
 .card{background:var(--sf);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
 .kr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;justify-content:space-between}
+.bar{height:8px;border-radius:4px;background:var(--sf2);overflow:hidden;flex:1;min-width:80px}.bar i{display:block;height:100%;background:var(--ok)}.bar i.w{background:var(--ac)}.bar i.b{background:var(--bad)}
 .dr{padding:9px 0;border-top:1px solid var(--line)}.dr small{display:block;color:var(--mut);font-size:12px}.chip{display:inline-block;font-size:12px;padding:2px 8px;border-radius:10px;background:var(--sf2);margin:4px 6px 0 0}
 </style></head><body>
 <header><div class="logo">J</div><div><b>JARVIS</b><span id="st">...</span></div><span class="sp"></span><button id="vbtn" title="Voice">🔊</button><button id="gear" title="Settings">⚙</button></header>
 <div id="pair"><h2>Welcome, sir</h2><p>Enter the 6-digit pairing code shown in Termux.</p>
 <input id="code" inputmode="numeric" maxlength="6" placeholder="••••••"><p><button id="go">Pair this phone</button></p><p id="pe" class="bad"></p></div>
-<div id="set" hidden><h4>Privacy and permissions</h4><div class="card" id="dash"></div><h4>API key</h4><div class="card"><p style="margin-top:0;color:var(--mut)">Paste a key. Jarvis finds the company and checks it.</p>
+<div id="set" hidden><h4>System</h4><div class="card" id="sys"></div><h4>Privacy and permissions</h4><div class="card" id="dash"></div><h4>API key</h4><div class="card"><p style="margin-top:0;color:var(--mut)">Paste a key. Jarvis finds the company and checks it.</p>
 <input id="key" placeholder="Paste key here" autocomplete="off"><p><button id="kp">Paste from clipboard</button> <button id="kc" class="g">Check</button></p><p id="kr"></p><div id="kl"></div></div>
 <h4>People</h4><div class="card" id="pl"></div><h4>Memory</h4><div class="card" id="ml"></div><h4>Money ledger</h4><div class="card" id="ll"></div></div>
 <div id="off" class="bad" hidden style="padding:8px 16px;font-size:13px;background:var(--sf);border-bottom:1px solid var(--line)"></div><div id="pv"></div><div id="chat" hidden>
@@ -251,7 +252,28 @@ function dash(){
   const lg=(d.log||[]).slice(-8).reverse();box.appendChild(el('div','',lg.length?lg.map(x=>(nm[x[0]]||x[0])+' · '+new Date(x[1]).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})).join('\n'):'Nothing yet.'));box.lastChild.style.whiteSpace='pre-line';
 }
 setInterval(()=>{if(!$('set').hidden)dash();},3000);
-$('gear').onclick=()=>{if(!token)return;$('set').hidden=!$('set').hidden;$('chat').hidden=!$('set').hidden;if(!$('set').hidden){keys();mem();led();ppl();dash();}};
+// Part 50: system card. In the app, phone numbers come from Android (JarvisApp.phoneInfo); in Chrome, from the Termux server (/stats).
+const GB=b=>(b/1073741824).toFixed(1)+' GB',MB=b=>Math.round(b/1048576)+' MB';
+async function sysCard(){
+  const box=$('sys');if(!box||$('set').hidden)return;
+  let sv={};try{const {s,d}=await api('/stats');if(s==200)sv=d;}catch(e){box.textContent='Server offline: no numbers.';return;}
+  const ph=pinfo()||{},m=ph.ram_total?ph:sv,rows=[];
+  const bar=(n,p,t)=>{const r=el('div','kr'),b=el('div','bar'),i=el('i',p>=90?'b':p>=75?'w':'');i.style.width=Math.max(0,Math.min(100,p))+'%';b.appendChild(i);r.append(el('span',null,n),b,el('b',null,t));rows.push(r);};
+  const txt=(n,t)=>{const r=el('div','kr');r.append(el('span',null,n),el('b',null,t));rows.push(r);};
+  if(m.ram_total){const u=m.ram_total-m.ram_free;bar('Phone RAM',100*u/m.ram_total,GB(u)+' / '+GB(m.ram_total));}else txt('Phone RAM','not available');
+  if(m.disk_total||sv.disk_total){const d=m.disk_total?m:sv,u=d.disk_total-d.disk_free;bar('Storage',100*u/d.disk_total,GB(u)+' / '+GB(d.disk_total));}
+  if(ph.battery!=null)bar('Battery'+(ph.charging?' (charging)':''),ph.battery,ph.battery+'%');else txt('Battery','open the Jarvis app to see it');
+  if(ph.temp_c)bar('Battery heat',100*(ph.temp_c-20)/30,ph.temp_c+' °C');
+  if(sv.srv_ram)txt('Jarvis server memory',MB(sv.srv_ram));
+  if(sv.srv_cpu!=null&&sv.srv_cpu!==undefined)bar('Jarvis server CPU',sv.srv_cpu,sv.srv_cpu+'% of one core');
+  if(sv.load)txt('Phone load (1/5/15 min)',sv.load.join(' / '));
+  txt('Internet',navigator.onLine?'online':'offline');
+  if(srvUp)txt('Server running',Math.floor(srvUp/60)+' min');
+  box.replaceChildren(...rows);
+}
+setInterval(sysCard,5000);
+
+$('gear').onclick=()=>{if(!token)return;$('set').hidden=!$('set').hidden;$('chat').hidden=!$('set').hidden;if(!$('set').hidden){keys();mem();led();ppl();dash();sysCard();}};
 const sty=()=>$('voice').value.includes('hi-IN')?'hindi':'english';
 let priv=localStorage.getItem('jpriv')=='1';
 if(window.JarvisApp&&JarvisApp.privacy){try{priv=!!JSON.parse(JarvisApp.privacy()).stopped;localStorage.setItem('jpriv',priv?'1':'0');}catch(e){}}  // in the app, Java is the truth

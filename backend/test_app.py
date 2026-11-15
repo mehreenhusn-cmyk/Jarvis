@@ -57,6 +57,9 @@ try:
     check("keys list mein key wapas nahi aati", "secret123" not in json.dumps(call("/keys", token=token)[1]))
     check("keys file sirf owner ke liye (600)", stat.S_IMODE(os.stat(env["JARVIS_KEYS"]).st_mode) == 0o600)
     check("key hatane se file se nikli", call("/keys/delete", {"provider": "mock"}, token)[1]["ok"] and "secret123" not in open(env["JARVIS_KEYS"]).read())
+    st = call("/stats", token=token)
+    check("stats: login ke bina band", call("/stats")[0] == 401)
+    check("stats: login ke baad numbers", st[0] == 200 and st[1].get("srv_ram", 1) > 0 and "disk_total" in st[1])
     check("khali message reject", call("/chat", {"message": " "}, token)[0] == 400)
     check("history mein 4 message", len(call("/history", token=token)[1]["messages"]) == 4)
 finally:
