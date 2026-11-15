@@ -4,10 +4,10 @@
 > runs out often. This README has the full plan: what we build, why, how, the rules, where we are, and what is next.
 > Read it, then start the next part. Do not ask him to resend the old chat. Repo: https://github.com/mehreenhusn-cmyk/Jarvis
 
-## 0. AT A GLANCE (updated 16 Nov 2026, after Part 43)
+## 0. AT A GLANCE (updated 16 Nov 2026, after Parts 51 and 52)
 **What:** Jarvis, a personal AI assistant on Hussain's phone (Termux server + Android app). **Why:** one app on the phone, no PC, works by download only.
-**Done:** 46 of 56 Parts built (about 3,860 lines of code, 72 files). Only Parts 1 to 26 were partly phone tested; Parts 27 to 39, 41, 42, 43, 50, 54, 55 and 56 are built but NOT phone tested. Java is still not compiled: the GitHub Build APK is the first compile test.
-**Pending:** 10 Parts, about 1,950 lines (about 1,400 required, 550 optional). Next Part is **44** (number order) or **51** (voice first): Hussain picks. Full table in section 11.6, order in the "Build order" line.
+**Done:** 48 of 56 Parts built (about 3,860 lines of code, 72 files). Only Parts 1 to 26 were partly phone tested; Parts 27 to 39, 41, 42, 43, 50, 51, 52, 54, 55 and 56 are built but NOT phone tested. Java is still not compiled: the GitHub Build APK is the first compile test.
+**Pending:** 8 Parts, about 1,620 lines (about 1,070 required, 550 optional). Next Part is **44**. Part 53 only if the two voices sound too alike. Full table in section 11.6, order in the "Build order" line.
 | Group | Parts | Status |
 |---|---|---|
 | Base: server, chat, voice, reminders, app, privacy | 1 to 29 | DONE |
@@ -18,7 +18,8 @@
 | Task engine (server) and task runner (app): several steps in one sentence | 41, 42 | BUILT (this zip) |
 | Phone checklist (section 11.8 is now a table). No test file, Hussain's no-tests rule | 43 | BUILT (this zip) |
 | Calendar, briefing, routines, backup, share | 44 to 48 | PENDING |
-| Two voices (Tony and JARVIS) | 51 to 53 | PENDING |
+| Two voices (Tony and JARVIS): engine and Settings cards | 51, 52 | BUILT (this zip) |
+| Second voice provider (Google), only if needed | 53 | PENDING |
 | Home tab (orb, today, quick buttons, stats) | 56 | BUILT (this zip) |
 | Optional: offline wake word, notification summary | 40, 49 | OPTIONAL |
 
@@ -66,7 +67,7 @@ The GitHub token must also allow **workflow** files (needed from Part 16, or the
 Daily: `cd ~/Jarvis && bash run.sh`. Open **http://127.0.0.1:8787** (or the Jarvis app). First time: pairing code, then Settings for the key.
 Auto-start (Part 11): Termux starts Jarvis when opened. Turn off with `JARVIS_NO_AUTOSTART=1` in `.env`.
 
-## 6. STATUS (16 Nov 2026): Parts 1 to 39, 41, 42, 43, 50, 54, 55 and 56 are built
+## 6. STATUS (16 Nov 2026): Parts 1 to 39, 41, 42, 43, 50, 51, 52, 54, 55 and 56 are built
 Everything below is built and pushed. "Phone test" says only what Hussain has already seen working on his phone. Anything not marked YES still needs one quick try (a bug found there = one small fix zip, not unfinished work).
 | Part | What | Status | Phone test |
 |---|---|---|---|
@@ -106,6 +107,8 @@ Everything below is built and pushed. "Phone test" says only what Hussain has al
 | 55 | Conversation mode (app only): button "Conversation" starts it. After each answer the phone mic opens by itself (0.5 s pause so it does not hear Jarvis). Ends after 2 silent rounds, on "bas" or "stop", after 20 turns, on Stop everything, or if the app goes to the background. Phone speech service may beep | BUILT | NOT YET (page and Java not run) |
 | 54 | Smart memory: when you state a personal fact ("mere bhatije ka naam Arman hai") Jarvis answers and shows "Should I remember this?" Yes / No. Only your finger tap on Yes saves it (normal "yaad rakho" path, so passwords and OTPs are still refused). Questions are never offered | BUILT | NOT YET (server tests pass; page JS syntax checked only) |
 | 43 | Phone checklist: section 11.8 is now one table, one row per Part (what to do, what you should see). Docs only, no code, no test file | BUILT | NOT YET (nothing to run) |
+| 51 | Voice engine (server): new `voiceengine.py`. Two voices, TONY (conversation) and JARVIS (information, task result, reminder, briefing, alert). Six intents, a policy table, JARVIS when unsure. `/tts` without `voice` now takes `intent` or `profile` and sends the header `X-Voice` (who spoke). New routes `GET /voice` and `POST /voice/set`; settings live in `voice.json` (survives restart, gitignored). Old `/tts` with `voice` still works (classic). Hindi has only one male Edge voice (Madhur), so in Hindi the two differ by depth and speed; in English they are different voices (Tony: Prabhat, JARVIS: Ryan) | BUILT | NOT YET (Python syntax checked only) |
+| 52 | Voice settings (page): Settings > "Voice personality" with a Tony card and a JARVIS card (Depth, Speed, Test, Use always), Auto routing switch, a switch for the classic voice, and a badge that shows the voice that really spoke (Tony, JARVIS, classic, or phone voice if the online voice failed). Changing a setting stops the voice that is speaking. Reminders, briefing, task results and photo answers now send an intent | BUILT | NOT YET (page JS syntax checked only) |
 | 50 | System card in Settings: phone RAM, storage, battery, heat, Jarvis server memory and CPU, uptime, internet. Server tests pass; page JS syntax checked only | BUILT | NOT YET |
 Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): Hey Jarvis works only while the app is open; mic in Chrome and in the app use different engines; the real actor's voice cannot be copied, only approached with the free voices; Android Files app may show empty ghost entries for zips that Termux already moved to `~/.jarvis_done`.
 
@@ -115,7 +118,7 @@ Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): He
    Termux closing by itself: Android kills it to save battery. Settings > Apps > Termux > Battery > No restriction; keep the Termux notification (wake lock) visible; install the Termux:Boot app for restarts.
 1. Download the zip, wait for "pushed" in the app header, run **Build APK** on GitHub, install it. If the build fails, send `build-log`.
 2. Test Parts 27, 28 and 29 with the list in section 11.8, plus the old cheat sheet. Report what fails with a screenshot.
-3. Parts 30 to 39, 41, 42, 50, 54, 55 and 56 are BUILT. Download the zip, wait for "pushed", run **Build APK**, install, then test with section 11.8. Next Part: **44** or **51** (Hussain picks the order), then the rest in order (section 11.6, Build order line). Dual voice Parts 51 to 53 are planned in section 11.6b. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
+3. Parts 30 to 39, 41, 42, 43, 50, 51, 52, 54, 55 and 56 are BUILT. Download the zip, wait for "pushed", run **Build APK**, install, then test with section 11.8. Next Part: **44**, then the rest in order (section 11.6, Build order line). Dual voice: Parts 51 and 52 are built, Part 53 is planned in section 11.6b. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
 
 ## 8. Cheat sheet (type or say)
 | Say or type | What happens |
@@ -267,8 +270,8 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 48 | (old Batch G) Share to Jarvis, handoff summary for Claude or ChatGPT, lost-phone steps card | AndroidManifest, MainActivity, index.html, app.py | ~180 | Without | Official sharing only, no private sessions |
 | 49 | OPTIONAL, risky (old Batch F) Notification summary for chosen apps, clipboard button | NotifySummary.java*, MainActivity, AndroidManifest, index.html, app.py | ~350 | Without | Day summary. Needs special notification access |
 | 50 DONE | Live system card (like the PC screenshot): RAM used/free, storage, battery and heat, Jarvis server own memory and CPU, uptime, net online. New `/stats` route, refreshed every 5 s only while the card is open. Honest "not available" if Android blocks a number | sysinfo.py*, app.py, index.html | ~110 | With (Python) | Hussain sees what Jarvis and the phone are using |
-| 51 | Voice Personality Engine, backend: intent classifier (CONVERSATION, INFORMATION, TASK_CONFIRMATION, REMINDER, BRIEFING, ALERT), policy table, JARVIS fallback, two voice profiles, `/tts` takes `intent` or `profile` | voiceengine.py*, tts.py, app.py | ~170 | With | The right voice is chosen by intent, not by keywords |
-| 52 | Voice Personality settings: Tony and JARVIS cards, Auto routing ON, manual override, Test Tony, Test JARVIS, active-voice badge, saved in `voice.json` on the server (survives restart), stop and switch while speaking | index.html, app.py | ~160 | Without (page) plus Python route tests | One clear place to control both voices |
+| 51 DONE | Voice Personality Engine, backend: intent classifier (CONVERSATION, INFORMATION, TASK_CONFIRMATION, REMINDER, BRIEFING, ALERT), policy table, JARVIS fallback, two voice profiles, `/tts` takes `intent` or `profile` | voiceengine.py*, tts.py, app.py | ~170 | With | The right voice is chosen by intent, not by keywords |
+| 52 DONE | Voice Personality settings: Tony and JARVIS cards, Auto routing ON, manual override, Test Tony, Test JARVIS, active-voice badge, saved in `voice.json` on the server (survives restart), stop and switch while speaking | index.html, app.py | ~160 | Without (page) plus Python route tests | One clear place to control both voices |
 | 53 | Second voice provider only if the Edge test shows the two voices are too alike: Google Cloud Chirp 3 HD, key kept in `keys.json`, Edge stays as fallback | tts.py, app.py, backend/.env.example | ~120 | With, needs Hussain's key | Two truly different voices |
 | 54 DONE | Smart memory: when you say a personal fact ("mere bhatije ka naam Arman hai"), Jarvis answers and shows "Yaad rakhun? Yes / No". Only your own tap on Yes saves it, in the existing `memories` table (limit 100, never passwords, OTPs, PINs). Later "mera bhatija kaun hai" is answered from memory. Needed because today Jarvis saves only after "yaad rakho: ..." | memory.py, app.py, index.html, test_app.py | ~75 | With | Jarvis learns names and facts without typing "yaad rakho" |
 | 56 DONE | Home dashboard (inspired by the PC Jarvis screenshot): a Home tab with the orb, today's reminders and events, phone and server stats, quick buttons. Chat stays the main screen. Phone layout: one column, cards that scroll | index.html, app.py | ~130 | Without (page) | One glance shows the day and the phone |
@@ -288,9 +291,9 @@ Phone brand and Android version are NOT known yet (decision D4).
 Estimates are rough (plus or minus 25 percent). Real numbers go into this table after each Part.
 
 
-**Build order (next first):** 44, 45, 46, 47, 48, 51, 52, 53 (number order, if Hussain says OK; the old order was 51, 52, 53 first). Optional: 40, 49 (40 is decided after the Part 39 phone test).
+**Build order (next first):** 44, 45, 46, 47, 48, then 53 only if the two voices sound too alike. Optional: 40, 49 (40 is decided after the Part 39 phone test). Optional: 40, 49 (40 is decided after the Part 39 phone test).
 
-### 11.6b Dual voice personality plan (added 15 Nov 2026, AUDIT ONLY, no code yet)
+### 11.6b Dual voice personality plan (added 15 Nov 2026; Parts 51 and 52 built 16 Nov 2026, Part 53 not built)
 Goal: two default voices that switch by themselves. TONY = conversation (confident, witty, Hinglish). JARVIS = information, tasks, reminders, briefings, alerts (calm, deep, precise). No cloning of Rajesh Khattar or Atul Kapoor. Original or licensed voices only.
 **What exists today (read from the repo):** `backend/tts.py` (35 lines) runs `edge_tts` with a fixed list `VOICES` (line 4): en-GB-Ryan, en-IN-Prabhat, hi-IN-Madhur, en-IN-Neerja, hi-IN-Swara. `app.py` route `POST /tts` (line 292) returns mp3. `index.html`: `neural()` (line 147) plays it, `speak()` (156) falls back to the browser voice, `#voice` and `#pre` select a voice and a preset (lines 41 to 42), `stopAll()` (262) stops sound, saved in `localStorage` (`jvoice`). There is no intent routing and no server-side voice settings.
 **Two real profiles today? NO.** Edge has only one Hindi male voice (Madhur). Khattar, Rolex and Jarvis studio are Madhur with different pitch and speed. That is one voice in two moods, not two voices. Prabhat is male but Indian-English and reads Hindi badly.
@@ -329,6 +332,9 @@ Why this order: Parts 27 to 29 come first because every later power needs a safe
 | 41-42 | "Chrome kholo aur neeche scroll karo phir back jao" | Chat lists 3 steps; notification has Cancel; ticks and crosses when you return |
 | 41-42 | Same task, tap Cancel; then kill the server; then "Chrome kholo aur send dabao" | Cancelled; marked failed; refused |
 | 50 | Settings, System card | RAM, storage, battery, heat, uptime |
+| 51-52 | Settings > Voice personality: tap Test Tony, then Test JARVIS | Two different sounds; the badge says TONY or JARVIS. In Hindi the difference is depth and speed only |
+| 51-52 | Say "hello" in chat with Speak replies ON, then set a reminder for 1 minute | Chat reply = Tony; reminder = JARVIS |
+| 51-52 | Auto routing OFF, tap Use always on Tony, ask something; then switch Tony and JARVIS OFF | Tony speaks every reply; then the classic voice and presets work as before |
 | 54 | "mere bhatije ka naam Arman hai" | Asks "Should I remember this?"; saves only on Yes |
 | 55 | Tap Conversation | Mic reopens by itself; ends on "bas" |
 | 56 | Open Home tab | Orb, today's list, quick buttons, numbers |
@@ -368,6 +374,8 @@ What changes for Hussain: the first mic tap asks for the microphone; the first "
 | 41 | BUILT | ~180 | 133 (`tasks.py` 115 new, `app.py` 18) | NOT YET. Not run: nothing, syntax check only |
 | 42 | BUILT | ~120 | 181 (`TaskRunner.java` 129 new, `index.html` 34, `MainActivity` 15, `Privacy` 3). `ScreenService` needed no change | NOT YET. Java not compiled |
 | 43 | BUILT | ~80 | about 40 (README only: checklist table and status lines; no test file) | NOT YET |
+| 51 | BUILT | ~170 | 90 (`voiceengine.py` 76 new, `app.py` 13, `.gitignore` 1). `tts.py` needed no change | NOT YET. Python syntax checked only. Not run: server, voice |
+| 52 | BUILT | ~160 | 46 (`index.html` only; the routes were already in Part 51) | NOT YET. Page JS syntax checked only. Not run: phone |
 | 56 | BUILT | ~130 | about 75 (`index.html` about 46, `remind.py` 11, `app.py` 4, plus fixes below) | NOT YET. Page syntax checked only |
 Fixes in the same zip: (1) the Settings system card used a helper (`el`) that only existed inside another function, so it would have stayed empty; it is global now. (2) Durations over 60 minutes now show as hours and minutes everywhere (page and `clock.py`, for example "1 h 15 min", never "75 minutes").
 

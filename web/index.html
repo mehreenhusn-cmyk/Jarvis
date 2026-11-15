@@ -41,14 +41,14 @@ form input{border-radius:24px}#mic{width:52px;height:52px;padding:0;border-radiu
 <input id="code" inputmode="numeric" maxlength="6" placeholder="••••••"><p><button id="go">Pair this phone</button> <button id="nc" class="g">Show code in Termux</button></p><p id="pe" class="bad"></p></div>
 <div id="home" hidden><div style="text-align:center"><div id="orb">J</div><b id="hg"></b><div id="hd" style="color:var(--mut);font-size:13px"></div><div id="hs0" style="font-size:13px;margin-top:4px"></div></div>
 <h4>Today</h4><div class="card" id="ht">...</div><h4>Quick</h4><div class="card" id="hq" style="display:flex;flex-wrap:wrap;gap:8px"></div><h4>Phone and server</h4><div class="card" id="hs"></div></div>
-<div id="set" hidden><h4>System</h4><div class="card" id="sys"></div><h4>Privacy and permissions</h4><div class="card" id="dash"></div><h4>Background listening test</h4><div class="card" id="bgt"></div><h4>API key</h4><div class="card"><p style="margin-top:0;color:var(--mut)">Paste a key. Jarvis finds the company and checks it.</p>
+<div id="set" hidden><h4>Voice personality</h4><div class="card" id="vcard"></div><h4>System</h4><div class="card" id="sys"></div><h4>Privacy and permissions</h4><div class="card" id="dash"></div><h4>Background listening test</h4><div class="card" id="bgt"></div><h4>API key</h4><div class="card"><p style="margin-top:0;color:var(--mut)">Paste a key. Jarvis finds the company and checks it.</p>
 <input id="key" placeholder="Paste key here" autocomplete="off"><p><button id="kp">Paste from clipboard</button> <button id="kc" class="g">Check</button></p><p id="kr"></p><div id="kl"></div></div>
 <h4>People</h4><div class="card" id="pl"></div><h4>Memory</h4><div class="card" id="ml"></div><h4>Money ledger</h4><div class="card" id="ll"></div></div>
 <div id="off" class="bad" hidden style="padding:8px 16px;font-size:13px;background:var(--sf);border-bottom:1px solid var(--line)"></div><div id="pv"></div><div id="chat" hidden>
 <div id="vp" hidden><select id="lang"><option value="hi-IN">Speak: Hindi</option><option value="en-IN">Speak: English</option></select>
 <select id="voice"></select><select id="pre"><option value="">Voice style</option><option value="k">Khattar (deep, Hindi dub)</option><option value="r">Rolex (very deep)</option><option value="d">Jarvis studio (Hindi)</option><option value="b">Jarvis studio (British English)</option><option value="n">Normal</option></select>
 <label><input type="checkbox" id="say" style="width:auto"> Speak replies</label><label>Depth <input type="range" id="pt" min="0.5" max="1.5" step="0.05" style="width:80px;padding:0"></label><label>Speed <input type="range" id="rt" min="0.6" max="1.4" step="0.05" style="width:80px;padding:0"></label>
-<button type="button" id="tv" class="g">Test voice</button><button type="button" id="mon" class="g" hidden>Turn mic on</button><button type="button" id="wake" class="g" hidden>Hey Jarvis: off</button><button type="button" id="conv" class="g" hidden>Conversation: off</button><b id="ms" class="ok">Mic off</b></div>
+<button type="button" id="tv" class="g">Test voice</button><button type="button" id="mon" class="g" hidden>Turn mic on</button><button type="button" id="wake" class="g" hidden>Hey Jarvis: off</button><button type="button" id="conv" class="g" hidden>Conversation: off</button><b class="vbadge ok">Voice: -</b> <b id="ms" class="ok">Mic off</b></div>
 <div id="log"></div>
 <form id="f"><button type="button" id="stop" title="Stop">⏹</button><input id="msg" autocomplete="off" placeholder="Message Jarvis..."><button id="send">Send</button><button type="button" id="cam" title="Camera" class="g" style="width:44px;height:44px;border-radius:50%;padding:0;flex:none">📷</button><button type="button" id="mic" title="Speak">🎤</button><input type="file" id="pic" accept="image/*" capture="environment" hidden></form></div>
 <script>
@@ -76,7 +76,7 @@ let boot='';
 const nowS=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16).replace('T',' ');
 async function checkDue(){
   try{const {s,d}=await api('/due',{now:nowS()});
-    if(s==200)(d.due||[]).forEach(r=>{const t='⏰ Reminder: '+r.text;add('bot',t);speak(t,true);if(navigator.vibrate)navigator.vibrate([300,150,300]);});
+    if(s==200)(d.due||[]).forEach(r=>{const t='⏰ Reminder: '+r.text;add('bot',t);speak(t,true,'REMINDER');if(navigator.vibrate)navigator.vibrate([300,150,300]);});
   }catch(e){}
 }
 let down=0,since='',srvUp=0;
@@ -109,7 +109,7 @@ $('f').onsubmit=async e=>{
   const sc=screenData;screenData=null;const vm=viaMic;viaMic=false;add('user',t);const w=add('bot','...');
   let sp=false;try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:SLOW.test(t)?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,screen:sc,app:inApp(),control:inApp()&&ctl()});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
-    if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.action?await doAct(d.action,w):d.reply,vm);if(d.remember)askSave(w,d.remember);sp=vm||$('say').checked;}else{w.className='m err';w.textContent=d.error||'error';}
+    if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.action?await doAct(d.action,w):d.reply,vm,d.action?'TASK_CONFIRMATION':'');if(d.remember)askSave(w,d.remember);sp=vm||$('say').checked;}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}finally{if((wakeOn||convOn)&&!sp)heardBack();}
 };
 let viaMic=false,wakeOn=false,appListening=false,cmdNext=false,convOn=false,convMiss=0,convTurns=0;
@@ -181,20 +181,52 @@ function loadVoices(){
   const want=localStorage.getItem('jvoice')||'';$('voice').value=want;
   if(!want||$('voice').value!==want)$('voice').value='neural:hi-IN-MadhurNeural'; // old saved voice no longer in the list
 }
+// Part 52: Tony and JARVIS. The server picks the voice by intent; the badge shows the voice that really spoke.
+let VS={auto:true,manual:'jarvis',tony:{pitch:0,rate:8},jarvis:{pitch:-14,rate:-10}};
+const badge=t=>document.querySelectorAll('.vbadge').forEach(b=>b.textContent=t);
+async function engine(t,intent,profile){
+  const r=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text:t,intent:intent||'',profile:profile||'',lang:sty()})});
+  if(!r.ok){let e={};try{e=await r.json()}catch(x){}throw new Error(e.error||'voice error');}
+  const w=r.headers.get('X-Voice')||'';if(aud)aud.pause();if(window.speechSynthesis)speechSynthesis.cancel();
+  aud=new Audio(URL.createObjectURL(await r.blob()));aud.onended=aud.onerror=heardBack;await aud.play();badge('Voice: '+(w=='tony'?'TONY':'JARVIS'));
+}
+async function voiceSave(p){  // saving stops the voice that is speaking now, so a switch is heard at once
+  if(aud)aud.pause();if(window.speechSynthesis)speechSynthesis.cancel();
+  try{const {s,d}=await api('/voice/set',p);if(s==200)VS=d;else add('err','Could not save the voice settings.');}catch(e){add('err','Server offline: voice settings not saved.');}
+  voiceCard();
+}
+async function voiceLoad(){try{const {s,d}=await api('/voice');if(s==200)VS=d;}catch(e){}voiceCard();}
+function voiceCard(){
+  const box=$('vcard');if(!box)return;const rows=[],hi=sty()=='hindi';
+  const L=(t,c)=>{const l=el('label','');const i=el('input');i.type='checkbox';i.style.width='auto';i.checked=c;l.append(i,' '+t);return [l,i];};
+  const [al,ai]=L('Auto routing: Tony talks, JARVIS informs',VS.auto);ai.onchange=()=>voiceSave({auto:ai.checked});rows.push(al);
+  const [el2,ei]=L('Use Tony and JARVIS (switch off for the classic voice)',localStorage.getItem('jeng')!='0');ei.onchange=()=>{localStorage.setItem('jeng',ei.checked?'1':'0');voiceCard();};rows.push(el2);
+  const PN={tony:['Tony','Conversation: confident, a little faster','नमस्ते सर, मैं टोनी हूँ। बताइए, क्या हाल है?','Hello sir, Tony here. What is up?'],jarvis:['JARVIS','Information, tasks, reminders, briefings, alerts: calm and deep','नमस्ते सर, मैं जार्विस हूँ। सब सिस्टम तैयार हैं।','Good morning sir. All systems are ready.']};
+  ['tony','jarvis'].forEach(k=>{
+    const c=el('div','dr'),on=!VS.auto&&VS.manual==k;c.append(el('b',null,PN[k][0]+(on?' (always on)':'')),el('small',null,PN[k][1]));
+    const mk=(n,key,lo,hi2)=>{const l=el('label',null,n+' ');const r=el('input');r.type='range';r.min=lo;r.max=hi2;r.step=1;r.value=VS[k][key];r.style.cssText='width:110px;padding:0';r.onchange=()=>voiceSave({[k]:{[key]:+r.value}});l.append(r,' ');return l;};
+    const t=el('button','g','Test '+PN[k][0]);t.type='button';t.onclick=()=>speak(hi?PN[k][2]:PN[k][3],true,'',k);
+    const u=el('button','g','Use always');u.type='button';u.disabled=VS.auto;u.onclick=()=>voiceSave({manual:k});
+    c.append(mk('Depth','pitch',-30,10),mk('Speed','rate',-25,20),t,u);rows.push(c);
+  });
+  const b=el('p','');b.append('Now: ',el('b','vbadge','Voice: -'));rows.push(b);box.replaceChildren(...rows);
+}
 async function neural(t,v){
   const r=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text:t,voice:v,pitch:Math.round(($('pt').value-1)*100),rate:Math.round(($('rt').value-1)*100)})});
   if(!r.ok){let e={};try{e=await r.json()}catch(x){}throw new Error(e.error||'voice error');}
-  if(aud)aud.pause();aud=new Audio(URL.createObjectURL(await r.blob()));aud.playbackRate=+$('rt').value;if(fx)studio(aud);aud.onended=aud.onerror=heardBack;await aud.play();
+  if(aud)aud.pause();aud=new Audio(URL.createObjectURL(await r.blob()));aud.playbackRate=+$('rt').value;if(fx)studio(aud);aud.onended=aud.onerror=heardBack;await aud.play();badge('Voice: classic');
 }
 function local(t){
+  badge('Voice: phone voice (fallback)');
   speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.pitch=+$('pt').value;u.rate=+$('rt').value;
   const v=speechSynthesis.getVoices().find(x=>x.name==$('voice').value)||speechSynthesis.getVoices().find(x=>/en.GB|en.IN/i.test(x.lang));
   if(v){u.voice=v;u.lang=v.lang;}else u.lang='en-IN';u.onend=u.onerror=heardBack;speechSynthesis.speak(u);
 }
-async function speak(t,force){
+async function speak(t,force,intent,profile){
   if(!force&&!$('say').checked)return;if(wakeOn&&appEars())JarvisApp.stopListen();const v=$('voice').value||'neural:hi-IN-MadhurNeural';
-  if(v.startsWith('neural:')){
-    try{await neural(t,v.slice(7));return;}catch(e){add('err','Online voice failed: '+(e.name=='NotAllowedError'?'the browser blocked sound. Tap the page once and try again.':e.message)+'. Trying the phone voice.');}
+  const eng=localStorage.getItem('jeng')!='0';  // Part 52: Tony / JARVIS voices are ON unless you switch to the classic voice
+  if(eng||v.startsWith('neural:')){
+    try{await(eng?engine(t,intent,profile):neural(t,v.slice(7)));return;}catch(e){add('err','Online voice failed: '+(e.name=='NotAllowedError'?'the browser blocked sound. Tap the page once and try again.':e.message)+'. Trying the phone voice.');}
   }
   if(window.speechSynthesis&&speechSynthesis.getVoices().length)local(t);
   else{heardBack();add('err','No voice on this phone. Install a text-to-speech voice in Android settings, or fix the online voice (pip install edge-tts, internet on).');}
@@ -247,7 +279,7 @@ $('pic').onchange=async()=>{
   const f=$('pic').files[0];$('pic').value='';if(!f)return;
   const q=$('msg').value.trim();$('msg').value='';add('user','📷 '+(q||'What do you see?'));const w=add('bot','Looking...');
   try{const {s,d}=await api('/see',{image:await shrink(f),question:q,style:sty()});
-    if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply);}else{w.className='m err';w.textContent=d.error||'error';}
+    if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply,false,'INFORMATION');}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Could not send the photo.';}
 };
 async function led(){
@@ -276,7 +308,7 @@ function askYes(w,a){
   const end=m=>{if(done)return;done=true;row.remove();w.textContent=m;};
   const mk=(label,cls,fn)=>{const b=document.createElement('button');b.type='button';b.className=cls;b.textContent=label;b.style.margin='8px 8px 0 0';b.onclick=ev=>{if(ev.isTrusted)fn();};return b;};
   row.append(mk(say('हाँ, करो','Yes, go ahead'),'',()=>{
-      if(a&&a.then){if(done)return;end(say('ठीक है सर, कर रहा हूँ।','On it, sir.'));doAct(Object.assign({},a.then,{confirmed:true}),w).then(x=>speak(x,false));}  // Part 34: Java also needs this real finger tap
+      if(a&&a.then){if(done)return;end(say('ठीक है सर, कर रहा हूँ।','On it, sir.'));doAct(Object.assign({},a.then,{confirmed:true}),w).then(x=>speak(x,false,'TASK_CONFIRMATION'));}  // Part 34: Java also needs this real finger tap
       else end(say('हाँ दर्ज हुई सर। पर मुझे नहीं पता कौन सा बटन दबाना है, इसलिए कुछ भेजा या बदला नहीं गया। बोलिए, जैसे \"Send दबाओ\"।','Your Yes is noted, sir. But I do not know which button to press, so nothing was sent or changed. Say something like \"click Send\".'));}),
     mk(say('नहीं','No'),'g',()=>end(say('ठीक है सर, रद्द किया। कुछ नहीं किया गया।','Okay sir, cancelled. Nothing was done.'))));
   w.appendChild(row);setTimeout(()=>end(say('समय खत्म हुआ सर, कुछ नहीं किया गया।','Timed out, sir. Nothing was done.')),60000);return t;
@@ -327,7 +359,7 @@ window.onActDone=s=>{
   if(!r.ok&&r.err=='no_scroll'&&lastAct&&lastAct.type=='scroll'){  // fallback: a swipe, only after a real tap on Yes
     const b=document.createElement('button');b.type='button';b.className='g';b.style.margin='8px 8px 0 0';b.textContent=hi?'हाँ, स्वाइप करके देखो':'Yes, try a swipe';
     const d=lastAct.dir;b.onclick=ev=>{if(!ev.isTrusted)return;b.remove();lastAct={type:'swipe',dir:d};try{JarvisApp.act(JSON.stringify({type:'swipe',dir:d,confirmed:true}));}catch(e){}};w.appendChild(b);}
-  speak(t,false);
+  speak(t,false,'TASK_CONFIRMATION');
 };
 // Part 54: Jarvis offers to remember a fact. Only a real finger tap on Yes saves it (through the normal "yaad rakho" path, so passwords are still refused).
 function askSave(w,fact){
@@ -361,7 +393,7 @@ window.onTaskDone=s=>{
   else if(!bad&&n==total)head=say('सर, सारे कदम पूरे हुए।','All steps are done, sir.');
   else{const m=ACTERR[(bad||{}).err]||ACTERR.unknown;head=say('सर, '+total+' में से '+n+' कदम हुए, फिर रुक गया। ','Sir, '+n+' of '+total+' steps done, then I stopped. ')+m[hi?0:1];}
   const w=add('bot',head+'\n'+lines.join('\n'));if(bad&&!r.cancelled)w.className='m err';
-  api('/task/done',{id:r.id,results:res,cancelled:!!r.cancelled}).catch(()=>{});localStorage.removeItem('jtask');speak(head,false);
+  api('/task/done',{id:r.id,results:res,cancelled:!!r.cancelled}).catch(()=>{});localStorage.removeItem('jtask');speak(head,false,'TASK_CONFIRMATION');
 };
 async function doAct(a,w){
   if(a.type=='task')return runTask(a,w);
@@ -468,12 +500,12 @@ $('pre').onchange=()=>{
 };
 async function brief(){
   if(!token||priv)return;const day=nowS().slice(0,10);if(localStorage.getItem('jbrief')==day)return;localStorage.setItem('jbrief',day);
-  try{const {s,d}=await api('/brief',{now:nowS(),style:sty(),auto:true});if(s==200&&d.text){add('bot',d.text);speak(d.text);}}catch(e){}
+  try{const {s,d}=await api('/brief',{now:nowS(),style:sty(),auto:true});if(s==200&&d.text){add('bot',d.text);speak(d.text,false,'BRIEFING');}}catch(e){}
 }
 // Part 56: Home tab (orb, today, quick buttons, phone and server numbers). Chat stays the main screen.
 function go(v){view=v;const t=!!token;$('chat').hidden=!t||v!='chat';$('set').hidden=!t||v!='set';$('home').hidden=!t||v!='home';$('tabs').hidden=!t;
   $('tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
-  if(t&&v=='home')homeLoad(true);if(t&&v=='set'){keys();mem();led();ppl();dash();sysCard();bgt();}}
+  if(t&&v=='home')homeLoad(true);if(t&&v=='set'){keys();mem();led();ppl();dash();sysCard();bgt();voiceLoad();}}
 $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>go(b.dataset.v));
 const greet=()=>{const h=new Date().getHours();return h<5?'Good night, sir':h<12?'Good morning, sir':h<17?'Good afternoon, sir':'Good evening, sir';};
 let tj=null,homeT=0;

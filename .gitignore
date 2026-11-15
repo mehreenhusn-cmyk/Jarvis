@@ -3,3 +3,4 @@
 __pycache__/
 *.zip
 keys.json
+voice.json

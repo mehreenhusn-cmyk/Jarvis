@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, autostart, brief, calls, clock, ledger, memory, people, phone, place, progress, remind, screen, see, sysinfo, tasks, tts, web
+import actions, autostart, brief, calls, clock, ledger, memory, people, phone, place, progress, remind, screen, see, sysinfo, tasks, tts, voiceengine, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -218,6 +218,8 @@ class H(BaseHTTPRequestHandler):
             return self.send(401, {"error": "pehle pair karo"})
         if self.path == "/tasks":  # Part 41: the last few tasks and how they ended
             return self.send(200, {"tasks": tasks.recent(db(), dev)})
+        if self.path == "/voice":  # Part 51: Tony and JARVIS settings (login needed)
+            return self.send(200, voiceengine.load())
         if self.path == "/stats":  # Part 50: system card numbers (login needed)
             return self.send(200, sysinfo.stats())
         if self.path == "/keys":  # keys kabhi wapas nahi bhejte, sirf masked
@@ -319,12 +321,20 @@ class H(BaseHTTPRequestHandler):
             c.execute("DELETE FROM memories WHERE id=? AND device=?", (int(data.get("id") or 0), dev))
             c.commit()
             return self.send(200, {"ok": True})
-        if self.path == "/tts":  # Part 7: neural awaaz (mp3)
+        if self.path == "/voice/set":  # Part 51: save Tony/JARVIS settings in voice.json
+            return self.send(200, voiceengine.save(data))
+        if self.path == "/tts":  # Part 7: neural awaaz (mp3). Part 51: voice na diya ho to Tony/JARVIS intent se chunta hai
+            txt = str(data.get("text", ""))
             try:
-                audio = tts.speak(str(data.get("text", "")), str(data.get("voice", "")), data.get("pitch", -8), data.get("rate", -6))
+                if data.get("voice"):
+                    audio, who = tts.speak(txt, str(data.get("voice", "")), data.get("pitch", -8), data.get("rate", -6)), "classic"
+                else:
+                    v = voiceengine.pick(txt, str(data.get("intent", "")), str(data.get("profile", "")), "english" if data.get("lang") == "english" else "hindi")
+                    audio, who = tts.speak(txt, v["voice"], v["pitch"], v["rate"]), v["profile"]
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
             self.send_response(200)
+            self.send_header("X-Voice", who)
             self.send_header("Content-Type", "audio/mpeg")
             self.send_header("Content-Length", str(len(audio)))
             self.end_headers()
