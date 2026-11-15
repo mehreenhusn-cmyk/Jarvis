@@ -2,11 +2,17 @@ plugins { id 'com.android.application' }
 android {
     namespace 'com.hussain.jarvis'
     compileSdk 34
-    defaultConfig { applicationId 'com.hussain.jarvis'; minSdk 24; targetSdk 34; versionCode 3; versionName '1.1' }
+    defaultConfig { applicationId 'com.hussain.jarvis'; minSdk 24; targetSdk 34; versionCode 4; versionName '1.2'
+        ndk { abiFilters 'arm64-v8a', 'armeabi-v7a' }  // Part 40: keeps the Vosk library small (phones only, no emulators)
+    }
     // Part 36 fix: ONE fixed signing key for every build. GitHub made a new random key each time, so Android refused to update the app
     // and you had to uninstall it (that wiped the pairing). With this fixed key an update installs over the old app and keeps the pairing.
     signingConfigs {
         debug { storeFile file('../jarvis-debug.keystore'); storePassword 'android'; keyAlias 'jarvis'; keyPassword 'android' }
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies {
+    implementation 'com.alphacephei:vosk-android:0.3.47'  // Part 40: offline wake word (runs on the phone)
+    implementation 'net.java.dev.jna:jna:5.13.0@aar'
 }

@@ -575,8 +575,8 @@ function fill(t){go('chat');$('msg').value=t;$('msg').focus();}  // the tool onl
 $('orb').onclick=()=>{go('chat');$('mic').click();};
 [['📝','Summarize',()=>fill('Summarize: ')],['🌐','Translate',()=>fill('Translate to Hindi: ')],['✍️','Write',()=>fill('Write a message: ')],['💡','Explain',()=>fill('Explain simply: ')],['🗓','Plan my day',()=>ask('briefing')],['📤','Handoff',()=>ask('handoff')]]
   .forEach(([i,n,f])=>{const b=el('button',null);b.type='button';b.append(el('span','',i),n);b.onclick=f;$('htl').appendChild(b);});
-[['☀️','Briefing','Your day in one look','briefing'],['⏰','My reminders','Today and later','my reminders'],['🔁','Routines','Saved task sentences','my routines'],['💰','Money ledger','Who owes what','show ledger'],['📱','Lost phone help','Steps if the phone is gone','phone kho gaya']]
-  .forEach(([i,n,sub,q])=>{const b=el('button','sc');b.type='button';const w=el('span');w.append(n,el('small','',sub));b.append(el('span','',i),w,el('b','','›'));b.onclick=()=>ask(q);$('hsc').appendChild(b);});
+[['☀️','Briefing','Your day in one look','briefing'],['⏰','My reminders','Today and later','my reminders'],['🔁','Routines','Saved task sentences','my routines'],['💰','Money ledger','Who owes what','show ledger'],['📋','Clipboard','Use what you just copied','__clip'],['📱','Lost phone help','Steps if the phone is gone','phone kho gaya']]
+  .forEach(([i,n,sub,q])=>{const b=el('button','sc');b.type='button';const w=el('span');w.append(n,el('small','',sub));b.append(el('span','',i),w,el('b','','›'));b.onclick=()=>q=='__clip'?clip():ask(q);$('hsc').appendChild(b);});
 [['⚙ Settings',()=>go('set')],['⏹ Stop everything',()=>{go('chat');add('bot',stopAll());}]]
   .forEach(([n,f])=>{const b=el('button','g',n);b.type='button';b.onclick=f;$('hq').appendChild(b);});
 // Part 48: Share to Jarvis (text from another app), handoff summary (copy or share), lost-phone links. Nothing leaves the phone until you tap.
@@ -590,9 +590,17 @@ function extras(w,t){
   else if(LOST_Q.test(t)&&/Find Hub/.test(w.textContent)){const open=k=>{let r=null;try{r=window.JarvisApp&&JarvisApp.openLink?JSON.parse(JarvisApp.openLink(k)):null}catch(e){}if(!r||!r.ok)add('err','Open it from another phone or PC: '+(k=='findhub'?'google.com/android/find':'sancharsaathi.gov.in'));};
     btns(w,[['Open Find Hub',()=>open('findhub')],['Open Sanchar Saathi',()=>open('sanchar')]]);}
 }
-function showShare(t){const one=t.replace(/\s+/g,' ').trim();add('user','📤 Shared to Jarvis:\n'+(one.length>400?one.slice(0,400)+'...':one));
+function showShare(t,from){const one=t.replace(/\s+/g,' ').trim();add('user',(from||'📤 Shared to Jarvis:')+'\n'+(one.length>400?one.slice(0,400)+'...':one));
   const w=add('bot','Got it, sir. Nothing was sent anywhere. What should I do with this?');go('chat');
   btns(w,[['Summarize',()=>ask('Summarize this: '+one)],['Explain simply',()=>ask('Explain simply: '+one)],['Hindi me batao',()=>ask('Translate to Hindi: '+one)],['Reply draft',()=>ask('Write a short polite reply to this: '+one)],['Remember',()=>ask('remember this: '+one.slice(0,300))]]);}
+// Part 49a: Clipboard button. Reads only when you tap. A password, OTP, PIN or card number is refused here and never shown or sent.
+const SENS=/password|passcode|\botp\b|\bpin\b|cvv|पासवर्ड|ओटीपी|पिन|(?:\d[ -]?){13,19}|^\s*\d{4,8}\s*$/i;
+function clip(){go('chat');let r=null;try{r=window.JarvisApp&&JarvisApp.clipboard?JarvisApp.clipboard():null}catch(e){}
+  if(r===null){add('err','Clipboard works only in the Jarvis Android app.');return;}
+  if(!r){add('bot','The clipboard is empty (or Android did not allow it). Copy some text, then tap Clipboard again.');return;}
+  let t='';try{t=JSON.parse(r)}catch(e){}
+  if(!t)return;if(SENS.test(t)){add('bot','That looks like a password, OTP, PIN or card number, so I did not read it.');return;}
+  showShare(t,'📋 From your clipboard:');}
 function pullShare(){if(!token||!window.JarvisApp||!JarvisApp.takeShare)return;let r='';try{r=JarvisApp.takeShare()}catch(e){}if(!r)return;try{const t=JSON.parse(r);if(t)showShare(t);}catch(e){}}
 setInterval(pullShare,2000);
 // Part 39: background listening test card (Settings). Numbers only: how often "Jarvis" was heard, with the screen off, with the app closed.
@@ -615,6 +623,19 @@ function bgt(){
   row('Notifications',i.notif?'allowed':'blocked',i.notif?'ok':'bad');
   if(i.err)row('Last problem',i.err,'bad');
   if(bgMsg)box.appendChild(el('p','bad',bgMsg));
+  let w={};try{w=JSON.parse(JarvisApp.wakeInfo())}catch(e){}  // Part 40: offline wake word (Vosk). Download only after your tap.
+  if(w&&w.ready!==undefined){
+    box.appendChild(el('h4','','Offline wake word (Part 40)'));
+    box.appendChild(el('p','','Listens on the phone itself, without the Google speech service. One time download of about 40 MB (use Wi-Fi). It only looks for the word "Jarvis"; nothing you say is kept or sent. With Jarvis on screen it opens the mic; with the app closed it shows a "Tap to talk" notification. It uses more battery than the normal test. A change counts from the next time you start the test.'));
+    row('Model',w.downloading?'downloading '+w.pct+'%':w.ready?'ready':'not downloaded',w.ready?'ok':'');
+    if(w.err)row('Problem',w.err,'bad');
+    if(w.ready)row('Engine',w.use?'OFFLINE':'Google (normal)',w.use?'warn':'');
+    const wb=el('button','g',w.downloading?'Downloading...':w.ready?(w.use?'Use Google engine':'Use offline engine'):'Download model (40 MB)');
+    wb.onclick=()=>{if(w.downloading)return;if(!w.ready){try{JarvisApp.wakeDownload()}catch(e){}setTimeout(bgt,800);}else{try{JarvisApp.wakeUse(!w.use)}catch(e){}bgt();}};
+    box.appendChild(wb);
+    if(w.ready){const db=el('button','g','Delete model');db.style.marginLeft='8px';db.onclick=()=>{try{JarvisApp.wakeDelete()}catch(e){}setTimeout(bgt,300);};box.appendChild(db);}
+    if(w.downloading)setTimeout(bgt,1500);
+  }
   const b=el('button','g',i.up?'Stop test':'Start test');
   b.onclick=()=>{let r={};try{r=JSON.parse(JarvisApp.bgListen(!i.up))}catch(e){}
     const m={perm:'Allow the microphone first (a prompt may have appeared), then tap again.',notif:'Turn on Jarvis notifications first (Settings > Apps > Jarvis > Notifications).',stopped:'Jarvis is stopped. Tap "Turn mic on" first.',tap:'Tap the button with your finger.',nospeech:'This phone has no speech service.',locked:'Jarvis is locked.'};

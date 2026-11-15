@@ -231,6 +231,36 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> { try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(u))); } catch (Exception e) {} });
                 return "{\"ok\":true}";
             }
+            // Part 40: offline wake word model (download only after your tap) and the switch that makes the background listener use it
+            @JavascriptInterface public String wakeInfo() { if (AppLock.locked()) return "{\"locked\":true}"; return WakeEngine.info(MainActivity.this); }
+            @JavascriptInterface public String wakeDownload() {
+                if (AppLock.locked() || System.currentTimeMillis() - touch > 3000) return "{\"ok\":false,\"err\":\"tap\"}";
+                WakeEngine.download(MainActivity.this);
+                return "{\"ok\":true}";
+            }
+            @JavascriptInterface public String wakeUse(boolean on) {
+                if (AppLock.locked() || (on && !WakeEngine.ready(MainActivity.this))) return "{\"ok\":false}";
+                getSharedPreferences("j", 0).edit().putBoolean("wk_vosk", on).apply();
+                return "{\"ok\":true}";
+            }
+            @JavascriptInterface public String wakeDelete() {
+                if (AppLock.locked() || System.currentTimeMillis() - touch > 3000) return "{\"ok\":false}";
+                runOnUiThread(() -> ListenService.halt(MainActivity.this));
+                WakeEngine.remove(MainActivity.this);
+                return "{\"ok\":true}";
+            }
+            // Part 49a: clipboard, read only when you tap the button (Android also allows it only while Jarvis is on screen)
+            @JavascriptInterface public String clipboard() {
+                if (AppLock.locked() || System.currentTimeMillis() - touch > 3000) return "";
+                try {
+                    android.content.ClipboardManager cm = getSystemService(android.content.ClipboardManager.class);
+                    android.content.ClipData d = cm == null ? null : cm.getPrimaryClip();
+                    CharSequence t = d == null || d.getItemCount() == 0 ? null : d.getItemAt(0).coerceToText(MainActivity.this);
+                    if (t == null || t.toString().trim().isEmpty()) return "";
+                    String x = t.toString();
+                    return JSONObject.quote(x.length() > 4000 ? x.substring(0, 4000) : x);
+                } catch (Exception e) { return ""; }
+            }
             @JavascriptInterface public String phoneInfo() { if (AppLock.locked()) return "{\"locked\":true}"; return PhoneInfo.json(MainActivity.this); }
             @JavascriptInterface public void saveToken(String t) {
                 getSharedPreferences("j", 0).edit().putString("token", t).apply();
@@ -303,6 +333,7 @@ public class MainActivity extends Activity {
             .setContentIntent(PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE)).build());
     }
 
+    static MainActivity cur;  // Part 40: the offline listener opens the mic through this when Jarvis is on screen
     static volatile boolean visible;  // Part 39: the background test counts how often "Jarvis" was heard with the app NOT on screen
     boolean asking, closing;
 
@@ -319,6 +350,7 @@ public class MainActivity extends Activity {
     @Override protected void onPause() {
         super.onPause();
         visible = false;
+        if (cur == this) cur = null;
         AppLock.left();  // Android does not let apps listen from the background, so Hey Jarvis pauses here
         if (ears != null && ears.on) { ears.stop(); ears.js("onHeardErr", "Hey Jarvis paused because the app went to the background"); }
     }
@@ -326,6 +358,7 @@ public class MainActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         visible = true;
+        cur = this;
         gate();
         if (AppLock.locked()) return;  // nothing is handed to the page while it is locked
         if (wantListen) {  // Part 38: tile or shortcut. Same as tapping the mic: the page checks Stop itself.
@@ -343,6 +376,12 @@ public class MainActivity extends Activity {
             web.evaluateJavascript("window.onScreen&&onScreen(" + JSONObject.quote(p) + ")", null);
         }
         deliverTask();
+    }
+
+    /** Part 40: same as tapping the mic (the page checks Stop itself). Opening the mic ends the background listener, one listener at a time. */
+    void wakeTalk() {
+        if (AppLock.locked() || Privacy.stopped || web == null) return;
+        web.evaluateJavascript("window.go&&go('chat');document.getElementById('mic')&&document.getElementById('mic').click()", null);
     }
 
     /** Part 42: hands the finished task to the page (called when Jarvis is on screen again). */
