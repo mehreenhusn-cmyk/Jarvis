@@ -195,6 +195,12 @@ public class MainActivity extends Activity {
                         try { r.put("type", ty); } catch (Exception e) { /* send what we have */ }
                         return r.toString();
                     }
+                    if ("call".equals(ty)) {  // Part 64: call by name. Contacts permission first (only to look the name up), then CallByName asks for the call permission itself.
+                        if (a.optString("number").isEmpty() && !allowed(Manifest.permission.READ_CONTACTS, 3)) return "{\"ok\":false,\"err\":\"perm\",\"perm\":true,\"what\":\"contacts\"}";
+                        JSONObject r = CallByName.run(MainActivity.this, a);
+                        if (r.optBoolean("ok")) Privacy.used("contacts");
+                        return r.toString();
+                    }
                     if ("open_app".equals(a.optString("type"))) {
                         JSONObject r = Apps.open(MainActivity.this, a.optString("name"), a.optBoolean("exact"));
                         if (r.optBoolean("ok")) Privacy.used("apps");

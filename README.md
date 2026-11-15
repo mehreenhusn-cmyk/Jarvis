@@ -4,10 +4,57 @@
 > runs out often. This README has the full plan: what we build, why, how, the rules, where we are, and what is next.
 > Read it, then start the next part. Do not ask him to resend the old chat. Repo: https://github.com/mehreenhusn-cmyk/Jarvis
 
+## 00. START HERE (the one page to read; updated 16 Nov 2026, after Parts 62 and 63)
+
+**How to read this file (map).** Section 00 = this page (what, progress, what is left, next step). Section 0 = short status groups. 1-3 = what and how. 4 = RULES (always follow). 5 = setup. 6 = full status table. 7 = what to do next. 8 = cheat sheet of voice commands. 9 = security. 10 = old roadmap. 11 = master plan, checklist, progress numbers.
+
+**What Jarvis is.** A personal AI assistant on Hussain's phone. A Python server runs in Termux; an Android app (WebView plus Java) shows chat and Home and controls the phone. Hussain speaks in any Indian language or English, and Jarvis answers, opens apps, runs steps in a row, reminds, remembers, and keeps the phone safe. Everything arrives as ONE zip; GitHub Actions builds the APK.
+
+**Hussain's goal in his words (16 Nov).** Say any app name in any language and it opens, and the screen shows clearly what is happening or failing. "Call Ammi" should just call. Jarvis must know battery, Bluetooth and what is wrong with the phone. Jarvis must know when to stop talking if somebody speaks.
+
+### Progress dashboard
+
+| Phase | Parts | Built | Left | Code lines (approx) |
+|---|---|---|---|---|
+| Phase 1: base, phone control, voices, memory, Home, notifications, research | 1 to 59 (with 49a, 49b, 53b) | all built | 0 | about 5,000 |
+| Phase 2: any app, any language, calls, phone health, alarm, search in app, interrupt, weather | 60 to 67 | 62, 63, 64 | 60, 61, 65, 66, 67 | built about 345, left about 510 |
+
+**Overall: 3 of 8 Phase 2 Parts built (about 40 percent of the Phase 2 lines). Phase 1 is complete in code, but only Parts 1 to 26 were tested on a phone. The most important next step is Build APK plus the phone checklist (section 11.8), because Java has never been compiled.**
+
+### Phase 2 plan (each Part: files, lines, benefit, status)
+
+| Part | What it does | Files | Est. lines | Real lines | Benefit for Hussain | Status |
+|---|---|---|---|---|---|---|
+| 62 | Open ANY app on the phone by saying its name, in any script. The name is matched with the phone's real app list (exact, spelling, same consonants). Chat shows "Looking for the app...", then a tick or a cross. | `actions.py`, `lang.py`*, `Apps.java`, `index.html` | ~120 | about 60 | Every installed app opens, and he sees what happened | BUILT, not phone tested, Java not compiled |
+| 63 | Any Indian language: Hindi, Marathi, Gujarati, Tamil, Telugu, Kannada, Malayalam, Bengali, Punjabi, Odia, Urdu (commands) and English. Open app, torch, volume, settings pages and multi-step all work. Open-app answers come in the language spoken. Chat answers in that language. Voice for Tamil, Telugu, Gujarati, Kannada, Malayalam, Bengali, Marathi, Urdu. Speak language list in the app. | `lang.py`*, `actions.py`, `tasks.py`, `app.py`, `tts.py`, `index.html` | ~180 | about 85 | Speak in his own language and get work done | BUILT, not phone tested |
+| 64 | "Ammi ko call karo" (any language) calls the contact by name. Two matches: asks which. Screen shows "Calling Ammi...". | `CallByName.java`*, `MainActivity.java`, manifest, `actions.py`, `tasks.py`, `index.html` | ~110 | about 199 (`CallByName.java` 105 new, `actions.py` 61, `index.html` 22, `MainActivity` 6, `tasks.py` 3, manifest 2) | No speed dial needed | BUILT, not phone tested, Java not compiled |
+| 65 | Phone health: battery, charging, Bluetooth (which device is connected), Wi-Fi, storage, memory, heat. If something is wrong, Jarvis says what and how to fix it. | `PhoneInfo.java`, `phone.py`, `index.html` | ~100 | - | One question tells him what is wrong with the phone | PLANNED (battery and charging already answered, Part 59) |
+| 66 | Alarm and timer by voice: "subah 6 baje alarm laga". Opens the Android alarm with the time set. | `MainActivity.java`, `actions.py` | ~60 | - | Alarm without touching the phone | PLANNED |
+| 60 | Search inside an app without typing: "YouTube par X search karo". Opens the search link. Also Maps and Chrome. | `actions.py`, `TaskRunner.java`, `MainActivity.java` | ~110 | - | "Open YouTube and play a Shah Rukh song" finally works | PLANNED |
+| 61 | Smart interrupt: Jarvis stops talking when someone speaks, and listens. Risk: the mic can hear Jarvis' own voice; best with earphones. | `index.html`, `Ears.java`, `MainActivity.java` | ~160 | - | He can speak in the middle of an answer | PLANNED, risky, needs a phone test |
+| 67 | Weather on Home from a free weather service | `app.py`, `index.html` | ~80 | - | Weather question and Home card | PLANNED |
+
+`*` = new file. Estimates are rough; real numbers are filled in after each Part.
+
+**Total left: 5 Parts, about 510 lines.** Suggested order: Build APK and test, then 65, 66, 60, 61, 67.
+
+### Known limits (honest list)
+- Speech to text: the phone listens in ONE language at a time. For Tamil, Gujarati and so on, choose that language in "Speak:" (Settings, voice panel). Switching by itself between languages needs the Sarvam key (not built yet).
+- Urdu: command words (open, torch, on, off) work; unknown Urdu app names are NOT matched, only known apps such as YouTube.
+- Odia: commands work; answers come in English or Hindi text (no Odia voice).
+- Sarvam voice speaks only Hindi and English. Other languages use the free Edge voices.
+- Send, pay, delete and similar steps always need Hussain's own tap. Passwords, OTPs and PINs are never typed.
+- Android does not let any app switch Wi-Fi, Bluetooth or location on or off by itself. Jarvis opens the page.
+
+### How to resume (for any new Claude)
+1. Read sections 00 and 4 (RULES). 2. Check the Phase 2 table: take the first PLANNED Part in the suggested order. 3. Say first "with tests" or "without tests" and why (Hussain's rule). 4. Build it, give changed files with line counts, keep ONE cumulative zip (this round plus earlier changed files). 5. Update this page: the table row (real lines, status), the dashboard numbers, and the Progress table in 11.11. Never touch `run.sh` or `sync.sh`.
+
 ## 0. AT A GLANCE (updated 16 Nov 2026, after Parts 53, 53b, 49b, 57 and 58)
 **What:** Jarvis, a personal AI assistant on Hussain's phone (Termux server + Android app). **Why:** one app on the phone, no PC, works by download only.
 **Done:** 59 of 60 Parts built (about 4,950 lines of code, 77 files). Part 49 was split into 49a (clipboard) and 49b (notification summary), both built. Only Parts 1 to 26 were partly phone tested; Parts 27 to 40, 41 to 48, 49a, 50, 51, 52, 54, 55 and 56 are built but NOT phone tested. Java is still not compiled: the GitHub Build APK is the first compile test.
-**Pending:** only 1 optional Part: Weather on Home (about 80 lines, needs a free weather service). Ideas Hussain may ask for next: search INSIDE an app (for example "YouTube par X search karo", would open the YouTube search link, no typing), and interrupting Jarvis while he speaks (needs a phone test for echo). No required Part is left. Next step: run **Build APK**, install, test with section 11.8. Parts 53, 53b, 49b, 57 and 58 are built but not phone tested; Java of 49b was never compiled.
+**Part 59 (fix, built):** phone dictation writes English words in Hindi script ("ओपन यूट्यूब", "ओपन टॉर्च", "एंड"), which Jarvis did not know, so the AI said "cannot". Now those spellings work for open app, torch and multi-step. Battery and charging questions are answered from the phone itself. The message bar has clean icons (stop, camera inside the box, round send, mic). Python checked with a few phrases; page JS syntax checked only; NOT phone tested.
+**Phase 2 (new, see section 00):** Parts 62 (any app), 63 (any Indian language) and 64 (call by name) are BUILT, not phone tested. Left: 65, 66, 60, 61, 67 (about 510 lines).
+**Older pending note:** only 1 optional Part: Weather on Home (about 80 lines, needs a free weather service). Ideas Hussain may ask for next: search INSIDE an app (for example "YouTube par X search karo", would open the YouTube search link, no typing), and interrupting Jarvis while he speaks (needs a phone test for echo). No required Part is left. Next step: run **Build APK**, install, test with section 11.8. Parts 53, 53b, 49b, 57 and 58 are built but not phone tested; Java of 49b was never compiled.
 | Group | Parts | Status |
 |---|---|---|
 | Base: server, chat, voice, reminders, app, privacy | 1 to 29 | DONE |
@@ -28,6 +75,7 @@
 | Home tab (orb, today, quick buttons, stats). Redesigned in Part 48 | 56, 48 | BUILT |
 | Offline wake word (Vosk, model downloaded by tap) and Clipboard button | 40, 49a | BUILT (this zip) |
 | Research answers with sources, mood-support rules (57) and voice modes with a status line (58) | 57, 58 | BUILT (this zip), not phone tested |
+| Any app by name in any script (62) and any Indian language (63) | 62, 63 | BUILT (this zip), not phone tested, Java not compiled |
 | Notification summary (optional feature, OFF by default, chosen apps only) | 49b | BUILT (this zip), not compiled, not phone tested |
 
 ## 1. What we are building
@@ -136,6 +184,9 @@ Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): He
 3. Parts 30 to 39, 41 to 47, 50, 51, 52, 54, 55 and 56 are BUILT. Download the zip, wait for "pushed", run **Build APK**, install, then test with section 11.8. All required Parts are built; test them with section 11.8. Dual voice: Parts 51, 52 and 53 are built (Sarvam added, Tony hidden), see section 11.6b. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
 
 ## 8. Cheat sheet (type or say)
+**Languages (Part 62, 63):** say or type the app name in any script: `ઓપન યુટ્યુબ`, `ஓபன் யூடியூப்`, `ఓపెన్ యూట్యూబ్`, `यूट्यूब उघडा`, `open Zomato`. Steps in a row work too (`ઓપન યુટ્યુબ અને ઓપન ક્રોમ`). Choose the same language in "Speak:" for the mic. Ask `battery kitni hai` or `charging status` for a local answer.
+
+**Call by name (Part 64):** say `Ammi ko call karo`, `call Ammi`, `अम्मी को कॉल करो` or `Ammi ko phone lagao`. Needs Phone control ON. Android asks once for Contacts and once for Phone calls. A sure match (same name, or the name starts with it) is called at once. Two or more matches, or only a close spelling ("Ammi" and "Amma"), show buttons with the last 4 digits and only YOUR tap places the call. `call 9876543210` only opens the dialer; the green button is your own tap. A call cannot be a step in a multi-step task, say it on its own. Limits: names are matched in Latin or Hindi script (a contact saved in Tamil script is not found); the call permission is asked on the first call, then say it again. Nothing about the contacts is saved or sent.
 | Say or type | What happens |
 |---|---|
 | Chrome kholo aur neeche scroll karo phir back jao (2 to 6 steps joined by aur / and / phir / then) | One task: steps shown, run one by one with checks, Cancel in the notification, result in chat (app only, switch ON). Send, pay, delete or typing steps are refused inside a task |
@@ -411,6 +462,10 @@ What changes for Hussain: the first mic tap asks for the microphone; the first "
 | 42 | BUILT | ~120 | 181 (`TaskRunner.java` 129 new, `index.html` 34, `MainActivity` 15, `Privacy` 3). `ScreenService` needed no change | NOT YET. Java not compiled |
 | 43 | BUILT | ~80 | about 40 (README only: checklist table and status lines; no test file) | NOT YET |
 | 51 | BUILT | ~170 | 90 (`voiceengine.py` 76 new, `app.py` 13, `.gitignore` 1). `tts.py` needed no change | NOT YET. Python syntax checked only. Not run: server, voice |
+| 64 | BUILT | ~110 | about 199 (`CallByName.java` 105 new, `actions.py` 61, `index.html` 22, `MainActivity.java` 6, `tasks.py` 3, manifest 2) | NOT YET. Python phrases checked (21 phrases, 5 scripts); page JS syntax only. Java not compiled |
+| 63 | BUILT | ~180 | about 85 (`lang.py` 104 new counted in 62/63 together; `actions.py`, `tasks.py`, `app.py`, `tts.py`, `index.html`) | NOT YET. Python phrases checked in 9 scripts; page JS syntax only |
+| 62 | BUILT | ~120 | about 60 (`Apps.java` 7, `actions.py`, `index.html`) | NOT YET. Java not compiled |
+| 59 | BUILT | ~60 | about 70 (`actions.py` 14, `tasks.py` 1, `index.html` about 55) | NOT YET. Python phrases checked, page JS syntax only. Not run: phone |
 | 52 | BUILT | ~160 | 46 (`index.html` only; the routes were already in Part 51) | NOT YET. Page JS syntax checked only. Not run: phone |
 | 47 | BUILT | ~210 | about 210 (`backup.py` 170 new, `index.html` +22, `app.py` +17, README setup line) | NOT YET. Python logic run here with real OpenSSL (lock, wrong passphrase, damage, path trick, merge, wipe); page not run |
 | 46 | BUILT | ~115 | about 75 (`tasks.py` +70, `app.py` 1, `index.html` 1) | NOT YET. Python logic run here (save, run, refusals, limit 10, switch OFF); Java runner not compiled |

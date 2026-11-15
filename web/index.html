@@ -26,6 +26,12 @@ select{width:auto;max-width:100%;padding:8px 10px;font-size:14px}
 form{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:var(--sf);border-top:1px solid var(--line);align-items:center}
 form input{border-radius:24px}#mic{width:52px;height:52px;padding:0;border-radius:50%;font-size:22px;flex:none}#send{border-radius:24px}
 #stop{width:40px;height:40px;padding:0;border-radius:50%;background:var(--sf2);color:var(--bad);flex:none}
+form{gap:10px}#box{flex:1;min-width:0;display:flex;align-items:center;background:var(--sf2);border:1px solid var(--line);border-radius:26px;padding:0 4px 0 6px}#box input{flex:1;min-width:0;border:0;background:transparent;box-shadow:none;padding:12px 8px;border-radius:0;color:var(--fg)}#box input:focus{outline:0}#box:focus-within{border-color:var(--c1,var(--ac))}
+#cam{width:38px;height:38px;border-radius:50%;padding:0;flex:none;background:transparent;border:0;color:var(--mut);display:flex;align-items:center;justify-content:center}#cam:active{background:rgba(255,255,255,.08)}
+#send{width:44px;height:44px;border-radius:50%;padding:0;flex:none;display:flex;align-items:center;justify-content:center}
+#mic{display:flex;align-items:center;justify-content:center;transition:box-shadow .2s}#mic.on{box-shadow:0 0 0 4px rgba(229,101,95,.35),0 0 22px rgba(229,101,95,.5)}
+#stop{display:flex;align-items:center;justify-content:center;width:38px;height:38px}
+body.hm #box{background:rgba(255,255,255,.07);border-color:var(--line)}body.hm #box:focus-within{border-color:var(--c1);box-shadow:0 0 0 3px rgba(53,198,255,.18)}body.hm #chat form #box input{background:transparent;border:0;box-shadow:none}body.hm #chat button#cam.g{background:transparent;border:0;color:#9fb4d9}body.hm #stop{color:#ff8a85;background:rgba(229,101,95,.12);border:1px solid rgba(229,101,95,.35)}
 #set{flex:1;overflow-y:auto;padding:18px 16px}#set h4,#home h4{margin:22px 0 8px;color:var(--ac);font-size:13px;letter-spacing:.1em;text-transform:uppercase}
 #tabs{display:flex;gap:8px;padding:8px 16px;background:var(--sf);border-bottom:1px solid var(--line)}#tabs button{flex:1}#tabs button.on{background:var(--ac);color:#15120a}
 #home{flex:1;overflow-y:auto;padding:14px 14px 28px;--c1:#35c6ff;--c2:#9b6bff;--c3:#ff5fd2;--hc:rgba(16,24,54,.78);--hl:rgba(96,140,255,.26);--fg:#eaf0ff;--mut:#97a6cc;--line:rgba(96,140,255,.2);--sf2:rgba(255,255,255,.07);background:radial-gradient(130% 55% at 50% 0,#13205a 0,#070b1a 62%) #070b1a;color:var(--fg)}
@@ -85,13 +91,13 @@ body.hm #vstat{background:rgba(7,11,26,.92);color:#97a6cc;border-color:rgba(96,1
 <input id="key" placeholder="Paste key here" autocomplete="off"><p><button id="kp">Paste from clipboard</button> <button id="kc" class="g">Check</button></p><p id="kr"></p><div id="kl"></div></div>
 <h4>People</h4><div class="card" id="pl"></div><h4>Memory</h4><div class="card" id="ml"></div><h4>Money ledger</h4><div class="card" id="ll"></div></div>
 <div id="off" class="bad" hidden style="padding:8px 16px;font-size:13px;background:var(--sf);border-bottom:1px solid var(--line)"></div><div id="pv"></div><div id="chat" hidden>
-<div id="vp" hidden><select id="lang"><option value="hi-IN">Speak: Hindi</option><option value="en-IN">Speak: English</option></select>
+<div id="vp" hidden><select id="lang"><option value="hi-IN">Speak: Hindi</option><option value="en-IN">Speak: English</option><option value="ta-IN">Speak: Tamil</option><option value="gu-IN">Speak: Gujarati</option><option value="mr-IN">Speak: Marathi</option><option value="te-IN">Speak: Telugu</option><option value="kn-IN">Speak: Kannada</option><option value="ml-IN">Speak: Malayalam</option><option value="bn-IN">Speak: Bengali</option><option value="pa-IN">Speak: Punjabi</option><option value="ur-IN">Speak: Urdu</option></select>
 <select id="voice"></select><select id="pre"><option value="">Voice style</option><option value="k">Khattar (deep, Hindi dub)</option><option value="r">Rolex (very deep)</option><option value="d">Jarvis studio (Hindi)</option><option value="b">Jarvis studio (British English)</option><option value="n">Normal</option></select>
 <label><input type="checkbox" id="say" style="width:auto"> Speak replies</label><label>Depth <input type="range" id="pt" min="0.5" max="1.5" step="0.05" style="width:80px;padding:0"></label><label>Speed <input type="range" id="rt" min="0.6" max="1.4" step="0.05" style="width:80px;padding:0"></label>
 <button type="button" id="tv" class="g">Test voice</button><button type="button" id="mon" class="g" hidden>Turn mic on</button><button type="button" id="wake" class="g" hidden>Hey Jarvis: off</button><button type="button" id="conv" class="g" hidden>Conversation: off</button><b class="vbadge ok">Voice: -</b> <b id="ms" class="ok">Mic off</b></div>
 <div id="vstat"><span id="vs">Idle</span><select id="mode" title="Mode"><option value="normal">Normal</option><option value="research">Research</option><option value="quiet">Quiet</option><option value="focus">Focus</option></select></div>
 <div id="log"></div>
-<form id="f"><button type="button" id="stop" title="Stop">⏹</button><input id="msg" autocomplete="off" placeholder="Message Jarvis..."><button id="send">Send</button><button type="button" id="cam" title="Camera" class="g" style="width:44px;height:44px;border-radius:50%;padding:0;flex:none">📷</button><button type="button" id="mic" title="Speak">🎤</button><input type="file" id="pic" accept="image/*" capture="environment" hidden></form></div>
+<form id="f"><button type="button" id="stop" title="Stop" aria-label="Stop"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg></button><div id="box"><input id="msg" autocomplete="off" placeholder="Message Jarvis..."><button type="button" id="cam" title="Camera" aria-label="Camera" class="g"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5h3l1.6-2.5h6.8L17 8.5h3V19H4z"/><circle cx="12" cy="13.5" r="3.6"/></svg></button></div><button id="send" title="Send" aria-label="Send"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button><button type="button" id="mic" title="Speak" aria-label="Speak"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button><input type="file" id="pic" accept="image/*" capture="environment" hidden></form></div>
 <script>
 const $=id=>document.getElementById(id);
 const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;};  // Part 56: global (the system card needs it too)
@@ -138,10 +144,14 @@ $('go').onclick=async()=>{
     if(s==200){token=d.token;localStorage.setItem('jtoken',token);if(window.JarvisApp)JarvisApp.saveToken(token);show();history();}else $('pe').textContent=d.error||'Pairing failed';
   }catch(e){$('pe').textContent='Cannot reach the server. Is Jarvis running in Termux?';}
 };
+const BATQ=/(battery|charging|charge|बैटरी|चार्जिंग|चार्ज)/i,BATNO=/(settings|setting|सेटिंग|kholo|खोलो|open|ओपन|saver|सेवर|kaise bachao|tips)/i;
 $('f').onsubmit=async e=>{
   e.preventDefault();const t=$('msg').value.trim();if(!t)return;$('msg').value='';
   if(/^(gsk_|sk-or-|nvapi-|mstrl_|sk-[0-9a-f]{32}$)/.test(t)){go('set');$('key').value=t;addKey();return;}
   if(/stop listening|stop everything|mic band|sunna band|सुनना बंद|माइक बंद/i.test(t)){add('user',t);add('bot',stopAll());return;}
+  if(BATQ.test(t)&&!BATNO.test(t)&&t.length<70){const ph=pinfo();if(ph&&ph.battery!=null){const hi=sty()=='hindi',vm0=viaMic;viaMic=false;add('user',t);
+    const a=hi?`सर, बैटरी ${ph.battery}% है और फ़ोन ${ph.charging?'चार्ज हो रहा है':'चार्ज नहीं हो रहा'}।`:`Battery is at ${ph.battery}% and the phone is ${ph.charging?'charging':'not charging'}, sir.`;
+    add('bot',a);if(MODE!='quiet')speak(a,vm0,'');return;}}
   if(SCREENQ.test(t)&&!screenData){const r=sbridge();
     if(!r){add('user',t);add('err','Screen reading works only in the Jarvis Android app.');return;}
     if(r.stopped){add('user',t);add('err','Jarvis is stopped. Tap "Turn mic on" first.');return;}
@@ -155,7 +165,7 @@ $('f').onsubmit=async e=>{
 };
 let viaMic=false,wakeOn=false,appListening=false,cmdNext=false,convOn=false,convMiss=0,convTurns=0;
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;
-function micState(on){$('mic').textContent=on?'🎙':'🎤';$('ms').textContent=convOn?'Conversation ON':on?'Mic ON':'Mic off';$('ms').className=on||convOn?'bad':'ok';pv();}
+function micState(on){$('mic').classList.toggle('on',!!on);$('ms').textContent=convOn?'Conversation ON':on?'Mic ON':'Mic off';$('ms').className=on||convOn?'bad':'ok';pv();}
 $('mic').onclick=()=>{
   if(priv)return;
   if(!SR){if(appEars()){if(appListening){JarvisApp.stopListen();appListening=false;micState(false);}else{appListening=true;micState(true);JarvisApp.listen($('lang').value,false);}}else add('err','Voice input is not available here. Use Chrome.');return;}
@@ -276,8 +286,13 @@ function local(t){
   const v=speechSynthesis.getVoices().find(x=>x.name==$('voice').value)||speechSynthesis.getVoices().find(x=>/en.GB|en.IN/i.test(x.lang));
   if(v){u.voice=v;u.lang=v.lang;}else u.lang='en-IN';u.onend=u.onerror=heardBack;speechSynthesis.speak(u);
 }
+const SV=[[/[\u0B80-\u0BFF]/,'ta-IN-ValluvarNeural'],[/[\u0C00-\u0C7F]/,'te-IN-MohanNeural'],[/[\u0A80-\u0AFF]/,'gu-IN-NiranjanNeural'],[/[\u0C80-\u0CFF]/,'kn-IN-GaganNeural'],[/[\u0D00-\u0D7F]/,'ml-IN-MidhunNeural'],[/[\u0980-\u09FF]/,'bn-IN-BashkarNeural'],[/[\u0600-\u06FF]/,'ur-IN-SalmanNeural']];  // Part 63: a reply in these scripts is read by a voice of that language
+const scriptVoice=t=>{for(const [r,v] of SV)if(r.test(t))return v;return /[\u0900-\u097F]/.test(t)&&/आहे|आणि|उघड|आहेत/.test(t)?'mr-IN-ManoharNeural':null;};
+const LT={gu:['ઠીક છે સર, {x} ખોલી રહ્યો છું.','સર, આ ફોનમાં "{x}" નામની એપ મળી નથી.','કઈ, સર?'],ta:['சரி சார், {x} திறக்கிறேன்.','சார், இந்த போனில் "{x}" என்ற ஆப் கிடைக்கவில்லை.','எது சார்?'],te:['సరే సర్, {x} తెరుస్తున్నాను.','సర్, ఈ ఫోన్‌లో "{x}" అనే యాప్ దొరకలేదు.','ఏది సర్?'],kn:['ಸರಿ ಸರ್, {x} ತೆರೆಯುತ್ತಿದ್ದೇನೆ.','ಸರ್, ಈ ಫೋನ್‌ನಲ್ಲಿ "{x}" ಎಂಬ ಆ್ಯಪ್ ಸಿಗಲಿಲ್ಲ.','ಯಾವುದು ಸರ್?'],ml:['ശരി സർ, {x} തുറക്കുന്നു.','സർ, ഈ ഫോണിൽ "{x}" എന്ന ആപ്പ് കണ്ടെത്തിയില്ല.','ഏതാണ് സർ?'],bn:['ঠিক আছে স্যার, {x} খুলছি।','স্যার, এই ফোনে "{x}" নামের অ্যাপ পাওয়া যায়নি।','কোনটা স্যার?'],pa:['ਠੀਕ ਹੈ ਸਰ, {x} ਖੋਲ੍ਹ ਰਿਹਾ ਹਾਂ।','ਸਰ, ਇਸ ਫ਼ੋਨ ਵਿੱਚ "{x}" ਨਾਮ ਦੀ ਐਪ ਨਹੀਂ ਮਿਲੀ।','ਕਿਹੜੀ ਸਰ?'],mr:['ठीक आहे सर, {x} उघडत आहे.','सर, या फोनमध्ये "{x}" नावाचे अ‍ॅप सापडले नाही.','कोणते सर?'],ur:['ٹھیک ہے سر، {x} کھول رہا ہوں۔','سر، اس فون میں "{x}" نام کی ایپ نہیں ملی۔','کون سی سر؟']};  // Part 63: app-open answers in the language you spoke
+const lt=(a,i,x)=>(LT[a.lang]||[])[i]?.replace('{x}',x);
 async function speak(t,force,intent,profile){
   if(!force&&(!$('say').checked||MODE=='quiet'))return;if(wakeOn&&appEars())JarvisApp.stopListen();const v=$('voice').value||'neural:hi-IN-MadhurNeural';
+  const sv=scriptVoice(t);if(sv){try{await neural(t,sv);return;}catch(e){add('err','Voice for this language failed: '+e.message+'. Trying the phone voice.');}}
   const eng=localStorage.getItem('jeng')!='0';  // Part 52: Tony / JARVIS voices are ON unless you switch to the classic voice
   if(eng||v.startsWith('neural:')){
     try{await(eng?engine(t,intent,profile):neural(t,v.slice(7)));return;}catch(e){add('err','Online voice failed: '+(e.name=='NotAllowedError'?'the browser blocked sound. Tap the page once and try again.':e.message)+'. Trying the phone voice.');}
@@ -450,22 +465,45 @@ window.onTaskDone=s=>{
   const w=add('bot',head+'\n'+lines.join('\n'));if(bad&&!r.cancelled)w.className='m err';
   api('/task/done',{id:r.id,results:res,cancelled:!!r.cancelled}).catch(()=>{});localStorage.removeItem('jtask');speak(head,false,'TASK_CONFIRMATION');
 };
+// Part 64: "Ammi ko call karo". Java looks the name up in the phone's own contacts. A sure match is called at once; several matches or a close spelling
+// show buttons, and only a real finger tap on one of them places the call. A typed number only opens the dialer.
+async function doCall(a,w){
+  const hi=sty()=='hindi',say=(h,e)=>hi?h:e,who=a.said||a.name||a.number||'';
+  w.textContent=say('कॉन्टैक्ट ढूँढ रहा हूँ: '+who+'…','Looking for the contact: '+who+'...');await new Promise(z=>setTimeout(z,80));
+  let r;try{r=JSON.parse(JarvisApp.act(JSON.stringify(a)));}catch(e){r={ok:false,err:'unknown'};}
+  let t;
+  if(r.ok)t='✔ '+(r.mode=='dial'?say('डायलर खुल गया सर। हरा कॉल बटन आप खुद दबाइए।','The dialer is open, sir. Please press the green call button yourself.'):say('ठीक है सर, '+r.name+' को कॉल कर रहा हूँ।','Calling '+r.name+', sir.'));
+  else if(r.ask){
+    t=say('कौन सा सर? जिसे कॉल करना है उसे दबाइए।','Which one, sir? Tap the one to call.');w.textContent=t;const row=document.createElement('div');
+    r.ask.forEach(x=>{const b=document.createElement('button');b.type='button';b.className='g';b.textContent='📞 '+x.label;b.style.margin='6px 6px 0 0';
+      b.onclick=async ev=>{if(!ev.isTrusted)return;row.remove();w.textContent=await doCall({type:'call',number:x.number,name:String(x.label).replace(/ \(\.\.\.\d+\)$/,'')},w);};row.appendChild(b);});
+    w.appendChild(row);return t;}
+  else if(r.err=='not_found')t='✖ '+say('सर, कॉन्टैक्ट में "'+who+'" नाम नहीं मिला। नाम की स्पेलिंग बदलकर देखिए।','Sir, I could not find "'+who+'" in your contacts. Try another spelling.');
+  else if(r.err=='perm')t='✖ '+(r.what=='contacts'?say('सर, कॉन्टैक्ट की अनुमति दीजिए, फिर दोबारा बोलिए।','Sir, allow Contacts on the phone, then say it again.'):say('सर, फ़ोन कॉल की अनुमति दीजिए, फिर दोबारा बोलिए।','Sir, allow Phone calls on the phone, then say it again.'));
+  else if(r.err=='stopped')t=say('Jarvis रुका हुआ है सर। पहले "Turn mic on" दबाइए।','Jarvis is stopped. Tap "Turn mic on" first.');
+  else if(r.err=='off')t=say('फ़ोन कंट्रोल बंद है सर। Settings में चालू कीजिए।','Phone control is OFF. Turn it on in Settings.');
+  else if(r.err=='locked'){const m=ACTERR.locked;t=say(m[0],m[1]);}
+  else t='✖ '+say('Android ने कॉल नहीं लगने दिया सर।','Android did not let me place the call, sir.');
+  w.textContent=t;if(!r.ok)w.className='m err';return t;
+}
 async function doAct(a,w){
   if(a.type=='task')return runTask(a,w);
+  if(a.type=='call')return doCall(a,w);
   if(a.type=='confirm')return askYes(w,a);
-  let r;try{r=JSON.parse(JarvisApp.act(JSON.stringify(a)));}catch(e){r={ok:false,err:'unknown'};}
   const hi=sty()=='hindi',say=(h,e)=>hi?h:e;let t;
+  if(a.type=='open_app'){w.textContent=lt(a,0,a.said||a.name)||say('ऐप ढूँढ रहा हूँ: '+(a.said||a.name)+'…','Looking for the app: '+(a.said||a.name)+'...');await new Promise(z=>setTimeout(z,80));}  // Part 62: show what is happening before Android answers
+  let r;try{r=JSON.parse(JarvisApp.act(JSON.stringify(a)));}catch(e){r={ok:false,err:'unknown'};}
   if(a.type!='open_app'){  // Part 34: click, scroll, type, back, home, current app. Java moves Jarvis aside, does ONE step, checks it, and the result comes back through onActDone.
     lastAct=a;
     if(r.wait){t=say('ठीक है सर, कर रहा हूँ। नतीजा नोटिफ़िकेशन दबाने पर यहाँ दिखेगा।','On it, sir. The result will show here when you tap the notification.');w.textContent=t;return t;}
     t=actMsg(r,a);w.textContent=t;if(!r.ok)w.className='m err';return t;}
-  if(r.ok)t=say('ठीक है सर, '+r.app+' खोल रहा हूँ।','Opening '+r.app+', sir.');
+  if(r.ok)t='✔ '+(lt(a,0,r.app)||say('ठीक है सर, '+r.app+' खोल रहा हूँ।','Opening '+r.app+', sir.'));
   else if(r.ask){
-    t=say('कौन सा सर?','Which one, sir?');w.textContent=t;const row=document.createElement('div');
+    t=lt(a,2,'')||say('कौन सा सर?','Which one, sir?');w.textContent=t;const row=document.createElement('div');
     r.ask.forEach(x=>{const b=document.createElement('button');b.type='button';b.className='g';b.textContent=x;b.style.margin='6px 6px 0 0';
       b.onclick=async()=>{row.remove();w.textContent=await doAct({type:'open_app',name:x,exact:true},w);};row.appendChild(b);});
     w.appendChild(row);return t;}
-  else if(r.err=='not_found')t=say('सर, इस फ़ोन में "'+a.name+'" नाम का ऐप नहीं मिला।','Sir, I could not find an app named "'+a.name+'" on this phone.');
+  else if(r.err=='not_found')t='✖ '+(lt(a,1,a.said||a.name)||say('सर, इस फ़ोन में "'+(a.said||a.name)+'" नाम का ऐप नहीं मिला।','Sir, I could not find an app named "'+(a.said||a.name)+'" on this phone.'));
   else if(r.err=='stopped')t=say('Jarvis रुका हुआ है सर। पहले "Turn mic on" दबाइए।','Jarvis is stopped. Tap "Turn mic on" first.');
   else if(r.err=='off')t=say('फ़ोन कंट्रोल बंद है सर। Settings में चालू कीजिए।','Phone control is OFF. Turn it on in Settings.');
   else t=say('Android ने ऐप खोलने नहीं दिया सर।','Android did not let me open it, sir.');

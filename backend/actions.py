@@ -1,25 +1,36 @@
 """Jarvis command layer (Part 30). Turns "WhatsApp kholo" into ONE action from a FIXED list. The server only proposes; the Android app
 (Java) checks the master switch, Stop and the real app list before anything happens. The AI never gives code, shell or package names."""
 import json, re
+import lang
 
 ACTIONS = {"open_app"}  # what the AI fallback may return. Only open_app, nothing else.
 SCREEN = {"click", "scroll", "swipe", "type", "back", "home", "current_app", "lock", "settings", "torch", "volume"}  # Part 34: only the user's own words can make these; the AI fallback never can.
 SAFE = {"open_app"}  # Part 33: these run after the master switch. Anything else needs a preview and Hussain's own tap on Yes, every single time.
-EN = {"open", "launch", "start", "run"}
-HI = {"kholo", "khol", "kholna", "kholiye", "kholiyega", "kholen", "chalao", "chala", "chalu", "shuru", "खोलो", "खोल", "खोलना", "खोलिए", "खोलिये", "खोलें", "चलाओ", "चला", "चालू", "चालु", "शुरू"}
+EN = {"open", "launch", "start", "run", "ओपन", "ओपेन", "ओप्पण", "लॉन्च", "लांच", "स्टार्ट", "रन"}  # Part 59: Hindi-script spellings of the English words (phone dictation writes "open" as "ओपन")
+HI = {"उघड", "उघडा", "उघडणे", "तिर", "तिरक्क", "तिरक्कवुम", "तिरक्कुम", "तेरुवु", "तेरवंडि", "तेरे", "तेरयिरि", "तुरक्कुक", "तुरक्कू", "खोल्हो", "खोल्हें", "kholo", "khol", "kholna", "kholiye", "kholiyega", "kholen", "chalao", "chala", "chalu", "shuru", "खोलो", "खोल", "खोलना", "खोलिए", "खोलिये", "खोलें", "चलाओ", "चला", "चालू", "चालु", "शुरू"}
 FILL = set("please plz pls jarvis जार्विस जारविस sir सर ko को app ap application ek एक zara jara जरा na ना kar karo kr कर करो do दो de दे dena dijiye दीजिए the my mera mere meri मेरा मेरे मेरी mujhe मुझे hai है hain chahiye चाहिए can could will you hey ok okay tum aap आप तुम bhai भाई जी ji phir fir अब ab".split())
 QW = set("kya kaise kyun kyu kab kaun what why how when who which क्या कैसे क्यों कब कौन".split())
 NEAR = EN | HI | {"jao", "jana", "jaana", "जाओ", "जाना"}  # words that make a message look like a command (for the AI fallback)
 
-_key = lambda s: re.sub(r"[\s़.\-']", "", s.lower())
+_key = lambda s: re.sub(r"[\s़.\-'_]", "", s.lower()).translate(str.maketrans({"ू": "ु", "ी": "ि", "ॉ": "ो", "ँ": "ं", "्": ""}))  # Part 59: यूट्यूब and युटुब give a close key
 CANON = {
-    "WhatsApp": "व्हाट्सएप व्हाट्सऐप वाट्सएप वॉट्सऐप whatsap watsapp whatsup", "Chrome": "क्रोम chrom गूगलक्रोम googlechrome", "YouTube": "यूट्यूब utube यू_ट्यूब",
+    "WhatsApp": "वाट्सअप्प वाट्सऐप वाट्साप वाट्सप व्हाट्सएप व्हाट्सऐप वाट्सएप वॉट्सऐप whatsap watsapp whatsup", "Chrome": "क्रोम क्रोमे chrom गूगलक्रोम गूगल googlechrome", "YouTube": "यूट्यूब utube यू_ट्यूब युट्यूब युटुब यूटूब यूट्यूब यूट्यब यूटियूप यूटियूब यूटिऊब इउटिउब yt",
     "Instagram": "इंस्टाग्राम इंस्टा insta", "Facebook": "फेसबुक fb", "Gmail": "जीमेल", "Maps": "मैप्स गूगलमैप्स googlemaps", "Camera": "कैमरा",
     "Phone": "फोन फ़ोन dialer डायलर", "Messages": "मैसेज मैसेजेस sms", "Settings": "सेटिंग्स सेटिंग", "Calculator": "कैलकुलेटर", "Clock": "घड़ी क्लॉक",
     "Gallery": "गैलरी", "Photos": "फोटोज फ़ोटोज", "Telegram": "टेलीग्राम", "Paytm": "पेटीएम", "PhonePe": "फोनपे", "Google Pay": "गूगलपे gpay",
     "Spotify": "स्पॉटिफाई", "Termux": "टर्मक्स", "Play Store": "प्लेस्टोर playstore", "Calendar": "कैलेंडर", "Contacts": "कॉन्टैक्ट्स", "Files": "फाइल्स",
     "Netflix": "नेटफ्लिक्स", "Amazon": "अमेज़न अमेजन", "Flipkart": "फ्लिपकार्ट", "Snapchat": "स्नैपचैट", "Twitter": "ट्विटर"}
 ALIAS = {_key(a): c for c, v in CANON.items() for a in v.split() + [c]}
+
+
+def canon(name):
+    """Known app name for what was said. Exact key first; then a close match (cutoff 0.84) so a small spelling slip still works. Else the words as said."""
+    k = _key(name)
+    if k in ALIAS:
+        return ALIAS[k]
+    from difflib import get_close_matches
+    hit = get_close_matches(k, list(ALIAS), n=1, cutoff=0.84)
+    return ALIAS[hit[0]] if hit else name
 
 
 def _words(msg):
@@ -182,9 +193,9 @@ PAGES = {"wifi": ("wifi", "वाईफाई वायफाय वाईफ़
          "permissions": ("permission permissions", "परमिशन"), "accessibility": ("accessibility", "एक्सेसिबिलिटी")}
 PAGEOF = {w: k for k, (en, hi) in PAGES.items() for w in (en + " " + hi).split()}
 SETW = {"settings", "setting", "सेटिंग", "सेटिंग्स", "page"}
-ONW, OFFW = {"on", "chalu", "चालू", "चालु", "jalao", "jala", "जलाओ", "start", "shuru", "enable"}, {"off", "band", "बंद", "bujhao", "बुझाओ", "disable"}
-OPENW = {"open", "kholo", "khol", "खोलो", "खोल", "show", "dikhao", "दिखाओ", "turn", "switch", "kar", "karo", "करो", "कर", "do", "दो", "me", "mein", "में"}
-TORCHW = {"flashlight", "torch", "flash", "टॉर्च", "फ्लैशलाइट", "light"}
+ONW, OFFW = {"on", "ऑन", "ओन", "chalu", "चालू", "चालु", "jalao", "jala", "जलाओ", "start", "shuru", "enable"}, {"off", "ऑफ", "ओफ", "band", "बंद", "bujhao", "बुझाओ", "disable"}
+OPENW = {"open", "ओपन", "ओपेन", "टर्न", "स्विच", "kholo", "khol", "खोलो", "खोल", "show", "dikhao", "दिखाओ", "turn", "switch", "kar", "karo", "करो", "कर", "do", "दो", "me", "mein", "में"}
+TORCHW = {"flashlight", "torch", "flash", "टॉर्च", "टार्च", "टोर्च", "टार्च", "फ्लैशलाइट", "फ्लैश", "light", "लाइट"}
 VOLW = {"volume", "vol", "awaaz", "आवाज़", "आवाज", "sound"}
 VUP = {"up", "badhao", "badha", "बढ़ाओ", "बढ़ा", "increase", "zyada", "jyada", "ज़्यादा", "tez", "तेज़", "तेज", "louder", "more", "full"}
 VDOWN = {"down", "kam", "कम", "decrease", "lower", "dheere", "धीरे", "low", "less", "halka", "slow"}
@@ -201,8 +212,9 @@ def device_cmd(msg):
     s = set(w)
     if not w or len(w) > 7 or s & QW:
         return None
-    if s & TORCHW and s <= TORCHW | ONW | OFFW | GO | FILL | OPENW and bool(s & ONW) != bool(s & OFFW) and s & (TORCHW - {"light"}):
-        on = bool(s & ONW)
+    OPENON = {"open", "ओपन", "ओपेन", "kholo", "khol", "खोलो", "खोल"}  # Part 59: "open torch" / "ओपन टॉर्च" means switch it on
+    if s & TORCHW and s <= TORCHW | ONW | OFFW | GO | FILL | OPENW and bool(s & (ONW | OPENON)) != bool(s & OFFW) and s & (TORCHW - {"light", "लाइट"}):
+        on = not (s & OFFW)
         return {"type": "torch", "on": on}, ("Switching the flashlight on, sir." if on else "Switching the flashlight off, sir."), ("टॉर्च चालू कर रहा हूँ सर।" if on else "टॉर्च बंद कर रहा हूँ सर।")
     if s & VOLW and s <= VOLW | VUP | VDOWN | GO | FILL | OPENW and bool(s & VUP) != bool(s & VDOWN):
         d = "up" if s & VUP else "down"
@@ -218,9 +230,63 @@ def device_cmd(msg):
     return None
 
 
+# ---- Part 64: "Ammi ko call karo". Only the person's own words make a call. The app finds the contact in the phone's own contacts. ----
+CALLW = {"call", "कॉल", "काल", "कौल", "कोल", "dial", "डायल"}
+LAGW = {"lagao", "laga", "lagana", "lagaiye", "लगाओ", "लगा", "लगाना", "लगाइए", "milao", "mila", "milana", "मिलाओ", "मिला", "मिलाना"}
+PHW = {"phone", "फोन", "फ़ोन", "mobile", "मोबाइल"}
+CALLFILL = {"to", "on", "se", "से", "pe", "पे", "par", "पर", "for", "via", "ne", "ने", "तो", "एक", "a", "पण्णु", "पन्नु", "पण्णुं", "माडि", "माडु", "चेयि", "चेयु", "चेय", "चेयंडि", "cheyi", "cheyyi", "cheyandi", "pannu", "panni", "madi", "maadi", "maadu"}  # last 7: "do" in Tamil, Kannada, Telugu
+CALLNO = set("missed miss log history recent last today yesterday aaj kal kitne kitni number nambar नंबर नम्बर मिस्ड लॉग हिस्ट्री called calls kab कब time टाइम".split())
+ASK_WHO = (None, 'Whom should I call, sir? Say the name, like "call Ammi".', 'किसे कॉल करूँ सर? नाम बोलिए, जैसे "अम्मी को कॉल करो"।')
+
+
+def call_cmd(msg):
+    """(action or None, English text, Hindi text) for a call command, else None. (None, ...) = a call word but no name, so Jarvis asks.
+    A typed number only opens the dialer (raw): the green call button is the person's own tap."""
+    m = msg.strip()
+    if "?" in m or len(m) > 80:
+        return None
+    w = _words(m)
+    if not w or len(w) > 7:
+        return None
+    s = set(w)
+    if s & QW or s & CALLNO:
+        return None
+    drop = FILL | CALLFILL
+    while w and w[0] in drop:
+        w = w[1:]
+    while w and w[-1] in drop:
+        w = w[:-1]
+    if not w:
+        return None
+    # the call word must be at an edge ("Ammi ko call", "call Ammi", "Ammi ko phone lagao"), so a normal sentence that only contains "call" stays chat
+    edge = (w[0] in CALLW or w[-1] in CALLW) or (len(w) >= 2 and w[-1] in LAGW and w[-2] in PHW) or (len(w) >= 2 and w[0] in PHW and w[1] in LAGW)
+    if not edge:
+        return None
+    rest = [x for x in w if not (x in CALLW or x in LAGW or x in PHW)]
+    while rest and rest[0] in drop:
+        rest = rest[1:]
+    while rest and rest[-1] in drop:
+        rest = rest[:-1]
+    if not rest:
+        return ASK_WHO
+    nm = re.search(r"\+?\d[\d \-]{2,}\d", m)
+    if nm and all(x.isdigit() for x in rest):
+        num = re.sub(r"[ \-]", "", nm.group())
+        return {"type": "call", "number": num, "raw": True}, f"Opening the dialer with {num}, sir. Please press the green call button yourself.", f"डायलर में {num} खोल रहा हूँ सर। हरा कॉल बटन आप खुद दबाइए।"
+    if len(rest) > 3 or "of" in rest or any(x.isdigit() for x in rest):
+        return None
+    name = " ".join(rest)
+    if lang.is_latin(name):
+        name = name.title()  # the words were lower-cased for matching; show a proper name
+    act = {"type": "call", "name": name} if lang.is_latin(name) else {"type": "call", "name": lang.romanize(name) or name, "said": name}
+    return act, f"Calling {name}, sir.", f"ठीक है सर, {name} को कॉल कर रहा हूँ।"
+
+
 def handle(msg, hindi, control, in_app, ask):
     """None = not a command. Else (reply text, action dict or None). The page shows what REALLY happened after the app answers."""
     say = lambda hi, en: hi if hindi else en
+    code = lang.detect(msg)  # Part 63: Tamil, Gujarati, Telugu... are moved onto Devanagari so the Hindi word lists work
+    msg = lang.norm(msg)
     if blocked(msg):
         return say("सर, मैं पासवर्ड, OTP, PIN या कार्ड नंबर कभी टाइप नहीं करता। कृपया आप खुद टाइप कीजिए।", "Sir, I never type passwords, OTPs, PINs or card numbers. Please type it yourself."), None
     sc = screen_cmd(msg) or device_cmd(msg)  # Part 34 (screen steps) and Part 37 (settings pages, flashlight, volume)
@@ -238,6 +304,15 @@ def handle(msg, hindi, control, in_app, ask):
         if not control:
             return say("फ़ोन कंट्रोल बंद है सर। Settings में \"Phone control\" चालू कीजिए।", "Phone control is OFF, sir. Turn it on in Settings, under Phone control."), None
         return say(sc[2], sc[1]), sc[0]
+    cc = call_cmd(msg)  # Part 64: "Ammi ko call karo". Not in a task and never from the AI: only this grammar, only the person's own words
+    if cc:
+        if not in_app:
+            return say("सर, फ़ोन कंट्रोल सिर्फ़ Jarvis ऐप में चलता है।", "Sir, phone control works only in the Jarvis Android app."), None
+        if not control:
+            return say("फ़ोन कंट्रोल बंद है सर। Settings में \"Phone control\" चालू कीजिए।", "Phone control is OFF, sir. Turn it on in Settings, under Phone control."), None
+        if cc[0] and code in lang.NAMES:
+            cc[0]["lang"] = code
+        return say(cc[2], cc[1]), cc[0]
     name = parse(msg)
     if name is None:
         name = ai_name(msg, ask) if (control and in_app) else None
@@ -249,5 +324,10 @@ def handle(msg, hindi, control, in_app, ask):
         return say("फ़ोन कंट्रोल बंद है सर। Settings में \"Phone control\" चालू कीजिए।", "Phone control is OFF, sir. Turn it on in Settings, under Phone control."), None
     if not name:
         return say("कौन सा ऐप खोलूँ सर?", "Which app should I open, sir?"), None
-    label = ALIAS.get(_key(name), name)
-    return say(f"ठीक है सर, {label} खोल रहा हूँ।", f"Opening {label}, sir."), {"type": "open_app", "name": label}
+    label = canon(name)
+    act = {"type": "open_app", "name": label}
+    if not lang.is_latin(label):  # Part 62: not one of the known names, so search the phone's app list with a Latin spelling (Java also matches by consonants)
+        act = {"type": "open_app", "name": lang.romanize(label) or label, "said": label}
+    if code in lang.NAMES:
+        act["lang"] = code
+    return say(f"ठीक है सर, {label} खोल रहा हूँ।", f"Opening {label}, sir."), act
