@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, autostart, backup, brief, calls, clock, handoff, ledger, memory, people, phone, place, progress, remind, screen, see, sysinfo, tasks, tts, voiceengine, web
+import actions, autostart, backup, brief, calls, clock, handoff, ledger, memory, modes, people, phone, place, progress, remind, screen, see, sysinfo, tasks, tts, voiceengine, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -26,6 +26,10 @@ PERSONA = {"english": SYSTEM, "hindi": (
 FILES = {"/": ("index.html", "text/html; charset=utf-8"), "/manifest.webmanifest": ("manifest.webmanifest", "application/manifest+json"),
          "/icon-192.png": ("icon-192.png", "image/png"), "/icon-512.png": ("icon-512.png", "image/png")}
 BOOT = str(int(time.time()))  # server ka restart pehchanne ke liye: page khud refresh hota hai
+# Part 57: how Jarvis talks when someone sounds sad or stressed (always added). Not a doctor, no diagnosis, nothing about the mood is saved.
+MOOD = ("\n\n[If the user sounds sad, stressed or low: first show you understand, do not judge, and ask whether he wants to talk, wants a distraction, or wants a practical fix. "
+        "Give at most two small, practical options. Never diagnose, never say you are a doctor or a human. If he speaks of hurting himself or being in danger, stay calm, "
+        "tell him to call the emergency number 112 or Tele-MANAS 14416 or a trusted person right now, and ask him to stay with someone.]")
 PAIR = {"code": "", "exp": 0, "fails": 0, "lock": 0}
 
 
@@ -404,6 +408,13 @@ class H(BaseHTTPRequestHandler):
                 c.commit()
                 return self.send(200, {"reply": "Okay sir, the chat history is deleted. Saved memories, people and reminders are not touched.", "via": "memory"})
             style = str(data.get("style", ""))
+            mode = str(data.get("mode", "normal"))
+            mode = mode if mode in modes.MODES else "normal"
+            hit = modes.handle(msg, style == "hindi")  # Part 58: "research mode on" (a setting only, the page keeps it)
+            if hit:
+                c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", hit[0], time.time()))
+                c.commit()
+                return self.send(200, {"reply": hit[0], "via": "memory", "mode": hit[1]})
             mem = memory.handle(c, dev, msg, style == "hindi")  # yaad rakho / bhool jao / kya yaad hai
             now = str(data.get("now", ""))
             if mem is None:  # Part 47: "backup", "delete everything" (typed phrase). Never takes a passphrase
@@ -438,10 +449,13 @@ class H(BaseHTTPRequestHandler):
                 return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {})))
             rows = c.execute("SELECT role, content, ts FROM messages WHERE device=? ORDER BY id DESC LIMIT 10", (dev,)).fetchall()
             tctx = clock.context([(r, t) for r, _, t in reversed(rows)], prev_ts)
+            wtxt, srcs = web.lookup(msg, now, mode == "research" and len(msg) >= 8 and not screen.used(data.get("screen")))  # Part 57: in Research mode every question is searched
             try:
-                reply, via = ask([{"role": r, "content": t} for r, t, _ in reversed(rows)], style, tctx + memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + web.context(msg))
+                reply, via = ask([{"role": r, "content": t} for r, t, _ in reversed(rows)], style, tctx + memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + wtxt + MOOD + modes.extra(mode))
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
+            if srcs:  # the list of sites comes from the real search result, not from the AI
+                reply += ("\n\nस्रोत: " if style == "hindi" else "\n\nSources: ") + ", ".join(srcs)
             c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", "(answer about your screen was shown, not saved)" if screen.used(data.get("screen")) else reply, time.time()))
             c.commit()
             sug = None if screen.used(data.get("screen")) else memory.suggest(msg)  # Part 54: only an offer, nothing is saved here
