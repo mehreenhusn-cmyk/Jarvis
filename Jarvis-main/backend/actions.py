@@ -1,19 +1,20 @@
 """Jarvis command layer (Part 30). Turns "WhatsApp kholo" into ONE action from a FIXED list. The server only proposes; the Android app
 (Java) checks the master switch, Stop and the real app list before anything happens. The AI never gives code, shell or package names."""
 import json, re
+import lang
 
 ACTIONS = {"open_app"}  # what the AI fallback may return. Only open_app, nothing else.
 SCREEN = {"click", "scroll", "swipe", "type", "back", "home", "current_app", "lock", "settings", "torch", "volume"}  # Part 34: only the user's own words can make these; the AI fallback never can.
 SAFE = {"open_app"}  # Part 33: these run after the master switch. Anything else needs a preview and Hussain's own tap on Yes, every single time.
-EN = {"open", "launch", "start", "run", "ओपन", "ओपेन", "लॉन्च", "लांच", "स्टार्ट", "रन"}  # Part 59: Hindi-script spellings of the English words (phone dictation writes "open" as "ओपन")
-HI = {"kholo", "khol", "kholna", "kholiye", "kholiyega", "kholen", "chalao", "chala", "chalu", "shuru", "खोलो", "खोल", "खोलना", "खोलिए", "खोलिये", "खोलें", "चलाओ", "चला", "चालू", "चालु", "शुरू"}
+EN = {"open", "launch", "start", "run", "ओपन", "ओपेन", "ओप्पण", "लॉन्च", "लांच", "स्टार्ट", "रन"}  # Part 59: Hindi-script spellings of the English words (phone dictation writes "open" as "ओपन")
+HI = {"उघड", "उघडा", "उघडणे", "तिर", "तिरक्क", "तिरक्कवुम", "तिरक्कुम", "तेरुवु", "तेरवंडि", "तेरे", "तेरयिरि", "तुरक्कुक", "तुरक्कू", "खोल्हो", "खोल्हें", "kholo", "khol", "kholna", "kholiye", "kholiyega", "kholen", "chalao", "chala", "chalu", "shuru", "खोलो", "खोल", "खोलना", "खोलिए", "खोलिये", "खोलें", "चलाओ", "चला", "चालू", "चालु", "शुरू"}
 FILL = set("please plz pls jarvis जार्विस जारविस sir सर ko को app ap application ek एक zara jara जरा na ना kar karo kr कर करो do दो de दे dena dijiye दीजिए the my mera mere meri मेरा मेरे मेरी mujhe मुझे hai है hain chahiye चाहिए can could will you hey ok okay tum aap आप तुम bhai भाई जी ji phir fir अब ab".split())
 QW = set("kya kaise kyun kyu kab kaun what why how when who which क्या कैसे क्यों कब कौन".split())
 NEAR = EN | HI | {"jao", "jana", "jaana", "जाओ", "जाना"}  # words that make a message look like a command (for the AI fallback)
 
 _key = lambda s: re.sub(r"[\s़.\-'_]", "", s.lower()).translate(str.maketrans({"ू": "ु", "ी": "ि", "ॉ": "ो", "ँ": "ं", "्": ""}))  # Part 59: यूट्यूब and युटुब give a close key
 CANON = {
-    "WhatsApp": "व्हाट्सएप व्हाट्सऐप वाट्सएप वॉट्सऐप whatsap watsapp whatsup", "Chrome": "क्रोम क्रोमे chrom गूगलक्रोम गूगल googlechrome", "YouTube": "यूट्यूब utube यू_ट्यूब युट्यूब युटुब यूटूब यूट्यूब यूट्यब yt",
+    "WhatsApp": "वाट्सअप्प वाट्सऐप वाट्साप वाट्सप व्हाट्सएप व्हाट्सऐप वाट्सएप वॉट्सऐप whatsap watsapp whatsup", "Chrome": "क्रोम क्रोमे chrom गूगलक्रोम गूगल googlechrome", "YouTube": "यूट्यूब utube यू_ट्यूब युट्यूब युटुब यूटूब यूट्यूब यूट्यब यूटियूप यूटियूब यूटिऊब इउटिउब yt",
     "Instagram": "इंस्टाग्राम इंस्टा insta", "Facebook": "फेसबुक fb", "Gmail": "जीमेल", "Maps": "मैप्स गूगलमैप्स googlemaps", "Camera": "कैमरा",
     "Phone": "फोन फ़ोन dialer डायलर", "Messages": "मैसेज मैसेजेस sms", "Settings": "सेटिंग्स सेटिंग", "Calculator": "कैलकुलेटर", "Clock": "घड़ी क्लॉक",
     "Gallery": "गैलरी", "Photos": "फोटोज फ़ोटोज", "Telegram": "टेलीग्राम", "Paytm": "पेटीएम", "PhonePe": "फोनपे", "Google Pay": "गूगलपे gpay",
@@ -194,7 +195,7 @@ PAGEOF = {w: k for k, (en, hi) in PAGES.items() for w in (en + " " + hi).split()
 SETW = {"settings", "setting", "सेटिंग", "सेटिंग्स", "page"}
 ONW, OFFW = {"on", "ऑन", "ओन", "chalu", "चालू", "चालु", "jalao", "jala", "जलाओ", "start", "shuru", "enable"}, {"off", "ऑफ", "ओफ", "band", "बंद", "bujhao", "बुझाओ", "disable"}
 OPENW = {"open", "ओपन", "ओपेन", "टर्न", "स्विच", "kholo", "khol", "खोलो", "खोल", "show", "dikhao", "दिखाओ", "turn", "switch", "kar", "karo", "करो", "कर", "do", "दो", "me", "mein", "में"}
-TORCHW = {"flashlight", "torch", "flash", "टॉर्च", "टार्च", "फ्लैशलाइट", "फ्लैश", "light", "लाइट"}
+TORCHW = {"flashlight", "torch", "flash", "टॉर्च", "टार्च", "टोर्च", "टार्च", "फ्लैशलाइट", "फ्लैश", "light", "लाइट"}
 VOLW = {"volume", "vol", "awaaz", "आवाज़", "आवाज", "sound"}
 VUP = {"up", "badhao", "badha", "बढ़ाओ", "बढ़ा", "increase", "zyada", "jyada", "ज़्यादा", "tez", "तेज़", "तेज", "louder", "more", "full"}
 VDOWN = {"down", "kam", "कम", "decrease", "lower", "dheere", "धीरे", "low", "less", "halka", "slow"}
@@ -232,6 +233,8 @@ def device_cmd(msg):
 def handle(msg, hindi, control, in_app, ask):
     """None = not a command. Else (reply text, action dict or None). The page shows what REALLY happened after the app answers."""
     say = lambda hi, en: hi if hindi else en
+    code = lang.detect(msg)  # Part 63: Tamil, Gujarati, Telugu... are moved onto Devanagari so the Hindi word lists work
+    msg = lang.norm(msg)
     if blocked(msg):
         return say("सर, मैं पासवर्ड, OTP, PIN या कार्ड नंबर कभी टाइप नहीं करता। कृपया आप खुद टाइप कीजिए।", "Sir, I never type passwords, OTPs, PINs or card numbers. Please type it yourself."), None
     sc = screen_cmd(msg) or device_cmd(msg)  # Part 34 (screen steps) and Part 37 (settings pages, flashlight, volume)
@@ -261,4 +264,9 @@ def handle(msg, hindi, control, in_app, ask):
     if not name:
         return say("कौन सा ऐप खोलूँ सर?", "Which app should I open, sir?"), None
     label = canon(name)
-    return say(f"ठीक है सर, {label} खोल रहा हूँ।", f"Opening {label}, sir."), {"type": "open_app", "name": label}
+    act = {"type": "open_app", "name": label}
+    if not lang.is_latin(label):  # Part 62: not one of the known names, so search the phone's app list with a Latin spelling (Java also matches by consonants)
+        act = {"type": "open_app", "name": lang.romanize(label) or label, "said": label}
+    if code in lang.NAMES:
+        act["lang"] = code
+    return say(f"ठीक है सर, {label} खोल रहा हूँ।", f"Opening {label}, sir."), act

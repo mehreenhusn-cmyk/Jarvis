@@ -91,7 +91,7 @@ body.hm #vstat{background:rgba(7,11,26,.92);color:#97a6cc;border-color:rgba(96,1
 <input id="key" placeholder="Paste key here" autocomplete="off"><p><button id="kp">Paste from clipboard</button> <button id="kc" class="g">Check</button></p><p id="kr"></p><div id="kl"></div></div>
 <h4>People</h4><div class="card" id="pl"></div><h4>Memory</h4><div class="card" id="ml"></div><h4>Money ledger</h4><div class="card" id="ll"></div></div>
 <div id="off" class="bad" hidden style="padding:8px 16px;font-size:13px;background:var(--sf);border-bottom:1px solid var(--line)"></div><div id="pv"></div><div id="chat" hidden>
-<div id="vp" hidden><select id="lang"><option value="hi-IN">Speak: Hindi</option><option value="en-IN">Speak: English</option></select>
+<div id="vp" hidden><select id="lang"><option value="hi-IN">Speak: Hindi</option><option value="en-IN">Speak: English</option><option value="ta-IN">Speak: Tamil</option><option value="gu-IN">Speak: Gujarati</option><option value="mr-IN">Speak: Marathi</option><option value="te-IN">Speak: Telugu</option><option value="kn-IN">Speak: Kannada</option><option value="ml-IN">Speak: Malayalam</option><option value="bn-IN">Speak: Bengali</option><option value="pa-IN">Speak: Punjabi</option><option value="ur-IN">Speak: Urdu</option></select>
 <select id="voice"></select><select id="pre"><option value="">Voice style</option><option value="k">Khattar (deep, Hindi dub)</option><option value="r">Rolex (very deep)</option><option value="d">Jarvis studio (Hindi)</option><option value="b">Jarvis studio (British English)</option><option value="n">Normal</option></select>
 <label><input type="checkbox" id="say" style="width:auto"> Speak replies</label><label>Depth <input type="range" id="pt" min="0.5" max="1.5" step="0.05" style="width:80px;padding:0"></label><label>Speed <input type="range" id="rt" min="0.6" max="1.4" step="0.05" style="width:80px;padding:0"></label>
 <button type="button" id="tv" class="g">Test voice</button><button type="button" id="mon" class="g" hidden>Turn mic on</button><button type="button" id="wake" class="g" hidden>Hey Jarvis: off</button><button type="button" id="conv" class="g" hidden>Conversation: off</button><b class="vbadge ok">Voice: -</b> <b id="ms" class="ok">Mic off</b></div>
@@ -286,8 +286,13 @@ function local(t){
   const v=speechSynthesis.getVoices().find(x=>x.name==$('voice').value)||speechSynthesis.getVoices().find(x=>/en.GB|en.IN/i.test(x.lang));
   if(v){u.voice=v;u.lang=v.lang;}else u.lang='en-IN';u.onend=u.onerror=heardBack;speechSynthesis.speak(u);
 }
+const SV=[[/[\u0B80-\u0BFF]/,'ta-IN-ValluvarNeural'],[/[\u0C00-\u0C7F]/,'te-IN-MohanNeural'],[/[\u0A80-\u0AFF]/,'gu-IN-NiranjanNeural'],[/[\u0C80-\u0CFF]/,'kn-IN-GaganNeural'],[/[\u0D00-\u0D7F]/,'ml-IN-MidhunNeural'],[/[\u0980-\u09FF]/,'bn-IN-BashkarNeural'],[/[\u0600-\u06FF]/,'ur-IN-SalmanNeural']];  // Part 63: a reply in these scripts is read by a voice of that language
+const scriptVoice=t=>{for(const [r,v] of SV)if(r.test(t))return v;return /[\u0900-\u097F]/.test(t)&&/आहे|आणि|उघड|आहेत/.test(t)?'mr-IN-ManoharNeural':null;};
+const LT={gu:['ઠીક છે સર, {x} ખોલી રહ્યો છું.','સર, આ ફોનમાં "{x}" નામની એપ મળી નથી.','કઈ, સર?'],ta:['சரி சார், {x} திறக்கிறேன்.','சார், இந்த போனில் "{x}" என்ற ஆப் கிடைக்கவில்லை.','எது சார்?'],te:['సరే సర్, {x} తెరుస్తున్నాను.','సర్, ఈ ఫోన్‌లో "{x}" అనే యాప్ దొరకలేదు.','ఏది సర్?'],kn:['ಸರಿ ಸರ್, {x} ತೆರೆಯುತ್ತಿದ್ದೇನೆ.','ಸರ್, ಈ ಫೋನ್‌ನಲ್ಲಿ "{x}" ಎಂಬ ಆ್ಯಪ್ ಸಿಗಲಿಲ್ಲ.','ಯಾವುದು ಸರ್?'],ml:['ശരി സർ, {x} തുറക്കുന്നു.','സർ, ഈ ഫോണിൽ "{x}" എന്ന ആപ്പ് കണ്ടെത്തിയില്ല.','ഏതാണ് സർ?'],bn:['ঠিক আছে স্যার, {x} খুলছি।','স্যার, এই ফোনে "{x}" নামের অ্যাপ পাওয়া যায়নি।','কোনটা স্যার?'],pa:['ਠੀਕ ਹੈ ਸਰ, {x} ਖੋਲ੍ਹ ਰਿਹਾ ਹਾਂ।','ਸਰ, ਇਸ ਫ਼ੋਨ ਵਿੱਚ "{x}" ਨਾਮ ਦੀ ਐਪ ਨਹੀਂ ਮਿਲੀ।','ਕਿਹੜੀ ਸਰ?'],mr:['ठीक आहे सर, {x} उघडत आहे.','सर, या फोनमध्ये "{x}" नावाचे अ‍ॅप सापडले नाही.','कोणते सर?'],ur:['ٹھیک ہے سر، {x} کھول رہا ہوں۔','سر، اس فون میں "{x}" نام کی ایپ نہیں ملی۔','کون سی سر؟']};  // Part 63: app-open answers in the language you spoke
+const lt=(a,i,x)=>(LT[a.lang]||[])[i]?.replace('{x}',x);
 async function speak(t,force,intent,profile){
   if(!force&&(!$('say').checked||MODE=='quiet'))return;if(wakeOn&&appEars())JarvisApp.stopListen();const v=$('voice').value||'neural:hi-IN-MadhurNeural';
+  const sv=scriptVoice(t);if(sv){try{await neural(t,sv);return;}catch(e){add('err','Voice for this language failed: '+e.message+'. Trying the phone voice.');}}
   const eng=localStorage.getItem('jeng')!='0';  // Part 52: Tony / JARVIS voices are ON unless you switch to the classic voice
   if(eng||v.startsWith('neural:')){
     try{await(eng?engine(t,intent,profile):neural(t,v.slice(7)));return;}catch(e){add('err','Online voice failed: '+(e.name=='NotAllowedError'?'the browser blocked sound. Tap the page once and try again.':e.message)+'. Trying the phone voice.');}
@@ -463,19 +468,20 @@ window.onTaskDone=s=>{
 async function doAct(a,w){
   if(a.type=='task')return runTask(a,w);
   if(a.type=='confirm')return askYes(w,a);
-  let r;try{r=JSON.parse(JarvisApp.act(JSON.stringify(a)));}catch(e){r={ok:false,err:'unknown'};}
   const hi=sty()=='hindi',say=(h,e)=>hi?h:e;let t;
+  if(a.type=='open_app'){w.textContent=lt(a,0,a.said||a.name)||say('ऐप ढूँढ रहा हूँ: '+(a.said||a.name)+'…','Looking for the app: '+(a.said||a.name)+'...');await new Promise(z=>setTimeout(z,80));}  // Part 62: show what is happening before Android answers
+  let r;try{r=JSON.parse(JarvisApp.act(JSON.stringify(a)));}catch(e){r={ok:false,err:'unknown'};}
   if(a.type!='open_app'){  // Part 34: click, scroll, type, back, home, current app. Java moves Jarvis aside, does ONE step, checks it, and the result comes back through onActDone.
     lastAct=a;
     if(r.wait){t=say('ठीक है सर, कर रहा हूँ। नतीजा नोटिफ़िकेशन दबाने पर यहाँ दिखेगा।','On it, sir. The result will show here when you tap the notification.');w.textContent=t;return t;}
     t=actMsg(r,a);w.textContent=t;if(!r.ok)w.className='m err';return t;}
-  if(r.ok)t=say('ठीक है सर, '+r.app+' खोल रहा हूँ।','Opening '+r.app+', sir.');
+  if(r.ok)t='✔ '+(lt(a,0,r.app)||say('ठीक है सर, '+r.app+' खोल रहा हूँ।','Opening '+r.app+', sir.'));
   else if(r.ask){
-    t=say('कौन सा सर?','Which one, sir?');w.textContent=t;const row=document.createElement('div');
+    t=lt(a,2,'')||say('कौन सा सर?','Which one, sir?');w.textContent=t;const row=document.createElement('div');
     r.ask.forEach(x=>{const b=document.createElement('button');b.type='button';b.className='g';b.textContent=x;b.style.margin='6px 6px 0 0';
       b.onclick=async()=>{row.remove();w.textContent=await doAct({type:'open_app',name:x,exact:true},w);};row.appendChild(b);});
     w.appendChild(row);return t;}
-  else if(r.err=='not_found')t=say('सर, इस फ़ोन में "'+a.name+'" नाम का ऐप नहीं मिला।','Sir, I could not find an app named "'+a.name+'" on this phone.');
+  else if(r.err=='not_found')t='✖ '+(lt(a,1,a.said||a.name)||say('सर, इस फ़ोन में "'+(a.said||a.name)+'" नाम का ऐप नहीं मिला।','Sir, I could not find an app named "'+(a.said||a.name)+'" on this phone.'));
   else if(r.err=='stopped')t=say('Jarvis रुका हुआ है सर। पहले "Turn mic on" दबाइए।','Jarvis is stopped. Tap "Turn mic on" first.');
   else if(r.err=='off')t=say('फ़ोन कंट्रोल बंद है सर। Settings में चालू कीजिए।','Phone control is OFF. Turn it on in Settings.');
   else t=say('Android ने ऐप खोलने नहीं दिया सर।','Android did not let me open it, sir.');

@@ -7,13 +7,14 @@ through make(), so every rule above (switch, app only, Stop, no send/pay/delete/
 import json, re, time
 
 import actions
+import lang
 
 STATES = ("CREATED", "PLANNING", "WAITING_FOR_PERMISSION", "WAITING_FOR_CONFIRMATION", "RUNNING", "VERIFYING", "COMPLETED", "PARTIAL", "FAILED", "CANCELLED")
 END = ("COMPLETED", "PARTIAL", "FAILED", "CANCELLED")
 OK_STEPS = ("open_app", "back", "home", "scroll", "click", "torch", "volume", "settings", "current_app", "lock")
 MAX_STEPS = 6
 STALE = 600  # a RUNNING task with no news for 10 minutes is dead (app killed or phone restarted)
-SPLIT = re.compile(r"\s*(?:,|;|\band then\b|\bthen\b|\band\b|\bphir\b|\bfir\b|\baur\b|\buske baad\b|\bfir se\b|\bn\b|एंड|ऐंड|फिर|और|उसके बाद)\s*", re.I)
+SPLIT = re.compile(r"\s*(?:,|;|\band then\b|\bthen\b|\band\b|\bphir\b|\bfir\b|\baur\b|\buske baad\b|\bfir se\b|\bn\b|एंड|ऐंड|(?<!\S)(?:अने|आणि|मत्तु|मरियु|मर्रुम|अते|एबं)(?!\S)|फिर|और|उसके बाद)\s*", re.I)
 TYPEWORD = re.compile(r"\b(?:type|likho|likh)\b|टाइप|लिखो", re.I)
 
 
@@ -43,7 +44,7 @@ def _no_ai(*a, **k):
 
 def split(msg):
     """The message cut into step phrases, or [] if it is not a multi-step command."""
-    m = (msg or "").strip()
+    m = lang.norm((msg or "").strip())  # Part 63: other Indian languages are read as Devanagari
     if not m or "?" in m or len(m) > 220 or TYPEWORD.search(m):
         return []
     parts = [p.strip() for p in SPLIT.split(m) if p and p.strip()]
@@ -65,7 +66,7 @@ def make(c, dev, msg, hindi, control, in_app, dry=False):
         if not act or act.get("type") not in OK_STEPS:
             refused = True  # blocked (password, OTP...), needs a Yes, or not allowed in a task
             continue
-        steps.append({k: act[k] for k in ("type", "name", "dir", "page", "on") if k in act})
+        steps.append({k: act[k] for k in ("type", "name", "dir", "page", "on", "said") if k in act})
         texts.append(text)
     if refused:
         return say("सर, इस काम में ऐसा कदम है जो आपकी हाँ माँगता है (भेजना, पैसे, डिलीट) या जो मैं नहीं करता (पासवर्ड, OTP)। इन्हें एक-एक करके बोलिए। मैंने कुछ नहीं किया।",
