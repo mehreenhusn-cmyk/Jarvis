@@ -5,7 +5,7 @@ import stat
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import app as A
 
-import screen as SC, actions as AC
+import screen as SC, actions as AC, progress as PG
 _r = lambda t: SC.redact(t)[0]
 def _unit():
     ok = lambda n, c: print(("PASS " if c else "FAIL ") + n) or (c or sys.exit(1))
@@ -26,6 +26,17 @@ def _unit():
     ok("33: sawaal par confirm nahi", a("how to delete a file?") is None and a("send me a joke") is None)
     ok("33: password type karna hamesha mana", a("mera password type karo", False)[1] is None and "never type" in a("enter my OTP 1234")[0])
     ok("33: Chrome kholo ab bhi bina confirm", a("Chrome kholo")[1]["type"] == "open_app")
+    ok("34: peeche jao / go back -> back, go home -> home", a("peeche jao")[1] == {"type": "back"} and a("go back")[1] == {"type": "back"} and a("go home")[1] == {"type": "home"})
+    ok("34: neeche scroll karo / scroll up", a("neeche scroll karo")[1] == {"type": "scroll", "dir": "down"} and a("scroll up")[1] == {"type": "scroll", "dir": "up"})
+    ok("34: Hindi (पीछे जाओ, नीचे स्क्रॉल करो)", a("पीछे जाओ")[1] == {"type": "back"} and a("नीचे स्क्रॉल करो")[1]["dir"] == "down")
+    ok("34: Settings dabao -> click, is button ko dabao -> naam poochho", a("Settings dabao")[1] == {"type": "click", "name": "settings"} and a("is button ko dabao")[1] is None)
+    ok("34: Send/Delete button par pehle Yes (then ke saath)", a("send button dabao")[1] == {"type": "confirm", "risk": "click", "then": {"type": "click", "name": "send"}} and a("delete button dabao")[1]["then"]["name"] == "delete")
+    ok("34: type hello chalta hai, par OTP/PIN/card number kabhi nahi", a("type hello")[1] == {"type": "type", "text": "hello"} and a("type 1234")[1] is None and "never type" in a("type 1234")[0] and a("type 4111 1111 1111 1111")[1] is None)
+    ok("34: switch OFF par type chat hai, back par OFF bataya", a("type hello", False) is None and "OFF" in a("go back", False)[0])
+    ok("34: sawaal chat hi rehte hain", a("type of food kya hai") is None and a("how to go back?") is None and a("which app is best?") is None)
+    ok("34: kaun sa app khula hai -> current_app", a("kaun sa app khula hai")[1] == {"type": "current_app"})
+    pr = PG.handle("bhai app ka kaam kahan tak pahuncha", False)
+    ok("34: progress README se aata hai (done, baaki, next)", "built" in pr and "34" in pr and "Next:" in pr and PG.handle("my fitness progress", False) is None)
 _unit()
 
 PORT = "8799"
@@ -99,6 +110,8 @@ try:
     check("30: Chrome (browser) mein action nahi", "action" not in cc("open chrome", True, False))
     check("30: bakwas phrase par action nahi", "action" not in cc("blah blah nonsense"))
     check("30: sawaal (open source kya hai) par action nahi", "action" not in cc("open source kya hai"))
+    check("34: chat route par peeche jao -> back action", cc("peeche jao").get("action") == {"type": "back"})
+    check("34: chat route par progress sawaal ka jawab", "planned Parts" in cc("app ka kaam kahan tak pahuncha")["reply"])
     check("30: AI ne bakwas diya -> action nahi", "action" not in cc("please start the day with a joke now ok"))
 finally:
     p2.terminate()

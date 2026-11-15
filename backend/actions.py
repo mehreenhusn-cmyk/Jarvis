@@ -2,7 +2,8 @@
 (Java) checks the master switch, Stop and the real app list before anything happens. The AI never gives code, shell or package names."""
 import json, re
 
-ACTIONS = {"open_app"}  # the fixed list. Later Parts add names here, nothing else can run.
+ACTIONS = {"open_app"}  # what the AI fallback may return. Only open_app, nothing else.
+SCREEN = {"click", "scroll", "swipe", "type", "back", "home", "current_app"}  # Part 34: only the user's own words can make these; the AI fallback never can.
 SAFE = {"open_app"}  # Part 33: these run after the master switch. Anything else needs a preview and Hussain's own tap on Yes, every single time.
 EN = {"open", "launch", "start", "run"}
 HI = {"kholo", "khol", "kholna", "kholiye", "kholiyega", "kholen", "chalao", "chala", "chalu", "shuru", "खोलो", "खोल", "खोलना", "खोलिए", "खोलिये", "खोलें", "चलाओ", "चला", "चालू", "चालु", "शुरू"}
@@ -108,16 +109,88 @@ def blocked(msg):
     return _command_like(msg) and bool(NOTYPE.search(msg))
 
 
+# ---- Part 34: safe screen actions. Same rule: only Hussain's own words in this turn, never screen or web text. ----
+GO = set("go jao ja जाओ जा chalo चलो press dabao दबाओ karo kar kr करो कर please plz the page screen स्क्रीन".split())
+BACKW, HOMEW = {"back", "peeche", "piche", "पीछे", "wapas", "वापस"}, {"home", "होम"}
+SCRW, DOWN, UP = {"scroll", "स्क्रॉल", "skrol"}, {"down", "neeche", "niche", "नीचे"}, {"up", "upar", "oopar", "ऊपर"}
+CLICK_EN, CLICK_HI = {"click", "tap", "press"}, {"dabao", "dabaye", "dabaiye", "दबाओ", "दबाइए", "दबाएं"}
+THIS = set("is isko ye yeh yah this it इस इसे यह ये".split())
+BTN = {"button", "btn", "बटन", "tab", "option"}
+TYPE_RX = re.compile(r"^\s*(?:type|likho|लिखो|टाइप)\s*(?:karo|kar do|kar|करो|कर दो)?\s*[:,\-]?\s*(.+)$", re.I | re.S)
+APP_RX = re.compile(r"(?:which|what|kaun ?sa|konsa|कौन ?सा).{0,20}(?:app|ऐप|एप).{0,20}(?:open|khula|chal|screen|खुला|चल|on)|current app", re.I)
+LABEL_RISK = re.compile(r"\b(?:send|submit|pay|buy|order|delete|remove|uninstall|install|log ?out|sign ?out|transfer|confirm)\b|भेज|पेमेंट|भुगतान|खरीद|ऑर्डर|डिलीट|हटा|इंस्टॉल|लॉग ?आउट|कन्फर्म", re.I)
+
+
+def secret_text(t):
+    """True if the text to type looks like an OTP, PIN, card number or a password. Jarvis never types those."""
+    d = re.sub(r"\D", "", t)
+    return bool(re.search(r"password|passcode|\botp\b|\bpin\b|cvv|पासवर्ड|ओटीपी|पिन", t, re.I)) or (d == re.sub(r"[\s-]", "", t) and (4 <= len(d) <= 8 or 13 <= len(d) <= 19))
+
+
+def screen_cmd(msg):
+    """(action or None, English text, Hindi text) for back, home, scroll, click, type, current app. None = not a screen command."""
+    m = msg.strip()
+    if len(m) > 200:
+        return None
+    tm = TYPE_RX.match(m)
+    if tm and "?" not in m and not (QW & set(_words(m))) and _words(tm.group(1))[:1] != ["of"]:
+        t = tm.group(1).strip()[:200]
+        if secret_text(t):
+            return None, "Sir, I never type passwords, OTPs, PINs or card numbers. Please type it yourself.", "सर, मैं पासवर्ड, OTP, PIN या कार्ड नंबर कभी टाइप नहीं करता। कृपया आप खुद टाइप कीजिए।"
+        return {"type": "type", "text": t}, f"Typing \"{t[:60]}\" in the text box, sir. It replaces what is in the box.", f"ठीक है सर, टेक्स्ट बॉक्स में \"{t[:60]}\" लिख रहा हूँ। बॉक्स में जो था वो बदल जाएगा।"
+    if "?" in m and not APP_RX.search(m):
+        return None
+    if APP_RX.search(m) and len(m) <= 60:
+        return {"type": "current_app"}, "Checking which app is open, sir.", "देखता हूँ सर, कौन सा ऐप खुला है।"
+    w = _words(m)
+    if not w or len(w) > 7:
+        return None
+    s = set(w)
+    if s & BACKW and s <= BACKW | GO | FILL and s & GO - {"the", "page", "screen", "स्क्रीन", "please", "plz"}:
+        return {"type": "back"}, "Going back, sir.", "ठीक है सर, पीछे जा रहा हूँ।"
+    if s & HOMEW and s <= HOMEW | GO | FILL and s & GO - {"the", "page", "screen", "स्क्रीन", "please", "plz"}:
+        return {"type": "home"}, "Going to the home screen, sir.", "ठीक है सर, होम स्क्रीन पर जा रहा हूँ।"
+    if s & SCRW and s <= SCRW | DOWN | UP | GO | FILL and bool(s & DOWN) != bool(s & UP):
+        d = "down" if s & DOWN else "up"
+        return {"type": "scroll", "dir": d}, f"Scrolling {d}, sir.", ("नीचे" if d == "down" else "ऊपर") + " स्क्रॉल कर रहा हूँ सर।"
+    x = _trim(w)
+    name = None
+    if x and (x[0] in CLICK_EN or x[0] in CLICK_HI):
+        name = x[1:]
+    elif x and x[-1] in CLICK_HI | CLICK_EN:
+        name = x[:-1]
+    if name is None:
+        return None
+    name = [i for i in _trim(name) if i not in BTN]
+    if not name or set(name) <= THIS or len(name) > 4:
+        return None, "Which button, sir? Please say its name, like \"click Settings\".", "कौन सा बटन सर? उसका नाम बोलिए, जैसे \"Settings दबाओ\"।"
+    n = " ".join(name)
+    act = {"type": "click", "name": n}
+    if LABEL_RISK.search(n):  # a button like Send, Pay, Delete: the page must get Hussain's own tap on Yes first
+        return {"type": "confirm", "risk": "click", "then": act}, f"Sir, this needs your Yes first: pressing \"{n}\". I will do nothing until you tap Yes.", f"सर, यह आपकी हाँ मांगता है: \"{n}\" दबाना। आपके Yes दबाने तक मैं कुछ नहीं करूँगा।"
+    return act, f"Pressing \"{n}\", sir.", f"ठीक है सर, \"{n}\" दबा रहा हूँ।"
+
+
 def handle(msg, hindi, control, in_app, ask):
     """None = not a command. Else (reply text, action dict or None). The page shows what REALLY happened after the app answers."""
     say = lambda hi, en: hi if hindi else en
     if blocked(msg):
         return say("सर, मैं पासवर्ड, OTP, PIN या कार्ड नंबर कभी टाइप नहीं करता। कृपया आप खुद टाइप कीजिए।", "Sir, I never type passwords, OTPs, PINs or card numbers. Please type it yourself."), None
+    sc = screen_cmd(msg)  # Part 34
+    if sc and sc[0] and sc[0]["type"] == "type" and not (control and in_app):
+        sc = None  # "type hello" is only a command when phone control is ON in the app; otherwise it is normal chat
     rk = risk_of(msg) if (control and in_app) else None
     if rk:  # never runs by itself: the page shows the preview and waits for a real tap on Yes
         k, en, hi = rk
+        then = (sc[0].get("then") or sc[0]) if sc and sc[0] and sc[0]["type"] in ("click", "type", "confirm") else None  # a concrete step that Yes may run
         return say(f"सर, यह आपकी हाँ मांगता है: {hi}। आपने कहा: \"{msg.strip()[:120]}\"। आपके Yes दबाने तक मैं कुछ नहीं करूँगा।",
-                   f"Sir, this needs your Yes first: {en}. You said: \"{msg.strip()[:120]}\". I will do nothing until you tap Yes."), {"type": "confirm", "risk": k}
+                   f"Sir, this needs your Yes first: {en}. You said: \"{msg.strip()[:120]}\". I will do nothing until you tap Yes."), dict({"type": "confirm", "risk": k}, **({"then": then} if then else {}))
+    if sc:
+        if not in_app:
+            return say("सर, फ़ोन कंट्रोल सिर्फ़ Jarvis ऐप में चलता है।", "Sir, phone control works only in the Jarvis Android app."), None
+        if not control:
+            return say("फ़ोन कंट्रोल बंद है सर। Settings में \"Phone control\" चालू कीजिए।", "Phone control is OFF, sir. Turn it on in Settings, under Phone control."), None
+        return say(sc[2], sc[1]), sc[0]
     name = parse(msg)
     if name is None:
         name = ai_name(msg, ask) if (control and in_app) else None

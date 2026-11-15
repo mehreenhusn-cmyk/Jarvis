@@ -234,18 +234,56 @@ $('vbtn').onclick=()=>{$('vp').hidden=!$('vp').hidden;};
 const inApp=()=>!!(window.JarvisApp&&JarvisApp.act);
 const ctl=()=>{try{return JSON.parse(JarvisApp.privacy()).control===true}catch(e){return false}};
 // Part 33: dangerous things (send, pay, buy, delete, install, account) are never done by themselves. The buttons work only for a real finger tap (not a script), and expire in 60 seconds.
-function askYes(w){
+function askYes(w,a){
   const hi=sty()=='hindi',say=(h,e)=>hi?h:e,t=w.textContent,row=document.createElement('div');let done=false;
   const end=m=>{if(done)return;done=true;row.remove();w.textContent=m;};
   const mk=(label,cls,fn)=>{const b=document.createElement('button');b.type='button';b.className=cls;b.textContent=label;b.style.margin='8px 8px 0 0';b.onclick=ev=>{if(ev.isTrusted)fn();};return b;};
-  row.append(mk(say('हाँ, करो','Yes, go ahead'),'',()=>end(say('हाँ दर्ज हुई सर। पर मैं अभी दूसरे ऐप में टैप या टाइप नहीं कर सकता, इसलिए कुछ भेजा या बदला नहीं गया। (Part 34 में यह आएगा, और तब भी पहले पूछूँगा।)','Your Yes is noted, sir. But I cannot tap or type inside other apps yet, so nothing was sent or changed. (Part 34 adds that, and it will still ask first.)'))),
+  row.append(mk(say('हाँ, करो','Yes, go ahead'),'',()=>{
+      if(a&&a.then){if(done)return;end(say('ठीक है सर, कर रहा हूँ।','On it, sir.'));doAct(Object.assign({},a.then,{confirmed:true}),w).then(x=>speak(x,false));}  // Part 34: Java also needs this real finger tap
+      else end(say('हाँ दर्ज हुई सर। पर मुझे नहीं पता कौन सा बटन दबाना है, इसलिए कुछ भेजा या बदला नहीं गया। बोलिए, जैसे \"Send दबाओ\"।','Your Yes is noted, sir. But I do not know which button to press, so nothing was sent or changed. Say something like \"click Send\".'));}),
     mk(say('नहीं','No'),'g',()=>end(say('ठीक है सर, रद्द किया। कुछ नहीं किया गया।','Okay sir, cancelled. Nothing was done.'))));
   w.appendChild(row);setTimeout(()=>end(say('समय खत्म हुआ सर, कुछ नहीं किया गया।','Timed out, sir. Nothing was done.')),60000);return t;
 }
+// Part 34: what really happened after a screen step. Words come from the Java result, never from guessing.
+const ACTERR={perm:['सर, Accessibility में "Jarvis screen reader" चालू कीजिए (मैंने वह पेज खोल दिया), फिर दोबारा बोलिए।','Sir, turn on "Jarvis screen reader" in Accessibility (I opened it), then ask again.'],
+  no_app:['सर, स्क्रीन पर कोई दूसरा ऐप नहीं दिखा, इसलिए कुछ नहीं किया।','Sir, I saw no other app on the screen, so I did nothing.'],
+  not_found:['सर, स्क्रीन पर वह बटन नहीं मिला। कुछ नहीं दबाया।','Sir, I could not find that button on the screen. I pressed nothing.'],
+  many:['सर, इस नाम के एक से ज़्यादा बटन हैं। पूरा नाम बोलिए। कुछ नहीं दबाया।','Sir, more than one button matches. Please say the full name. I pressed nothing.'],
+  no_scroll:['सर, यहाँ स्क्रॉल होने वाली जगह नहीं मिली।','Sir, I found nothing here that can scroll.'],
+  no_field:['सर, स्क्रीन पर टेक्स्ट बॉक्स नहीं मिला। कुछ नहीं लिखा।','Sir, I found no text box on the screen. I typed nothing.'],
+  secret_field:['सर, यह पासवर्ड/OTP/PIN/कार्ड वाला बॉक्स है। मैं इसमें कभी नहीं लिखता। आप खुद लिखिए।','Sir, this looks like a password, OTP, PIN or card box. I never type in it. Please type it yourself.'],
+  secret_text:['सर, मैं पासवर्ड, OTP, PIN या कार्ड नंबर नहीं लिखता।','Sir, I do not type passwords, OTPs, PINs or card numbers.'],
+  need_yes:['सर, यह कदम आपकी हाँ के बिना नहीं होगा। कुछ नहीं किया।','Sir, this step needs your Yes first. Nothing was done.'],
+  refused:['सर, Android ने यह कदम करने नहीं दिया।','Sir, Android did not allow this step.'],
+  stopped:['Jarvis रुका हुआ है सर। पहले "Turn mic on" दबाइए।','Jarvis is stopped. Tap "Turn mic on" first.'],
+  off:['फ़ोन कंट्रोल बंद है सर। Settings में चालू कीजिए।','Phone control is OFF. Turn it on in Settings.'],
+  unknown:['सर, मुझे यह कदम समझ नहीं आया। कुछ नहीं किया।','Sir, I did not understand this step. I did nothing.']};
+let lastAct=null;
+function actMsg(r,a){
+  const hi=sty()=='hindi',say=(h,e)=>hi?h:e,t=r.type||(a&&a.type);
+  if(r.ok){
+    if(t=='current_app')return say('सर, अभी "'+r.app+'" खुला है।','Sir, "'+r.app+'" is open right now.');
+    if(t=='back'||t=='home'||t=='swipe')return say('हो गया सर।','Done, sir.');
+    return r.changed===false?say('सर, मैंने कर दिया, पर स्क्रीन पर कोई बदलाव नहीं दिखा। एक बार देख लीजिए।','Sir, I did it, but I saw no change on the screen. Please check.'):say('हो गया सर, स्क्रीन बदल गई।','Done, sir. The screen changed.');
+  }
+  const m=ACTERR[r.err]||ACTERR.unknown;return say(m[0],m[1]);
+}
+window.onActDone=s=>{
+  let r;try{r=JSON.parse(s)}catch(e){return;}
+  const hi=sty()=='hindi',t=actMsg(r,lastAct),w=add('bot',t);if(!r.ok)w.className='m err';
+  if(!r.ok&&r.err=='no_scroll'&&lastAct&&lastAct.type=='scroll'){  // fallback: a swipe, only after a real tap on Yes
+    const b=document.createElement('button');b.type='button';b.className='g';b.style.margin='8px 8px 0 0';b.textContent=hi?'हाँ, स्वाइप करके देखो':'Yes, try a swipe';
+    const d=lastAct.dir;b.onclick=ev=>{if(!ev.isTrusted)return;b.remove();lastAct={type:'swipe',dir:d};try{JarvisApp.act(JSON.stringify({type:'swipe',dir:d,confirmed:true}));}catch(e){}};w.appendChild(b);}
+  speak(t,false);
+};
 async function doAct(a,w){
-  if(a.type=='confirm')return askYes(w);
+  if(a.type=='confirm')return askYes(w,a);
   let r;try{r=JSON.parse(JarvisApp.act(JSON.stringify(a)));}catch(e){r={ok:false,err:'unknown'};}
   const hi=sty()=='hindi',say=(h,e)=>hi?h:e;let t;
+  if(a.type!='open_app'){  // Part 34: click, scroll, type, back, home, current app. Java moves Jarvis aside, does ONE step, checks it, and the result comes back through onActDone.
+    lastAct=a;
+    if(r.wait){t=say('ठीक है सर, कर रहा हूँ। नतीजा नोटिफ़िकेशन दबाने पर यहाँ दिखेगा।','On it, sir. The result will show here when you tap the notification.');w.textContent=t;return t;}
+    t=actMsg(r,a);w.textContent=t;if(!r.ok)w.className='m err';return t;}
   if(r.ok)t=say('ठीक है सर, '+r.app+' खोल रहा हूँ।','Opening '+r.app+', sir.');
   else if(r.ask){
     t=say('कौन सा सर?','Which one, sir?');w.textContent=t;const row=document.createElement('div');
@@ -258,7 +296,7 @@ async function doAct(a,w){
   else t=say('Android ने ऐप खोलने नहीं दिया सर।','Android did not let me open it, sir.');
   w.textContent=t;if(!r.ok)w.className='m err';return t;
 }
-const DASH=[['mic','Microphone','Voice input, only after you tap the mic','app'],['wake','Hey Jarvis','Wake word, only while the app is open','app'],['camera','Camera and photos','Android photo picker, only when you tap the camera button',''],['screen','Screen reader','Needs the Jarvis accessibility switch. Reads text only when you ask','acc'],['location','Location','Only when you ask where you are','app'],['contacts','Contacts','Only when you ask for a contact','app'],['calls','Call log','Only when you ask for calls','app'],['notify','Reminders and notifications','Reminders show even when the app is closed','notif'],['battery','Battery limit','Android may stop Jarvis in the background to save battery','battery'],['apps','Phone control (open apps)','Opens an app only when you ask and the switch is ON. App names stay on the phone','']];
+const DASH=[['mic','Microphone','Voice input, only after you tap the mic','app'],['wake','Hey Jarvis','Wake word, only while the app is open','app'],['camera','Camera and photos','Android photo picker, only when you tap the camera button',''],['screen','Screen reader','Needs the Jarvis accessibility switch. Reads text only when you ask','acc'],['location','Location','Only when you ask where you are','app'],['contacts','Contacts','Only when you ask for a contact','app'],['calls','Call log','Only when you ask for calls','app'],['notify','Reminders and notifications','Reminders show even when the app is closed','notif'],['battery','Battery limit','Android may stop Jarvis in the background to save battery','battery'],['apps','Phone control (apps and screen steps)','Opens an app or does one screen step (press, scroll, type, back) only when you ask and the switch is ON. Never types passwords, OTPs or PINs','']];
 const ago=t=>{if(!t)return 'never';const m=Math.round((Date.now()-t)/60000);return m<1?'just now':m<60?m+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' days ago';};
 function dash(){
   const box=$('dash');let d=null;try{d=window.JarvisApp&&JarvisApp.dashboard?JSON.parse(JarvisApp.dashboard()):null}catch(e){}

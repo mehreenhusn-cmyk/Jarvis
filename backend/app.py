@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, autostart, brief, calls, ledger, memory, people, phone, place, remind, screen, see, sysinfo, tts, web
+import actions, autostart, brief, calls, ledger, memory, people, phone, place, progress, remind, screen, see, sysinfo, tts, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -338,6 +338,8 @@ class H(BaseHTTPRequestHandler):
                 mem = ledger.handle(c, dev, msg, style == "hindi", ask, now)
             if mem is None:  # reminder: "kal 9 baje chai yaad dilana"
                 mem = remind.handle(c, dev, msg, style == "hindi", ask, now)
+            if mem is None:  # "app ka kaam kahan tak pahuncha": read from the README plan
+                mem = progress.handle(msg, style == "hindi")
             action = None
             if mem is None:  # Part 30: "WhatsApp kholo" (only proposes; the app checks the switch and Stop)
                 got = actions.handle(msg, style == "hindi", data.get("control") is True, data.get("app") is True, ask)

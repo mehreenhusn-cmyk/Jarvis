@@ -18,6 +18,7 @@ final class Privacy {
     static volatile boolean stopped;
     static volatile boolean control;  // Part 30: master switch "Phone control". OFF by default, saved.
     static volatile Runnable screenJob;  // the 6 second wait before the screen is read
+    static volatile Runnable actJob;  // Part 34: the short wait before a screen step runs. Stop cancels it.
     private static SharedPreferences sp;
     private static final HashMap<String, Long> LAST = new HashMap<>();
 
@@ -50,7 +51,10 @@ final class Privacy {
         a.runOnUiThread(() -> {
             if (a.ears != null) a.ears.stop();
             if (screenJob != null) { UI.removeCallbacks(screenJob); screenJob = null; }
+            if (actJob != null) { UI.removeCallbacks(actJob); actJob = null; }
             MainActivity.pending = null;
+            MainActivity.pendingAct = null;
+            a.getSystemService(NotificationManager.class).cancel(78);
             a.getSystemService(NotificationManager.class).cancel(77);
             if (a.picker != null) { a.picker.onReceiveValue(null); a.picker = null; }
         });

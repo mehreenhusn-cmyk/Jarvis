@@ -139,6 +139,21 @@ public class MainActivity extends Activity {
                     JSONObject a = new JSONObject(json);
                     if (Privacy.stopped) return "{\"ok\":false,\"err\":\"stopped\"}";
                     if (!Privacy.control) return "{\"ok\":false,\"err\":\"off\"}";
+                    String ty = a.optString("type");
+                    if (java.util.Arrays.asList("click", "scroll", "swipe", "type", "back", "home", "current_app").contains(ty)) {  // Part 34: one step on the screen
+                        if (ScreenService.live == null) { runOnUiThread(() -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))); return "{\"ok\":false,\"err\":\"perm\"}"; }
+                        // a risky step runs only if the page says Hussain tapped Yes AND a real finger tap happened in the last 3 seconds
+                        final boolean sure = a.optBoolean("confirmed") && System.currentTimeMillis() - touch < 3000;
+                        runOnUiThread(() -> moveTaskToBack(true));  // the other app must be on the screen, not Jarvis
+                        if (Privacy.actJob != null) Privacy.UI.removeCallbacks(Privacy.actJob);
+                        Privacy.actJob = () -> {
+                            Privacy.actJob = null;
+                            if (Privacy.stopped || !Privacy.control) return;  // checked again at the moment of the step
+                            ScreenService.act(a, sure, r -> actDone(ty, r));
+                        };
+                        Privacy.UI.postDelayed(Privacy.actJob, 1200);
+                        return "{\"wait\":1}";
+                    }
                     if ("open_app".equals(a.optString("type"))) {
                         JSONObject r = Apps.open(MainActivity.this, a.optString("name"), a.optBoolean("exact"));
                         if (r.optBoolean("ok")) Privacy.used("apps");
@@ -163,6 +178,7 @@ public class MainActivity extends Activity {
     }
 
     static String pending;  // screen text waiting to be handed to the page
+    static String pendingAct;  // Part 34: result of the last screen step, waiting to be shown in the chat
     static volatile long touch;  // time of the last finger tap (Part 28: needed to switch Jarvis on again)
 
     @Override public boolean dispatchTouchEvent(MotionEvent e) {
@@ -186,6 +202,19 @@ public class MainActivity extends Activity {
             .setContentIntent(PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE)).build());
     }
 
+    /** Part 34: the step is done. The other app stays on screen so you can see it; the result waits in the chat and a notification brings you back. */
+    void actDone(String type, JSONObject r) {
+        if (Privacy.stopped) return;
+        Privacy.used("apps");
+        try { r.put("type", type); } catch (Exception e) { /* send what we have */ }
+        pendingAct = r.toString();
+        NotificationManager nm = getSystemService(NotificationManager.class);
+        nm.createNotificationChannel(new NotificationChannel(NotifyService.ALERT, "Reminders", NotificationManager.IMPORTANCE_HIGH));
+        nm.notify(78, new Notification.Builder(this, NotifyService.ALERT).setSmallIcon(android.R.drawable.ic_popup_reminder)
+            .setContentTitle("Jarvis did the step").setContentText("Tap to see the result").setAutoCancel(true)
+            .setContentIntent(PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE)).build());
+    }
+
     @Override protected void onPause() {
         super.onPause();  // Android does not let apps listen from the background, so Hey Jarvis pauses here
         if (ears != null && ears.on) { ears.stop(); ears.js("onHeardErr", "Hey Jarvis paused because the app went to the background"); }
@@ -193,6 +222,11 @@ public class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        if (pendingAct != null && web != null) {
+            String q = pendingAct; pendingAct = null;
+            getSystemService(NotificationManager.class).cancel(78);
+            web.evaluateJavascript("window.onActDone&&onActDone(" + JSONObject.quote(q) + ")", null);
+        }
         if (pending != null && web != null) {
             String p = pending; pending = null;
             getSystemService(NotificationManager.class).cancel(77);
