@@ -56,3 +56,17 @@ def handle(c, dev, msg, hindi):
             return say("सर, अभी मुझे कुछ याद रखने को नहीं कहा गया।", "Sir, you have not asked me to remember anything yet.")
         return say("सर, मुझे ये याद है:\n", "Sir, I remember this:\n") + "\n".join(f"#{i} {t}" for i, t in r)
     return None
+
+
+# ---- Part 54: Jarvis offers to remember a personal fact. It only OFFERS; saving happens when Hussain taps Yes (the page then sends "yaad rakho: ..."). ----
+OWN = re.compile(r"^\s*(?:mere|meri|mera|my|मेरे|मेरी|मेरा)\s", re.I)
+FACT = re.compile(r"\b(?:naam|name|birthday|janamdin|janmdin|age|umar|called)\b|नाम|जन्मदिन|उम्र", re.I)
+QUESTION = re.compile(r"\b(?:kya|kaun|kaun sa|kaise|kab|kitna|what|who|when|which|how|why|tell|bata\w*)\b|क्या|कौन|कब|कैसे|कितना|बताओ|बताइए", re.I)
+
+
+def suggest(msg):
+    """The fact text if the message states a personal fact (\"mere bhatije ka naam Arman hai\"), else None. Never for questions or secrets."""
+    m = msg.strip()
+    if "?" in m or len(m) > 120 or len(m) < 8 or not OWN.match(m) or not FACT.search(m) or QUESTION.search(m) or SECRET.search(m) or SAVE.match(m):
+        return None
+    return m

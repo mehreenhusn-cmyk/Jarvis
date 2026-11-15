@@ -357,7 +357,8 @@ class H(BaseHTTPRequestHandler):
                 return self.send(502, {"error": str(e)})
             c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", "(answer about your screen was shown, not saved)" if screen.used(data.get("screen")) else reply, time.time()))
             c.commit()
-            return self.send(200, {"reply": reply, "via": via})
+            sug = None if screen.used(data.get("screen")) else memory.suggest(msg)  # Part 54: only an offer, nothing is saved here
+            return self.send(200, dict({"reply": reply, "via": via}, **({"remember": sug} if sug else {})))
         self.send(404, {"error": "not found"})
 
 

@@ -91,7 +91,7 @@ $('f').onsubmit=async e=>{
   const sc=screenData;screenData=null;const vm=viaMic;viaMic=false;add('user',t);const w=add('bot','...');
   let sp=false;try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:SLOW.test(t)?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,screen:sc,app:inApp(),control:inApp()&&ctl()});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
-    if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.action?await doAct(d.action,w):d.reply,vm);sp=vm||$('say').checked;}else{w.className='m err';w.textContent=d.error||'error';}
+    if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.action?await doAct(d.action,w):d.reply,vm);if(d.remember)askSave(w,d.remember);sp=vm||$('say').checked;}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}finally{if(wakeOn&&!sp)heardBack();}
 };
 let viaMic=false,wakeOn=false,appListening=false,cmdNext=false;
@@ -276,6 +276,16 @@ window.onActDone=s=>{
     const d=lastAct.dir;b.onclick=ev=>{if(!ev.isTrusted)return;b.remove();lastAct={type:'swipe',dir:d};try{JarvisApp.act(JSON.stringify({type:'swipe',dir:d,confirmed:true}));}catch(e){}};w.appendChild(b);}
   speak(t,false);
 };
+// Part 54: Jarvis offers to remember a fact. Only a real finger tap on Yes saves it (through the normal "yaad rakho" path, so passwords are still refused).
+function askSave(w,fact){
+  const hi=sty()=='hindi',say=(h,e)=>hi?h:e,row=document.createElement('div');let done=false;
+  const end=()=>{done=true;row.remove();};
+  const mk=(label,cls,fn)=>{const b=document.createElement('button');b.type='button';b.className=cls;b.textContent=label;b.style.margin='8px 8px 0 0';b.onclick=ev=>{if(ev.isTrusted&&!done)fn();};return b;};
+  const q=document.createElement('div');q.textContent=say('याद रखूँ सर?','Should I remember this, sir?');q.style.marginTop='8px';
+  row.append(q,mk(say('हाँ, याद रखो','Yes, remember'),'',async()=>{end();try{const {s,d}=await api('/chat',{message:'yaad rakho: '+fact,now:nowS(),style:sty()});add('bot',s==200?d.reply:(d.error||'error'));}catch(e){add('err','Could not save. Is the server running?');}}),
+    mk(say('नहीं','No'),'g',end));
+  w.appendChild(row);setTimeout(()=>{if(!done)end();},60000);
+}
 async function doAct(a,w){
   if(a.type=='confirm')return askYes(w,a);
   let r;try{r=JSON.parse(JarvisApp.act(JSON.stringify(a)));}catch(e){r={ok:false,err:'unknown'};}

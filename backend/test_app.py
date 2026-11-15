@@ -35,6 +35,9 @@ def _unit():
     ok("34: switch OFF par type chat hai, back par OFF bataya", a("type hello", False) is None and "OFF" in a("go back", False)[0])
     ok("34: sawaal chat hi rehte hain", a("type of food kya hai") is None and a("how to go back?") is None and a("which app is best?") is None)
     ok("34: kaun sa app khula hai -> current_app", a("kaun sa app khula hai")[1] == {"type": "current_app"})
+    import memory as MM
+    ok("54: fact par offer (bhatija, wife, Hindi)", all(MM.suggest(x) for x in ("mere bhatije ka naam Arman hai", "my wife's name is Sara", "मेरे भतीजे का नाम अरमान है", "meri behan ka birthday 5 May ko hai")))
+    ok("54: sawaal, secret aur yaad rakho par offer nahi", not any(MM.suggest(x) for x in ("mere bhatije ka naam kya hai", "what is my wife's name?", "my password name is abc", "yaad rakho: mere bhatije ka naam Arman hai", "weather kaisa hai", "mera pin 1234 hai naam")))
     pr = PG.handle("bhai app ka kaam kahan tak pahuncha", False)
     ok("34: progress README se aata hai (done, baaki, next)", "built" in pr and "34" in pr and "Next:" in pr and PG.handle("my fitness progress", False) is None)
 _unit()
@@ -112,6 +115,9 @@ try:
     check("30: sawaal (open source kya hai) par action nahi", "action" not in cc("open source kya hai"))
     check("34: chat route par peeche jao -> back action", cc("peeche jao").get("action") == {"type": "back"})
     check("34: chat route par progress sawaal ka jawab", "planned Parts" in cc("app ka kaam kahan tak pahuncha")["reply"])
+    r54 = cc("mere bhatije ka naam Arman hai")
+    check("54: chat jawab ke saath remember offer, par abhi save nahi", r54.get("remember") == "mere bhatije ka naam Arman hai" and "Arman" not in cc("kya yaad hai")["reply"])
+    check("54: Yes ke baad (yaad rakho) save hota hai", "saved" in cc("yaad rakho: " + r54["remember"])["reply"] and "Arman" in cc("kya yaad hai")["reply"])
     check("30: AI ne bakwas diya -> action nahi", "action" not in cc("please start the day with a joke now ok"))
 finally:
     p2.terminate()
