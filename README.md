@@ -4,20 +4,21 @@
 > runs out often. This README has the full plan: what we build, why, how, the rules, where we are, and what is next.
 > Read it, then start the next part. Do not ask him to resend the old chat. Repo: https://github.com/mehreenhusn-cmyk/Jarvis
 
-## 0. AT A GLANCE (updated 15 Nov 2026, after Parts 37 and 38)
+## 0. AT A GLANCE (updated 15 Nov 2026, after Parts 39 and 56)
 **What:** Jarvis, a personal AI assistant on Hussain's phone (Termux server + Android app). **Why:** one app on the phone, no PC, works by download only.
-**Done:** 41 of 56 Parts built (about 3,270 lines, 69 files). Only Parts 1 to 26 were partly phone tested; Parts 27 to 38, 50, 54 and 55 are built but NOT phone tested.
-**Pending:** 15 Parts, about 2,600 lines (2,055 required, 550 optional). Next Part is **39**. Full table in section 11.6, order in the "Build order" line.
+**Done:** 43 of 56 Parts built (about 3,550 lines of code, 70 files). Only Parts 1 to 26 were partly phone tested; Parts 27 to 39, 50, 54, 55 and 56 are built but NOT phone tested. Java is still not compiled: the GitHub Build APK is the first compile test.
+**Pending:** 13 Parts, about 2,300 lines (about 1,750 required, 550 optional). Next Part is **41**. Full table in section 11.6, order in the "Build order" line.
 | Group | Parts | Status |
 |---|---|---|
 | Base: server, chat, voice, reminders, app, privacy | 1 to 29 | DONE |
 | Phone control: commands, apps, screen, confirm rules, lock phone | 30 to 35 | BUILT, not phone tested |
 | App lock, chat times, conversation wait | 36 | BUILT |
-| Settings by voice (pages, flashlight, volume), Quick Settings tile and shortcut | 37, 38 | BUILT (this zip) |
-| Background mic test, task engine, test pack | 39, 41 to 43 | PENDING |
+| Settings by voice (pages, flashlight, volume), Quick Settings tile and shortcut | 37, 38 | BUILT |
+| Background mic test (Settings card, 8 h limit) | 39 | BUILT (this zip) |
+| Task engine, task runner, test pack | 41 to 43 | PENDING |
 | Calendar, briefing, routines, backup, share | 44 to 48 | PENDING |
 | Two voices (Tony and JARVIS) | 51 to 53 | PENDING |
-| Home dashboard (orb, events, stats) | 56 | PENDING (new) |
+| Home tab (orb, today, quick buttons, stats) | 56 | BUILT (this zip) |
 | Optional: offline wake word, notification summary | 40, 49 | OPTIONAL |
 
 ## 1. What we are building
@@ -64,7 +65,7 @@ The GitHub token must also allow **workflow** files (needed from Part 16, or the
 Daily: `cd ~/Jarvis && bash run.sh`. Open **http://127.0.0.1:8787** (or the Jarvis app). First time: pairing code, then Settings for the key.
 Auto-start (Part 11): Termux starts Jarvis when opened. Turn off with `JARVIS_NO_AUTOSTART=1` in `.env`.
 
-## 6. STATUS (15 Nov 2026): Parts 1 to 38, 50, 54 and 55 are built
+## 6. STATUS (15 Nov 2026): Parts 1 to 39, 50, 54, 55 and 56 are built
 Everything below is built and pushed. "Phone test" says only what Hussain has already seen working on his phone. Anything not marked YES still needs one quick try (a bug found there = one small fix zip, not unfinished work).
 | Part | What | Status | Phone test |
 |---|---|---|---|
@@ -97,6 +98,8 @@ Everything below is built and pushed. "Phone test" says only what Hussain has al
 | 36 | App lock with Android's own prompt (fingerprint, face, PIN; closes the app if cancelled; 1 minute grace; the bridge refuses while locked). WhatsApp-style time under every message and a date line (Today, Yesterday). Jarvis now knows the time and how long you were away. Mic waits 4 to 5 seconds of quiet before it ends your sentence. "Kitna kaam ho gaya" now answers progress. **Pairing fix:** one fixed signing key, so an update installs over the old app and keeps your pairing | BUILT | NOT YET (Java not compiled; install once with uninstall first, see section 7) |
 | 37 | Settings help: "wifi settings kholo", "bluetooth", "location", "sound", "brightness" (opens Display page), "battery", "permissions", "notifications" open fixed Android pages. "torch on/off" switches the flashlight. "volume badhao/kam karo" changes the music volume and says what Android really did. Wi-Fi, Bluetooth, location and brightness are NEVER switched by Jarvis (Android does not allow it): Jarvis opens the page and says so. Needs Phone control ON | BUILT | NOT YET (Java not compiled) |
 | 38 DONE | Quick Settings tile \"Jarvis\" (swipe down, edit tiles, add it) and an icon shortcut (long-press the Jarvis icon, \"Listen\"). One tap opens Jarvis and starts the mic. Never works while Jarvis is stopped or locked | BUILT | NOT YET (Java not compiled) |
+| 39 | Background mic TEST (Settings > "Background listening test"): Start test, a notification with Stop stays visible, ends by itself after 8 h. It only COUNTS how often it heard "Jarvis", how often with the screen off and with the app closed. It keeps no words, sends nothing to the page or server, does no phone action. Starts only after your finger tap, never while Jarvis is stopped or locked. Stop everything ends it. Opening the mic in the app ends it (one listener at a time). The card also shows phone brand, Android version, battery limit and says if Android killed it | BUILT | NOT YET (Java not compiled; needs one day on the phone) |
+| 56 | Home tab: a Chat / Home switch under the header. Home shows the orb (gold = ready, pulsing = listening, red = stopped), greeting and date, today's reminders and money entries due today or late, quick buttons (Talk, Briefing, Reminders, Ledger, Settings, Stop everything) and the phone and server numbers. New server route `/today` | BUILT | NOT YET (page syntax checked only) |
 | 55 | Conversation mode (app only): button "Conversation" starts it. After each answer the phone mic opens by itself (0.5 s pause so it does not hear Jarvis). Ends after 2 silent rounds, on "bas" or "stop", after 20 turns, on Stop everything, or if the app goes to the background. Phone speech service may beep | BUILT | NOT YET (page and Java not run) |
 | 54 | Smart memory: when you state a personal fact ("mere bhatije ka naam Arman hai") Jarvis answers and shows "Should I remember this?" Yes / No. Only your finger tap on Yes saves it (normal "yaad rakho" path, so passwords and OTPs are still refused). Questions are never offered | BUILT | NOT YET (server tests pass; page JS syntax checked only) |
 | 50 | System card in Settings: phone RAM, storage, battery, heat, Jarvis server memory and CPU, uptime, internet. Server tests pass; page JS syntax checked only | BUILT | NOT YET |
@@ -108,7 +111,7 @@ Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): He
    Termux closing by itself: Android kills it to save battery. Settings > Apps > Termux > Battery > No restriction; keep the Termux notification (wake lock) visible; install the Termux:Boot app for restarts.
 1. Download the zip, wait for "pushed" in the app header, run **Build APK** on GitHub, install it. If the build fails, send `build-log`.
 2. Test Parts 27, 28 and 29 with the list in section 11.8, plus the old cheat sheet. Report what fails with a screenshot.
-3. Parts 30 to 38, 50, 54 and 55 are BUILT. Download the zip, wait for "pushed", run **Build APK**, install, then test with section 11.8. Next Part: **39** (background mic test), then 41 and on in order (section 11.6, Build order line). Dual voice Parts 51 to 53 are planned in section 11.6b. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
+3. Parts 30 to 39, 50, 54, 55 and 56 are BUILT. Download the zip, wait for "pushed", run **Build APK**, install, then test with section 11.8. Next Part: **41** (task engine), then 42, 43 and on in order (section 11.6, Build order line). Dual voice Parts 51 to 53 are planned in section 11.6b. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
 
 ## 8. Cheat sheet (type or say)
 | Say or type | What happens |
@@ -247,7 +250,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 36 DONE | Lock the Jarvis app with the real Android fingerprint, face or phone PIN prompt. Bridge refuses while locked. Turn off only after authenticating. Optional: token in Android Keystore | AppLock.java*, MainActivity, app/build.gradle, index.html | ~140 | Without | Nobody else can use Jarvis on your phone |
 | 37 DONE | Settings help: open Wi-Fi, Bluetooth, location, sound, battery, app permissions, notifications pages; flashlight, volume; explain when Android blocks a change | PhoneSettings.java*, MainActivity, actions.py, index.html | ~140 | Without | Settings by voice, no hacks, no false "done" |
 | 38 DONE | Quick Settings tile and app shortcut to start listening | JarvisTile.java*, AndroidManifest, res/xml/shortcuts.xml*, MainActivity | ~70 | Without | Hands-free start even if wake word is weak |
-| 39 | Background mic test: microphone foreground service, notification with Stop button, battery check, no sensitive action while locked | ListenService.java*, AndroidManifest, MainActivity, Privacy, index.html, Ears | ~140 | Without, plus one day phone test | We learn if "Hey Jarvis" works with the app closed |
+| 39 DONE | Background mic test: microphone foreground service, notification with Stop button, battery check, no sensitive action while locked | ListenService.java*, AndroidManifest, MainActivity, Privacy, index.html, Ears | ~140 | Without, plus one day phone test | We learn if "Hey Jarvis" works with the app closed |
 | 40 | OPTIONAL: offline wake-word engine, only if Part 39 shows the Google recognizer is not enough | decided after 39 | ~200 | decided later | Reliable hands-free. Bigger app and more battery, needs Hussain's OK |
 | 41 | Task engine backend: tasks table, 10 states, steps, restart rule | tasks.py*, app.py | ~180 | With | Multi-step jobs are tracked honestly |
 | 42 | Task runner in the page: shows steps, runs them through the bridge, verifies each, Cancel button, stops on failure | index.html, MainActivity, ScreenService, Privacy | ~120 | Without | "Chrome kholo aur ..." sequences, cancel any time |
@@ -263,7 +266,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 52 | Voice Personality settings: Tony and JARVIS cards, Auto routing ON, manual override, Test Tony, Test JARVIS, active-voice badge, saved in `voice.json` on the server (survives restart), stop and switch while speaking | index.html, app.py | ~160 | Without (page) plus Python route tests | One clear place to control both voices |
 | 53 | Second voice provider only if the Edge test shows the two voices are too alike: Google Cloud Chirp 3 HD, key kept in `keys.json`, Edge stays as fallback | tts.py, app.py, backend/.env.example | ~120 | With, needs Hussain's key | Two truly different voices |
 | 54 DONE | Smart memory: when you say a personal fact ("mere bhatije ka naam Arman hai"), Jarvis answers and shows "Yaad rakhun? Yes / No". Only your own tap on Yes saves it, in the existing `memories` table (limit 100, never passwords, OTPs, PINs). Later "mera bhatija kaun hai" is answered from memory. Needed because today Jarvis saves only after "yaad rakho: ..." | memory.py, app.py, index.html, test_app.py | ~75 | With | Jarvis learns names and facts without typing "yaad rakho" |
-| 56 | Home dashboard (inspired by the PC Jarvis screenshot): a Home tab with the orb, today's reminders and events, phone and server stats, quick buttons. Chat stays the main screen. Phone layout: one column, cards that scroll | index.html, app.py | ~130 | Without (page) | One glance shows the day and the phone |
+| 56 DONE | Home dashboard (inspired by the PC Jarvis screenshot): a Home tab with the orb, today's reminders and events, phone and server stats, quick buttons. Chat stays the main screen. Phone layout: one column, cards that scroll | index.html, app.py | ~130 | Without (page) | One glance shows the day and the phone |
 | 55 DONE | Conversation mode: after Jarvis finishes speaking, the mic opens by itself, so you can answer without tapping the mic. Visible "Conversation ON" bar. Ends after 2 silent rounds, on "bas" or "stop", or on Stop everything. Works only while the app is open (background listening is tested in Part 39) | index.html, Ears.java, MainActivity | ~80 | Without | Natural back and forth talk |
 
 **Totals** (code lines added or changed, README excluded):
@@ -280,7 +283,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 Estimates are rough (plus or minus 25 percent). Real numbers go into this table after each Part.
 
 
-**Build order (next first):** 39, 41, 42, 43, 56, 51, 52, 53, 44, 45, 46, 47, 48. Optional: 40, 49.
+**Build order (next first):** 41, 42, 43, 51, 52, 53, 44, 45, 46, 47, 48. Optional: 40, 49 (40 is decided after the Part 39 phone test).
 
 ### 11.6b Dual voice personality plan (added 15 Nov 2026, AUDIT ONLY, no code yet)
 Goal: two default voices that switch by themselves. TONY = conversation (confident, witty, Hinglish). JARVIS = information, tasks, reminders, briefings, alerts (calm, deep, precise). No cloning of Rajesh Khattar or Atul Kapoor. Original or licensed voices only.
@@ -335,6 +338,9 @@ What changes for Hussain: the first mic tap asks for the microphone; the first "
 | Pairing helper | BUILT | - | 15 (`app.py` /newcode 9, `index.html` 6): the pairing screen now tells you the 3 steps, asks Termux to print a fresh code by itself, and has a "Show code in Termux" button. The code is never shown in the page | NOT YET |
 | 36 | BUILT | ~140 | 176 (`AppLock.java` 56 new, `MainActivity` 43, `Ears` 2, `index.html` 17, `clock.py` 38 new, `app.py` 8, `progress.py` 1, `build.gradle` 6, tests 5; plus the fixed key file `android/jarvis-debug.keystore`) | NOT YET. Java not compiled here. Python tests: 68 PASS, 0 FAIL |
 | 55 | BUILT | ~80 | 31 (`index.html` about 29, `Ears.java` 2) | NOT YET. Page and Java not run on a phone |
+| 39 | BUILT | ~140 | about 216 (`ListenService.java` 157 new, `MainActivity` 19, `Privacy` 6, `Ears` 1, manifest 2, `index.html` about 31) | NOT YET. Java not compiled. Not run: phone test |
+| 56 | BUILT | ~130 | about 75 (`index.html` about 46, `remind.py` 11, `app.py` 4, plus fixes below) | NOT YET. Page syntax checked only |
+Fixes in the same zip: (1) the Settings system card used a helper (`el`) that only existed inside another function, so it would have stayed empty; it is global now. (2) Durations over 60 minutes now show as hours and minutes everywhere (page and `clock.py`, for example "1 h 15 min", never "75 minutes").
 
 How the dashboard works (Part 29): open Settings (gear), the first card is "Privacy and permissions". Each row shows three separate things: permission (Allowed or Not allowed, from Android), running now (from Java, not from the page), and last used. A permission being allowed never means a feature is running. Screen reader shows "Accessibility ON" only when the Jarvis accessibility service is really connected. "Reminder service ON" means the background service is really up. The activity log keeps only the feature name and time (max 30 lines, one entry per feature per minute) and never any content. "Open settings" buttons open one fixed Android page each. If the server stops, a red banner appears after about 10 seconds and Jarvis retries every 5 seconds; it clears by itself when the server is back. Chrome shows only the server line, because Android permissions exist only in the app.
 

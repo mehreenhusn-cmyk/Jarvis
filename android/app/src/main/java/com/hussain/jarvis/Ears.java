@@ -28,6 +28,7 @@ class Ears implements RecognitionListener {
         stop();
         if (Privacy.stopped) { js("onHeardErr", "Jarvis is stopped. Tap Turn mic on first"); return; }
         if (!SpeechRecognizer.isRecognitionAvailable(act)) { js("onHeardErr", "this phone has no speech service"); return; }
+        if (ListenService.up) ListenService.halt(act);  // Part 39: only one listener at a time; opening the mic here ends the background test
         lang = l; wake = wakeMode; on = true;
         sr = SpeechRecognizer.createSpeechRecognizer(act);
         sr.setRecognitionListener(this);

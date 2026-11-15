@@ -8,10 +8,13 @@ def gap(sec):
     s = int(max(0, sec))
     if s < 90:
         return f"{s} seconds"
-    if s < 5400:
+    if s < 3600:
         return f"{round(s / 60)} minutes"
-    if s < 172800:
-        return f"{round(s / 3600)} hours"
+    if s < 172800:  # over 60 minutes: hours and minutes ("1 h 15 min"), never "75 minutes"
+        h, m = s // 3600, round(s % 3600 / 60)
+        if m == 60:
+            h, m = h + 1, 0
+        return f"{h} hours" if m == 0 else f"{h} h {m} min"
     return f"{round(s / 86400)} days"
 
 

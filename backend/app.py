@@ -285,6 +285,10 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, {"ok": True})
         if self.path == "/due":  # page har 10 sec poochta hai: kisi reminder ka time hua?
             return self.send(200, {"due": remind.due(db(), dev, str(data.get("now", "")))})
+        if self.path == "/today":  # Part 56: Home tab. Aaj ke reminders aur jin hisab ki tareekh aaj ya pehle ki hai
+            now = str(data.get("now", ""))
+            led = [{"id": i, "text": ledger.line(i, w, a, d, du), "late": du < now[:10]} for i, w, a, d, du in ledger.rows(db(), dev) if du and du <= now[:10]]
+            return self.send(200, {"reminders": remind.today(db(), dev, now), "ledger": led})
         if self.path == "/brief":  # page din mein ek baar apne aap maangta hai
             return self.send(200, {"text": brief.build(db(), dev, str(data.get("now", "")), data.get("style") == "hindi", bool(data.get("auto")))})
         if self.path == "/ledger/paid":

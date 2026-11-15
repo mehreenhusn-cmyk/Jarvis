@@ -37,7 +37,7 @@ final class Privacy {
             Ears e = a.ears;
             boolean on = e != null && e.on;
             o.put("stopped", stopped).put("control", control).put("mic", on && !e.wake).put("wake", on && e.wake)
-                .put("screen", screenJob != null).put("camera", a.picker != null);
+                .put("screen", screenJob != null).put("camera", a.picker != null).put("bg", ListenService.up);
         } catch (Exception x) { /* send what we have */ }
         return o;
     }
@@ -50,6 +50,8 @@ final class Privacy {
         save();
         a.runOnUiThread(() -> {
             if (a.ears != null) a.ears.stop();
+            ListenService.halt(a);  // Part 39: the background listening test also ends
+            a.getSystemService(NotificationManager.class).cancel(79);
             if (screenJob != null) { UI.removeCallbacks(screenJob); screenJob = null; }
             if (actJob != null) { UI.removeCallbacks(actJob); actJob = null; }
             MainActivity.pending = null;
@@ -83,14 +85,14 @@ final class Privacy {
         try {
             JSONObject s = state(a), p = new JSONObject(), r = new JSONObject(), l = new JSONObject();
             int mic = has(a, Manifest.permission.RECORD_AUDIO);
-            p.put("mic", mic).put("wake", mic).put("camera", -1).put("screen", ScreenService.live != null ? 1 : 0)
+            p.put("mic", mic).put("wake", mic).put("bg", mic).put("camera", -1).put("screen", ScreenService.live != null ? 1 : 0)
                 .put("location", has(a, Manifest.permission.ACCESS_FINE_LOCATION)).put("contacts", has(a, Manifest.permission.READ_CONTACTS))
                 .put("calls", has(a, Manifest.permission.READ_CALL_LOG)).put("apps", -1)
                 .put("notify", a.getSystemService(NotificationManager.class).areNotificationsEnabled() ? 1 : 0)
                 .put("battery", a.getSystemService(PowerManager.class).isIgnoringBatteryOptimizations(a.getPackageName()) ? 1 : 0);
             r.put("mic", s.getBoolean("mic")).put("wake", s.getBoolean("wake")).put("camera", s.getBoolean("camera"))
-                .put("screen", s.getBoolean("screen")).put("notify", NotifyService.up);
-            for (String id : new String[]{"mic", "wake", "camera", "screen", "location", "contacts", "calls", "notify", "apps"}) l.put(id, sp == null ? 0 : sp.getLong("last_" + id, 0));
+                .put("screen", s.getBoolean("screen")).put("notify", NotifyService.up).put("bg", s.getBoolean("bg"));
+            for (String id : new String[]{"mic", "wake", "bg", "camera", "screen", "location", "contacts", "calls", "notify", "apps"}) l.put(id, sp == null ? 0 : sp.getLong("last_" + id, 0));
             JSONArray log = new JSONArray();
             for (String line : (sp == null ? "" : sp.getString("plog", "")).split("\n")) {
                 String[] x = line.split("\\|");

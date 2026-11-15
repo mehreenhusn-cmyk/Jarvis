@@ -32,6 +32,17 @@ def due(c, dev, now):
     return [{"id": i, "text": t} for i, t in r]
 
 
+def today(c, dev, now):
+    """Part 56: aaj ke reminders (page ke 'now' ke hisab se), time ke order me. done=1 matlab bata diya gaya."""
+    try:
+        n = tm(now)
+    except ValueError:
+        return []
+    start = n - n % 86400
+    r = c.execute("SELECT id, text, due, sent FROM reminders WHERE device=? AND due>=? AND due<? ORDER BY due", (dev, start, start + 86400)).fetchall()
+    return [{"id": i, "text": t, "at": time.strftime("%H:%M", time.gmtime(d)), "done": int(s)} for i, t, d, s in r]
+
+
 def handle(c, dev, msg, hindi, ask, now):
     def say(hi, ro):
         return hi if hindi else ro

@@ -111,6 +111,22 @@ public class MainActivity extends Activity {
                 if (!allowed(Manifest.permission.RECORD_AUDIO, 1)) { web.post(() -> web.evaluateJavascript("window.onHeardErr&&onHeardErr('allow the microphone, then tap the mic again',false)", null)); return; }
                 runOnUiThread(() -> { if (ears == null) ears = new Ears(MainActivity.this, web); ears.start(lang, wake); });
             }
+            // Part 39: background listening TEST. Starts only after a real finger tap, never while locked or stopped. Counts only, keeps no words.
+            @JavascriptInterface public String bgListen(boolean on) {
+                if (AppLock.locked()) return "{\"ok\":false,\"err\":\"locked\"}";
+                if (!on) { runOnUiThread(() -> ListenService.halt(MainActivity.this)); return "{\"ok\":true}"; }
+                if (Privacy.stopped) return "{\"ok\":false,\"err\":\"stopped\"}";
+                if (System.currentTimeMillis() - touch > 3000) return "{\"ok\":false,\"err\":\"tap\"}";
+                if (!allowed(Manifest.permission.RECORD_AUDIO, 1)) return "{\"ok\":false,\"err\":\"perm\"}";
+                if (!getSystemService(NotificationManager.class).areNotificationsEnabled()) return "{\"ok\":false,\"err\":\"notif\"}";
+                if (!android.speech.SpeechRecognizer.isRecognitionAvailable(MainActivity.this)) return "{\"ok\":false,\"err\":\"nospeech\"}";
+                runOnUiThread(() -> {
+                    if (ears != null) ears.stop();  // one listener at a time
+                    try { startForegroundService(new Intent(MainActivity.this, ListenService.class)); } catch (Exception e) { /* Android refused; info() shows the reason */ }
+                });
+                return "{\"ok\":true}";
+            }
+            @JavascriptInterface public String bgInfo() { if (AppLock.locked()) return "{\"locked\":true}"; return ListenService.info(MainActivity.this); }
             @JavascriptInterface public void stopListen() {
                 runOnUiThread(() -> { if (ears != null) ears.stop(); });
             }
@@ -248,6 +264,7 @@ public class MainActivity extends Activity {
             .setContentIntent(PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE)).build());
     }
 
+    static volatile boolean visible;  // Part 39: the background test counts how often "Jarvis" was heard with the app NOT on screen
     boolean asking, closing;
 
     /** Part 36: while the lock is on, the page stays hidden until Android's own prompt says yes. */
@@ -262,12 +279,14 @@ public class MainActivity extends Activity {
 
     @Override protected void onPause() {
         super.onPause();
+        visible = false;
         AppLock.left();  // Android does not let apps listen from the background, so Hey Jarvis pauses here
         if (ears != null && ears.on) { ears.stop(); ears.js("onHeardErr", "Hey Jarvis paused because the app went to the background"); }
     }
 
     @Override protected void onResume() {
         super.onResume();
+        visible = true;
         gate();
         if (AppLock.locked()) return;  // nothing is handed to the page while it is locked
         if (wantListen) {  // Part 38: tile or shortcut. Same as tapping the mic: the page checks Stop itself.
