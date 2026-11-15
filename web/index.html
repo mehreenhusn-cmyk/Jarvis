@@ -37,7 +37,7 @@ form input{border-radius:24px}#mic{width:52px;height:52px;padding:0;border-radiu
 <h4>People</h4><div class="card" id="pl"></div><h4>Memory</h4><div class="card" id="ml"></div><h4>Money ledger</h4><div class="card" id="ll"></div></div>
 <div id="pv"></div><div id="chat" hidden>
 <div id="vp" hidden><select id="lang"><option value="hi-IN">Speak: Hindi</option><option value="en-IN">Speak: English</option></select>
-<select id="voice"></select><select id="pre"><option value="">Voice style</option><option value="k">Khattar (deep, Hindi dub)</option><option value="r">Rolex (very deep)</option><option value="n">Normal</option></select>
+<select id="voice"></select><select id="pre"><option value="">Voice style</option><option value="k">Khattar (deep, Hindi dub)</option><option value="r">Rolex (very deep)</option><option value="d">Jarvis studio (Hindi)</option><option value="b">Jarvis studio (British English)</option><option value="n">Normal</option></select>
 <label><input type="checkbox" id="say" style="width:auto"> Speak replies</label><label>Depth <input type="range" id="pt" min="0.5" max="1.5" step="0.05" style="width:80px;padding:0"></label><label>Speed <input type="range" id="rt" min="0.6" max="1.4" step="0.05" style="width:80px;padding:0"></label>
 <button type="button" id="tv" class="g">Test voice</button><button type="button" id="mon" class="g" hidden>Turn mic on</button><button type="button" id="wake" class="g" hidden>Hey Jarvis: off</button><b id="ms" class="ok">Mic off</b></div>
 <div id="log"></div>
@@ -124,7 +124,14 @@ window.onHeard=(txt,wake)=>{txt=(txt||'').trim();
 window.onHeardErr=txt=>{appListening=false;wakeOn=false;cmdNext=false;micState(false);wakeBtn();add('err','Mic: '+txt);};
 $('stop').onclick=()=>{if(rec)rec.abort();if(appEars()){JarvisApp.stopListen();wakeOn=false;appListening=false;wakeBtn();}speechSynthesis.cancel();if(aud)aud.pause();micState(false);};
 const NV=[['hi-IN-MadhurNeural','Jarvis Hindi (Madhur)'],['en-GB-RyanNeural','Jarvis English (Ryan)'],['en-IN-PrabhatNeural','Indian male (Prabhat)'],['en-IN-NeerjaNeural','Indian female (Neerja)'],['hi-IN-SwaraNeural','Hindi female (Swara)']];
-let aud=null,warned=false;
+let aud=null,warned=false,fx=['d','b'].includes(localStorage.getItem('jpre'));
+let actx=null;
+function studio(el){ // deep, clean "assistant" tone: more bass, softer top, gentle compressor. If anything fails the sound stays normal.
+  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();actx.resume();
+    const lo=actx.createBiquadFilter(),hi=actx.createBiquadFilter(),cp=actx.createDynamicsCompressor();
+    lo.type='lowshelf';lo.frequency.value=200;lo.gain.value=6;hi.type='highshelf';hi.frequency.value=6500;hi.gain.value=-4;
+    const s=actx.createMediaElementSource(el);s.connect(lo);lo.connect(hi);hi.connect(cp);cp.connect(actx.destination);}catch(e){}
+}
 function loadVoices(){
   const rk=v=>{const l=v.lang.replace('_','-').toLowerCase();return l=='en-in'?0:l=='hi-in'?1:l.startsWith('en')?2:3;};
   const vs=speechSynthesis.getVoices().sort((a,b)=>rk(a)-rk(b));
@@ -135,7 +142,7 @@ function loadVoices(){
 async function neural(t,v){
   const r=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text:t,voice:v,pitch:Math.round(($('pt').value-1)*100),rate:Math.round(($('rt').value-1)*100)})});
   if(!r.ok){let e={};try{e=await r.json()}catch(x){}throw new Error(e.error||'voice error');}
-  if(aud)aud.pause();aud=new Audio(URL.createObjectURL(await r.blob()));aud.playbackRate=+$('rt').value;aud.onended=aud.onerror=heardBack;await aud.play();
+  if(aud)aud.pause();aud=new Audio(URL.createObjectURL(await r.blob()));aud.playbackRate=+$('rt').value;if(fx)studio(aud);aud.onended=aud.onerror=heardBack;await aud.play();
 }
 function local(t){
   speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.pitch=+$('pt').value;u.rate=+$('rt').value;
@@ -230,11 +237,13 @@ function stopAll(){
   $('say').checked=false;localStorage.setItem('jsay','0');priv=true;localStorage.setItem('jpriv','1');micState(false);
 }
 $('mon').onclick=()=>{priv=false;localStorage.setItem('jpriv','0');pv();};$('say').addEventListener('change',pv);wakeBtn();
+if(localStorage.getItem('jpre'))$('pre').value=localStorage.getItem('jpre');
 $('pre').onchange=()=>{
-  const p={k:[0.7,0.92],r:[0.5,0.85],n:[0.95,1]}[$('pre').value];if(!p)return;
+  const code=$('pre').value;localStorage.setItem('jpre',code);fx=['d','b'].includes(code);
+  const p={k:[0.7,0.92],r:[0.5,0.85],d:[0.75,0.94],b:[0.85,0.95],n:[0.95,1]}[code];if(!p)return;
   $('pt').value=p[0];$('rt').value=p[1];localStorage.setItem('jpt',p[0]);localStorage.setItem('jrt',p[1]);
-  if($('pre').value!='n'){$('voice').value='neural:hi-IN-MadhurNeural';localStorage.setItem('jvoice',$('voice').value);}
-  speak(sty()=='hindi'?'नमस्ते सर, मैं जार्विस हूँ।':'Hello sir, I am Jarvis.',true);
+  if(code!='n'){$('voice').value=code=='b'?'neural:en-GB-RyanNeural':'neural:hi-IN-MadhurNeural';localStorage.setItem('jvoice',$('voice').value);}
+  speak($('voice').value.includes('hi-IN')?'नमस्ते सर, मैं जार्विस हूँ। बताइए, मैं आपकी क्या सेवा कर सकता हूँ?':'Hello sir, I am Jarvis. How can I help you?',true);
 };
 async function brief(){
   if(!token||priv)return;const day=nowS().slice(0,10);if(localStorage.getItem('jbrief')==day)return;localStorage.setItem('jbrief',day);

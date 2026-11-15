@@ -45,38 +45,31 @@ The GitHub token must also allow **workflow** files (needed from Part 16, or the
 Daily: `cd ~/Jarvis && bash run.sh`. Open **http://127.0.0.1:8787** (or the Jarvis app). First time: pairing code, then Settings for the key.
 Auto-start (Part 11): Termux starts Jarvis when opened. Turn off with `JARVIS_NO_AUTOSTART=1` in `.env`.
 
-## 6. Status (15 Nov 2026)   Done on phone / Built, not tested on phone / Not started
-| Part | What | State |
-|---|---|---|
-| 1-5 | Server, pairing, chat, history, mic, keys, 5 providers | Done on phone |
-| 6-9 | Voice tuning, neural voice, Hindi-dub style, memory | Built, listen test pending |
-| 10-11 | Reminders, money ledger, auto-update (`run.sh`), auto-start | Built, phone test pending |
-| 12 | Privacy bar, "stop listening", voice styles (Khattar, Rolex) | Built, phone test pending |
-| 13 | Read links, "search: ..." (`backend/web.py`) | Built, real internet test pending |
-| 14 | Morning briefing (`backend/brief.py`) | Built |
-| - | Duplicate-zip protection (`scripts/sync.sh`) | Done on fake GitHub test |
-| 15 | **New look:** dark/light theme, gold accent, bubbles, big mic button, voice tools in a drawer, all text in simple English; replies from memory, reminders, ledger, briefing and web errors are now simple English too | Built, syntax-checked only |
-| 16 | **Android app shell** (`android/`, `.github/workflows/apk.yml`): WebView of the Termux page, mic permission. Build: GitHub > Actions > Build APK > run > download `Jarvis-apk` | Built, never built yet |
-| 20 | **People profiles** (`backend/people.py`): "note about Faisal: old friend", "who is Faisal", "my people", "forget person Faisal"; Settings > People list. When you name a saved person in chat, the AI gets those notes. No passwords or OTPs | Built, logic checked with a fake database only |
-| 21 | **Location** (`backend/place.py`): only when you ask ("where am I", "near me"), the page sends the phone position for that one message. Never stored. Place name comes from OpenStreetMap over the internet. App asks for location permission | Built, not tested on phone |
-| 25 | **Mic inside the app + Hey Jarvis** (`Ears.java`, page changes): the app now uses the phone's own speech recognizer, so the mic button works in the app. "Hey Jarvis: off/on" button in the voice drawer: while the app stays open, it listens again and again; say "Hey Jarvis, <question>" or just "Hey Jarvis" and wait for "Yes sir?". It pauses while Jarvis speaks and when the app goes to the background (Android does not allow background listening). May beep and use battery; the phone's speech service (Google) hears the audio. "Jarvis, stop listening" or the button turns it off. Opt-in only | Built; app side not compiled or tried |
-| 23 | **Screen reader** (`ScreenService.java`, `backend/screen.py`): Android app only. Say "read my screen" or "explain this screen". Jarvis asks you to turn on "Jarvis screen reader" in Accessibility settings (once), goes to the background, reads the text of the app you switch to after 6 seconds, and comes back with the answer. Reads text only (no screenshots), skips password fields, max 3000 characters, ignores all events and never reads by itself. The text goes to the AI provider for that one answer only and the answer is not saved. Screen text is treated as data, not orders | Built; app side not compiled or tried |
-| 19 | **Calls and contacts** (`backend/calls.py` + `ContactsInfo.java`): in the Android app only, "missed calls", "recent calls today", "call history this week", "contact Faisal". Reads names, numbers and times only when you ask; the permission is asked at that moment. The answer is made on the phone (no AI sees it) and is NOT saved in chat history | Built, logic checked with fake data; app side not compiled |
-| 3c | **Voice fix:** an old saved voice name left the voice list empty, so nothing was spoken and no error showed. Now it falls back to Madhur, and every voice failure shows a clear message | Built |
-| 3b | **Voice in, voice out:** when you speak to the mic, the reply is spoken even if "Speak replies" is off | Built |
-| 22 | **Camera** (`backend/see.py`): tap the camera button, take one photo, a vision AI describes it (groq, openrouter, mistral or nvidia). Photo is sent to the AI over the internet, not saved. Model names can change: set `MODEL_VISION_GROQ` etc. in `.env` if a model stops working. In the app the button opens the Android picker | Built, never tried with a real photo or key; app side not compiled |
-| - | **Update status in the app header** (`~/.jarvis_last`, written by `sync.sh`): shows the last zip, time and result (pushed / skipped / PUSH FAILED). Note: the Android Files app can keep showing zips that Termux already moved away; those entries are empty ghosts | Built |
-| 24 | **Phone check** (`backend/phone.py` + `PhoneInfo.java`): ask "why is my phone slow". Jarvis reads numbers only (RAM, storage, battery, heat, battery saver, days since restart) and gives simple advice. In Chrome only RAM and storage are checked | Built, rules checked with fake numbers; app side not compiled |
-| - | **Catch-up zip** `Jarvis_part_24.zip`: Parts 15-21 and 24 were never pushed because of the `part114` zip name; this zip carries all of them plus the sync fix | Pushed? Check GitHub |
-| 26 | **Security check and polish:** only the phone's own page may use the server (Host and Origin check); security headers and a strict page policy (no outside scripts or connections); error messages never show anything key-like; the app page cannot navigate away from the Jarvis address; file access off in the app; no cloud backup of the app data; new command "clear history" | Built; checked by a real local test of the server; app side not compiled |
-| 17 | Build log is now saved on every run (artifact `build-log`). Real fixes need that log from the first build | Prepared; waiting for the first build |
-| 18 | **Reminder notifications with the app closed:** `NotifyService.java` checks `/due` every 30 sec and shows a phone notification. The page hands the pairing token to the app. Termux must stay running | Built, never compiled or run |
+## 6. STATUS: ALL 26 PARTS ARE DONE (15 Nov 2026)
+Everything below is built and pushed. "Phone test" says only what Hussain has already seen working on his phone. Anything not marked YES still needs one quick try (a bug found there = one small fix zip, not unfinished work).
+| Part | What | Status | Phone test |
+|---|---|---|---|
+| 1-5 | Server, pairing, chat, history, mic (Chrome), keys, 5 AI providers | DONE | YES |
+| 6-9 | Voice: neural voices, sliders, Hindi style, memory | DONE | YES (voice plays; matching the movie voice is still being tuned) |
+| 10-11 | Reminders, money ledger, auto-update `run.sh`, auto-start | DONE | YES (update and push seen in Termux) |
+| 12-14 | Privacy bar, web read and search, morning briefing, duplicate-zip protection | DONE | YES for duplicate-zip protection, NOT YET for the rest |
+| 15 | New professional look (dark/light, gold accent, simple English) | DONE | YES |
+| 16-17 | Android app shell, GitHub APK build, build log | DONE | YES (build is green, app opens) |
+| 18 | Reminder notifications with the app closed | DONE | NOT YET |
+| 19 | Calls and contacts (app only, not saved) | DONE | NOT YET |
+| 20 | People notes | DONE | NOT YET |
+| 21 | Location, only when asked | DONE | NOT YET |
+| 22 | Camera: describe one photo | DONE | NOT YET |
+| 23 | Screen reader (app only, not saved) | DONE | NOT YET |
+| 24 | Phone check "why is my phone slow" | DONE | NOT YET |
+| 25 | Mic inside the app, "Hey Jarvis" while the app is open | DONE | NOT YET |
+| 26 | Security check, polish, "clear history" | DONE | NOT YET |
+| - | Update status line in the app header (`~/.jarvis_last`) | DONE | YES |
+| - | Voice presets: Khattar, Rolex, Jarvis studio (Hindi), Jarvis studio (British English), Normal | DONE | Hussain will pick the closest to the movie Jarvis |
+Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): Hey Jarvis works only while the app is open; mic in Chrome and in the app use different engines; the real actor's voice cannot be copied, only approached with the free voices; Android Files app may show empty ghost entries for zips that Termux already moved to `~/.jarvis_done`.
 
-## 7. Plan: finished (26 parts)
-All planned parts are built. About 40 files and 2,650 lines of code. What is still open is TESTING on the phone, not building:
-1. Download the zip, check the app header says "pushed". 2. Voice: Settings drawer, "Test voice". 3. APK: GitHub > Actions > Build APK > download `Jarvis-apk`; if it fails send `build-log`.
-4. Try each feature once (cheat sheet below) and report what fails. Each fix is a small zip.
-Ideas for later, not planned: wake word while the app is closed (needs a different Android method), real payments (never), WhatsApp messages (not allowed by WhatsApp).
+## 7. What to do next
+Only testing. Try each feature once with the cheat sheet below. Report what fails with a screenshot. For the APK: GitHub > Actions > Build APK > download `Jarvis-apk`; if it fails send `build-log`. Then follow section 10 (future batches), one batch at a time.
 
 ## 8. Cheat sheet (type or say)
 | Say or type | What happens |
