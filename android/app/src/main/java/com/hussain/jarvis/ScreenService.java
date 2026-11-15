@@ -104,6 +104,17 @@ public class ScreenService extends AccessibilityService {
             cb.got(r(s.performGlobalAction("back".equals(t) ? GLOBAL_ACTION_BACK : GLOBAL_ACTION_HOME), "refused"));
             return;
         }
+        if ("lock".equals(t)) {  // Part 35: Android's own lock action (Android 9+). It can only lock, never unlock. We check the real lock state afterwards.
+            if (Build.VERSION.SDK_INT < 28) { cb.got(r(false, "old_android")); return; }
+            if (!s.performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN)) { cb.got(r(false, "refused")); return; }
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                android.app.KeyguardManager k = (android.app.KeyguardManager) s.getSystemService(android.content.Context.KEYGUARD_SERVICE);
+                JSONObject o = r(true, null);
+                try { o.put("locked", k != null && k.isKeyguardLocked()); } catch (Exception e) { /* send what we have */ }
+                cb.got(o);
+            }, 1200);
+            return;
+        }
         AccessibilityNodeInfo root = s.getRootInActiveWindow();
         if (root == null || String.valueOf(root.getPackageName()).equals(s.getPackageName())) { cb.got(r(false, "no_app")); return; }
         if ("current_app".equals(t)) {

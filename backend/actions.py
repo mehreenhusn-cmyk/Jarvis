@@ -3,7 +3,7 @@
 import json, re
 
 ACTIONS = {"open_app"}  # what the AI fallback may return. Only open_app, nothing else.
-SCREEN = {"click", "scroll", "swipe", "type", "back", "home", "current_app"}  # Part 34: only the user's own words can make these; the AI fallback never can.
+SCREEN = {"click", "scroll", "swipe", "type", "back", "home", "current_app", "lock"}  # Part 34: only the user's own words can make these; the AI fallback never can.
 SAFE = {"open_app"}  # Part 33: these run after the master switch. Anything else needs a preview and Hussain's own tap on Yes, every single time.
 EN = {"open", "launch", "start", "run"}
 HI = {"kholo", "khol", "kholna", "kholiye", "kholiyega", "kholen", "chalao", "chala", "chalu", "shuru", "खोलो", "खोल", "खोलना", "खोलिए", "खोलिये", "खोलें", "चलाओ", "चला", "चालू", "चालु", "शुरू"}
@@ -116,6 +116,7 @@ SCRW, DOWN, UP = {"scroll", "स्क्रॉल", "skrol"}, {"down", "neeche"
 CLICK_EN, CLICK_HI = {"click", "tap", "press"}, {"dabao", "dabaye", "dabaiye", "दबाओ", "दबाइए", "दबाएं"}
 THIS = set("is isko ye yeh yah this it इस इसे यह ये".split())
 BTN = {"button", "btn", "बटन", "tab", "option"}
+LOCKW, PHONEW = {"lock", "लॉक"}, {"phone", "फोन", "फ़ोन", "mobile", "मोबाइल", "screen", "स्क्रीन"}  # Part 35: lock only. There is no unlock command and there never will be.
 TYPE_RX = re.compile(r"^\s*(?:type|likho|लिखो|टाइप)\s*(?:karo|kar do|kar|करो|कर दो)?\s*[:,\-]?\s*(.+)$", re.I | re.S)
 APP_RX = re.compile(r"(?:which|what|kaun ?sa|konsa|कौन ?सा).{0,20}(?:app|ऐप|एप).{0,20}(?:open|khula|chal|screen|खुला|चल|on)|current app", re.I)
 LABEL_RISK = re.compile(r"\b(?:send|submit|pay|buy|order|delete|remove|uninstall|install|log ?out|sign ?out|transfer|confirm)\b|भेज|पेमेंट|भुगतान|खरीद|ऑर्डर|डिलीट|हटा|इंस्टॉल|लॉग ?आउट|कन्फर्म", re.I)
@@ -150,6 +151,8 @@ def screen_cmd(msg):
         return {"type": "back"}, "Going back, sir.", "ठीक है सर, पीछे जा रहा हूँ।"
     if s & HOMEW and s <= HOMEW | GO | FILL and s & GO - {"the", "page", "screen", "स्क्रीन", "please", "plz"}:
         return {"type": "home"}, "Going to the home screen, sir.", "ठीक है सर, होम स्क्रीन पर जा रहा हूँ।"
+    if s & LOCKW and s & PHONEW and s <= LOCKW | PHONEW | GO | FILL and not s & {"app", "ऐप", "एप"}:
+        return {"type": "lock"}, "Locking the phone, sir. I can lock it, but I never unlock it.", "ठीक है सर, फ़ोन लॉक कर रहा हूँ। अनलॉक मैं कभी नहीं करता।"
     if s & SCRW and s <= SCRW | DOWN | UP | GO | FILL and bool(s & DOWN) != bool(s & UP):
         d = "down" if s & DOWN else "up"
         return {"type": "scroll", "dir": d}, f"Scrolling {d}, sir.", ("नीचे" if d == "down" else "ऊपर") + " स्क्रॉल कर रहा हूँ सर।"

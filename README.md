@@ -77,6 +77,8 @@ Everything below is built and pushed. "Phone test" says only what Hussain has al
 | 32 | Better screen reading: lines are tagged button, field, switch, scroll area; typed text in fields is never read; OTP, PIN, CVV, card, Aadhaar, PAN, bank account and password values are hidden before the AI sees them; honest message when an app shows nothing | BUILT | NOT YET (redaction tested in Python; Java not compiled) |
 | 33 | Risk and confirm rules: send, pay, buy, delete, install, account need a preview and Hussain's own tap on Yes (script clicks ignored, 60 s timeout); typing a password, OTP, PIN or card number is always refused. No action can send or change anything yet; Part 34 plugs into this gate | BUILT | NOT YET |
 | 34 | Safe screen actions: press a button by name, scroll, type in a text box, back, home, which app is open. Each step finds the control again on the live screen, never types in password/OTP/PIN/card boxes, checks after the step and says if nothing changed. Send, pay, delete type buttons need your Yes (and a real finger tap checked in Java). Swipe only as a confirmed fallback when nothing can scroll. Jarvis can now also answer "how far is the app" from this README | BUILT | NOT YET (server tests pass; Java not compiled) |
+| 35 | Lock phone: "phone lock kar do" uses Android's own lock action (Android 9 or newer), then Java checks the real lock state and Jarvis says honestly if it could not confirm. There is no unlock command | BUILT | NOT YET (Java not compiled) |
+| 55 | Conversation mode (app only): button "Conversation" starts it. After each answer the phone mic opens by itself (0.5 s pause so it does not hear Jarvis). Ends after 2 silent rounds, on "bas" or "stop", after 20 turns, on Stop everything, or if the app goes to the background. Phone speech service may beep | BUILT | NOT YET (page and Java not run) |
 | 54 | Smart memory: when you state a personal fact ("mere bhatije ka naam Arman hai") Jarvis answers and shows "Should I remember this?" Yes / No. Only your finger tap on Yes saves it (normal "yaad rakho" path, so passwords and OTPs are still refused). Questions are never offered | BUILT | NOT YET (server tests pass; page JS syntax checked only) |
 | 50 | System card in Settings: phone RAM, storage, battery, heat, Jarvis server memory and CPU, uptime, internet. Server tests pass; page JS syntax checked only | BUILT | NOT YET |
 Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): Hey Jarvis works only while the app is open; mic in Chrome and in the app use different engines; the real actor's voice cannot be copied, only approached with the free voices; Android Files app may show empty ghost entries for zips that Termux already moved to `~/.jarvis_done`.
@@ -84,12 +86,13 @@ Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): He
 ## 7. What to do next
 1. Download the zip, wait for "pushed" in the app header, run **Build APK** on GitHub, install it. If the build fails, send `build-log`.
 2. Test Parts 27, 28 and 29 with the list in section 11.8, plus the old cheat sheet. Report what fails with a screenshot.
-3. Parts 30, 31, 32, 33, 34, 50 and 54 are BUILT. Download the zip, wait for "pushed", run **Build APK**, install, then test with section 11.8. Next Part: **55** (hands-free conversation), then 35, 36 and on in order (section 11.6, Build order line). Dual voice Parts 51 to 53 are planned in section 11.6b. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
+3. Parts 30 to 35, 50, 54 and 55 are BUILT. Download the zip, wait for "pushed", run **Build APK**, install, then test with section 11.8. Next Part: **36** (app lock), then 37 and on in order (section 11.6, Build order line). Dual voice Parts 51 to 53 are planned in section 11.6b. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
 
 ## 8. Cheat sheet (type or say)
 | Say or type | What happens |
 |---|---|
 | remember this: ... / what do you remember / forget 1 | Memory (no passwords or OTPs). Also: say "mere bhatije ka naam Arman hai" and tap Yes on "Should I remember this?" |
+| phone lock kar do / lock the phone | Locks the phone (app only, switch ON). Never unlocks |
 | Chrome kholo / go back / peeche jao / go home / neeche scroll karo / Settings dabao / type hello / kaun sa app khula hai | Phone control (app only, switch ON). Never types passwords, OTPs, PINs or card numbers |
 | app ka kaam kahan tak pahuncha / next part kaun sa | Jarvis reads the plan in this README and tells you built, remaining and next Parts |
 | remind me tomorrow 9 am to ... / my reminders | Reminders (notification in the app) |
@@ -218,7 +221,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 32 DONE | Better screen reading: visible buttons, fields, scroll areas; remove OTP, card, PIN text before sending; honest message when an app shows nothing | ScreenService, screen.py, screen_service.xml, index.html, MainActivity | ~90 | With (redaction), Java without | Screen help without leaking secrets |
 | 33 DONE | Risk and confirm rules: preview and explicit yes for send, delete, pay, buy, install, account; block password fields | actions.py, index.html | ~100 | With | No dangerous action without Hussain's yes |
 | 34 DONE | Safe screen actions: click, scroll, type in a field, back, home, current app; re-find the control before acting; verify the result; swipe only as confirmed fallback | ScreenService, MainActivity, index.html, screen_service.xml | ~165 | Without | "Is button ko dabao", "neeche scroll karo", "peeche jao" |
-| 35 | Lock phone with the Android lock action, check the result, honest failure | ScreenService, MainActivity, index.html, actions.py | ~60 | Without | "Phone lock kar do". Never unlocks |
+| 35 DONE | Lock phone with the Android lock action, check the result, honest failure | ScreenService, MainActivity, index.html, actions.py | ~60 | Without | "Phone lock kar do". Never unlocks |
 | 36 | Lock the Jarvis app with the real Android fingerprint, face or phone PIN prompt. Bridge refuses while locked. Turn off only after authenticating. Optional: token in Android Keystore | AppLock.java*, MainActivity, app/build.gradle, index.html | ~140 | Without | Nobody else can use Jarvis on your phone |
 | 37 | Settings help: open Wi-Fi, Bluetooth, location, sound, battery, app permissions, notifications pages; flashlight, volume; explain when Android blocks a change | Settings.java*, MainActivity, actions.py, index.html, AndroidManifest | ~140 | Without | Settings by voice, no hacks, no false "done" |
 | 38 | Quick Settings tile and app shortcut to start listening | JarvisTile.java*, AndroidManifest, res/xml/shortcuts.xml*, MainActivity | ~70 | Without | Hands-free start even if wake word is weak |
@@ -238,7 +241,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 52 | Voice Personality settings: Tony and JARVIS cards, Auto routing ON, manual override, Test Tony, Test JARVIS, active-voice badge, saved in `voice.json` on the server (survives restart), stop and switch while speaking | index.html, app.py | ~160 | Without (page) plus Python route tests | One clear place to control both voices |
 | 53 | Second voice provider only if the Edge test shows the two voices are too alike: Google Cloud Chirp 3 HD, key kept in `keys.json`, Edge stays as fallback | tts.py, app.py, backend/.env.example | ~120 | With, needs Hussain's key | Two truly different voices |
 | 54 DONE | Smart memory: when you say a personal fact ("mere bhatije ka naam Arman hai"), Jarvis answers and shows "Yaad rakhun? Yes / No". Only your own tap on Yes saves it, in the existing `memories` table (limit 100, never passwords, OTPs, PINs). Later "mera bhatija kaun hai" is answered from memory. Needed because today Jarvis saves only after "yaad rakho: ..." | memory.py, app.py, index.html, test_app.py | ~75 | With | Jarvis learns names and facts without typing "yaad rakho" |
-| 55 | Conversation mode: after Jarvis finishes speaking, the mic opens by itself, so you can answer without tapping the mic. Visible "Conversation ON" bar. Ends after 2 silent rounds, on "bas" or "stop", or on Stop everything. Works only while the app is open (background listening is tested in Part 39) | index.html, Ears.java, MainActivity | ~80 | Without | Natural back and forth talk |
+| 55 DONE | Conversation mode: after Jarvis finishes speaking, the mic opens by itself, so you can answer without tapping the mic. Visible "Conversation ON" bar. Ends after 2 silent rounds, on "bas" or "stop", or on Stop everything. Works only while the app is open (background listening is tested in Part 39) | index.html, Ears.java, MainActivity | ~80 | Without | Natural back and forth talk |
 
 **Totals** (code lines added or changed, README excluded):
 | Group | Parts | New files | Lines |
@@ -254,7 +257,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 Estimates are rough (plus or minus 25 percent). Real numbers go into this table after each Part.
 
 
-**Build order (next first):** 55, 35, 36, 37, 38, 39, 41, 42, 43, 51, 52, 53, 44, 45, 46, 47, 48. Optional: 40, 49.
+**Build order (next first):** 36, 37, 38, 39, 41, 42, 43, 51, 52, 53, 44, 45, 46, 47, 48. Optional: 40, 49.
 
 ### 11.6b Dual voice personality plan (added 15 Nov 2026, AUDIT ONLY, no code yet)
 Goal: two default voices that switch by themselves. TONY = conversation (confident, witty, Hinglish). JARVIS = information, tasks, reminders, briefings, alerts (calm, deep, precise). No cloning of Rajesh Khattar or Atul Kapoor. Original or licensed voices only.
@@ -303,6 +306,8 @@ What changes for Hussain: the first mic tap asks for the microphone; the first "
 | 33 | BUILT | ~100 | 52 (`actions.py` +42, `index.html` +10). Tests for 32 and 33 together: 23 lines in `test_app.py` | NOT YET |
 | 34 | BUILT | ~165 | 355 in all: Java 169 (`ScreenService` 130, `MainActivity` 34, `Privacy` 4, `screen_service.xml` 1), Python 130 (`actions.py` 75, `progress.py` 52 new, `app.py` 3), page 42, tests 14 | NOT YET. Java not compiled here, GitHub build is the first compile test. After installing, switch the Jarvis accessibility switch OFF and ON once so Android accepts the new gesture permission |
 | 54 | BUILT | ~75 | 41 (`memory.py` +15, `app.py` +3, `index.html` +13, `test_app.py` +10) | NOT YET. Page buttons not run on a phone |
+| 35 | BUILT | ~60 | 22 (`ScreenService` 11, `actions.py` 4, `index.html` about 3, tests 3, `MainActivity` 1) | NOT YET. Java not compiled. Needs Android 9+ (decision D4: phone brand and Android version still not known) |
+| 55 | BUILT | ~80 | 31 (`index.html` about 29, `Ears.java` 2) | NOT YET. Page and Java not run on a phone |
 
 How the dashboard works (Part 29): open Settings (gear), the first card is "Privacy and permissions". Each row shows three separate things: permission (Allowed or Not allowed, from Android), running now (from Java, not from the page), and last used. A permission being allowed never means a feature is running. Screen reader shows "Accessibility ON" only when the Jarvis accessibility service is really connected. "Reminder service ON" means the background service is really up. The activity log keeps only the feature name and time (max 30 lines, one entry per feature per minute) and never any content. "Open settings" buttons open one fixed Android page each. If the server stops, a red banner appears after about 10 seconds and Jarvis retries every 5 seconds; it clears by itself when the server is back. Chrome shows only the server line, because Android permissions exist only in the app.
 

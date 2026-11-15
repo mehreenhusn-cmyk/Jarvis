@@ -41,7 +41,7 @@ form input{border-radius:24px}#mic{width:52px;height:52px;padding:0;border-radiu
 <div id="vp" hidden><select id="lang"><option value="hi-IN">Speak: Hindi</option><option value="en-IN">Speak: English</option></select>
 <select id="voice"></select><select id="pre"><option value="">Voice style</option><option value="k">Khattar (deep, Hindi dub)</option><option value="r">Rolex (very deep)</option><option value="d">Jarvis studio (Hindi)</option><option value="b">Jarvis studio (British English)</option><option value="n">Normal</option></select>
 <label><input type="checkbox" id="say" style="width:auto"> Speak replies</label><label>Depth <input type="range" id="pt" min="0.5" max="1.5" step="0.05" style="width:80px;padding:0"></label><label>Speed <input type="range" id="rt" min="0.6" max="1.4" step="0.05" style="width:80px;padding:0"></label>
-<button type="button" id="tv" class="g">Test voice</button><button type="button" id="mon" class="g" hidden>Turn mic on</button><button type="button" id="wake" class="g" hidden>Hey Jarvis: off</button><b id="ms" class="ok">Mic off</b></div>
+<button type="button" id="tv" class="g">Test voice</button><button type="button" id="mon" class="g" hidden>Turn mic on</button><button type="button" id="wake" class="g" hidden>Hey Jarvis: off</button><button type="button" id="conv" class="g" hidden>Conversation: off</button><b id="ms" class="ok">Mic off</b></div>
 <div id="log"></div>
 <form id="f"><button type="button" id="stop" title="Stop">⏹</button><input id="msg" autocomplete="off" placeholder="Message Jarvis..."><button id="send">Send</button><button type="button" id="cam" title="Camera" class="g" style="width:44px;height:44px;border-radius:50%;padding:0;flex:none">📷</button><button type="button" id="mic" title="Speak">🎤</button><input type="file" id="pic" accept="image/*" capture="environment" hidden></form></div>
 <script>
@@ -92,11 +92,11 @@ $('f').onsubmit=async e=>{
   let sp=false;try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:SLOW.test(t)?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,screen:sc,app:inApp(),control:inApp()&&ctl()});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
     if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.action?await doAct(d.action,w):d.reply,vm);if(d.remember)askSave(w,d.remember);sp=vm||$('say').checked;}else{w.className='m err';w.textContent=d.error||'error';}
-  }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}finally{if(wakeOn&&!sp)heardBack();}
+  }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}finally{if((wakeOn||convOn)&&!sp)heardBack();}
 };
-let viaMic=false,wakeOn=false,appListening=false,cmdNext=false;
+let viaMic=false,wakeOn=false,appListening=false,cmdNext=false,convOn=false,convMiss=0,convTurns=0;
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;
-function micState(on){$('mic').textContent=on?'🎙':'🎤';$('ms').textContent=on?'Mic ON':'Mic off';$('ms').className=on?'bad':'ok';pv();}
+function micState(on){$('mic').textContent=on?'🎙':'🎤';$('ms').textContent=convOn?'Conversation ON':on?'Mic ON':'Mic off';$('ms').className=on||convOn?'bad':'ok';pv();}
 $('mic').onclick=()=>{
   if(priv)return;
   if(!SR){if(appEars()){if(appListening){JarvisApp.stopListen();appListening=false;micState(false);}else{appListening=true;micState(true);JarvisApp.listen($('lang').value,false);}}else add('err','Voice input is not available here. Use Chrome.');return;}
@@ -110,13 +110,14 @@ $('mic').onclick=()=>{
 const appEars=()=>!!(window.JarvisApp&&JarvisApp.listen);
 const WAKE=/(?:jarvis|jarvish|जार्विस|जारविस|जार्विश)[\s,.!?]*(.*)$/i;
 const heardBack=()=>{if(!appEars()||priv)return;
+  if(convOn){setTimeout(()=>{if(convOn&&!priv){appListening=true;micState(true);JarvisApp.listen($('lang').value,false);}},500);return;}  // Part 55: a short pause so the mic does not hear Jarvis's own voice
   if(cmdNext){cmdNext=false;appListening=true;micState(true);JarvisApp.listen($('lang').value,false);}
   else if(wakeOn)JarvisApp.listen($('lang').value,true);};
-function wakeBtn(){$('wake').hidden=!appEars();$('wake').textContent='Hey Jarvis: '+(wakeOn?'on':'off');
+function wakeBtn(){$('wake').hidden=!appEars();$('conv').hidden=!appEars();$('wake').textContent='Hey Jarvis: '+(wakeOn?'on':'off');
   if(wakeOn)$('ms').textContent='Waiting for "Hey Jarvis"';else if(!rec&&!appListening)micState(false);}
 $('wake').onclick=()=>{
   if(priv){add('err','Privacy mode is on. Tap "Turn mic on" first.');return;}
-  wakeOn=!wakeOn;
+  if(convOn)convEnd();wakeOn=!wakeOn;
   if(wakeOn){JarvisApp.listen($('lang').value,true);add('bot','Hey Jarvis is on while this app stays open. Say "Hey Jarvis" and then your question. The phone speech service listens, so it may beep and use more battery. Say "Jarvis, stop listening" or tap the button to turn it off.');}
   else JarvisApp.stopListen();
   wakeBtn();pv();};
@@ -125,9 +126,27 @@ window.onHeard=(txt,wake)=>{txt=(txt||'').trim();
   if(wake){const m=txt.match(WAKE);if(!m)return;const cmd=m[1].trim();
     if(cmd.length>1){heardSend(cmd);return;}
     cmdNext=true;JarvisApp.stopListen();speak(sty()=='hindi'?'जी सर?':'Yes sir?',true);return;}
-  appListening=false;micState(false);if(txt)heardSend(txt);else add('err','I did not hear anything.');};
-window.onHeardErr=txt=>{appListening=false;wakeOn=false;cmdNext=false;micState(false);wakeBtn();add('err','Mic: '+txt);};
-$('stop').onclick=()=>{if(rec)rec.abort();if(appEars()){JarvisApp.stopListen();wakeOn=false;appListening=false;wakeBtn();}speechSynthesis.cancel();if(aud)aud.pause();micState(false);};
+  appListening=false;micState(false);
+  if(convOn){if(!txt)return convSilent();convMiss=0;if(STOPW.test(txt)){convEnd(sty()=='hindi'?'ठीक है सर, बातचीत बंद।':'Okay sir, conversation mode is off.');return;}
+    if(++convTurns>20){convEnd('Conversation mode stopped after 20 turns to save battery. Tap Conversation to start again.');return;}}
+  if(txt)heardSend(txt);else add('err','I did not hear anything.');};
+window.onHeardErr=txt=>{appListening=false;
+  if(convOn){if(/did not hear/i.test(txt))return convSilent();convEnd('Conversation mode stopped. Mic: '+txt);return;}
+  wakeOn=false;cmdNext=false;micState(false);wakeBtn();add('err','Mic: '+txt);};
+// Part 55: conversation mode. After Jarvis finishes speaking the phone mic opens by itself. It ends after 2 silent rounds, on "bas" / "stop", after 20 turns, or on Stop everything. App only, while the app is open.
+const STOPW=/^(?:jarvis[ ,]*)?(?:bas(?: karo| itna| ho gaya)?|stop(?: listening)?|that'?s all|that is all|enough|ruko|band karo|बस(?: करो| इतना)?|रुको|बंद करो)[\s.!,]*$/i;
+function convBtn(){$('conv').hidden=!appEars();$('conv').textContent='Conversation: '+(convOn?'on':'off');micState(appListening);}
+function convEnd(msg){convOn=false;convMiss=0;convTurns=0;if(appEars())JarvisApp.stopListen();appListening=false;convBtn();if(msg)add('bot',msg);}
+function convSilent(){if(++convMiss>=2){convEnd(sty()=='hindi'?'सर, दो बार कुछ सुनाई नहीं दिया, इसलिए बातचीत बंद कर दी। दोबारा शुरू करने के लिए Conversation दबाइए।':'I heard nothing twice, sir, so conversation mode is off. Tap Conversation to start again.');return;}
+  setTimeout(()=>{if(convOn&&!priv){appListening=true;micState(true);JarvisApp.listen($('lang').value,false);}},400);}
+$('conv').onclick=()=>{
+  if(priv){add('err','Privacy mode is on. Tap "Turn mic on" first.');return;}
+  if(convOn){convEnd(sty()=='hindi'?'ठीक है सर, बातचीत बंद।':'Okay sir, conversation mode is off.');return;}
+  if(wakeOn){wakeOn=false;JarvisApp.stopListen();wakeBtn();}
+  convOn=true;convMiss=0;convTurns=0;$('say').checked=true;localStorage.setItem('jsay','1');
+  add('bot',sty()=='hindi'?'बातचीत चालू सर। मैं जवाब देने के बाद खुद सुनूँगा। बंद करने के लिए "बस" बोलिए या Conversation दबाइए। फ़ोन का स्पीच सर्विस बीप कर सकता है।':'Conversation mode is on, sir. After each answer I listen by myself. Say "bas" or "stop", or tap Conversation, to end it. The phone speech service may beep.');
+  appListening=true;micState(true);JarvisApp.listen($('lang').value,false);convBtn();};
+$('stop').onclick=()=>{convOn=false;if(rec)rec.abort();if(appEars()){JarvisApp.stopListen();wakeOn=false;appListening=false;wakeBtn();}speechSynthesis.cancel();if(aud)aud.pause();micState(false);};
 const NV=[['hi-IN-MadhurNeural','Jarvis Hindi (Madhur)'],['en-GB-RyanNeural','Jarvis English (Ryan)'],['en-IN-PrabhatNeural','Indian male (Prabhat)'],['en-IN-NeerjaNeural','Indian female (Neerja)'],['hi-IN-SwaraNeural','Hindi female (Swara)']];
 let aud=null,warned=false,fx=['d','b'].includes(localStorage.getItem('jpre'));
 let actx=null;
@@ -257,12 +276,14 @@ const ACTERR={perm:['सर, Accessibility में "Jarvis screen reader" च�
   refused:['सर, Android ने यह कदम करने नहीं दिया।','Sir, Android did not allow this step.'],
   stopped:['Jarvis रुका हुआ है सर। पहले "Turn mic on" दबाइए।','Jarvis is stopped. Tap "Turn mic on" first.'],
   off:['फ़ोन कंट्रोल बंद है सर। Settings में चालू कीजिए।','Phone control is OFF. Turn it on in Settings.'],
+  old_android:['सर, फ़ोन लॉक करने का यह तरीका Android 9 या उससे नए में ही चलता है। इस फ़ोन में नहीं चला।','Sir, this way of locking works only on Android 9 or newer. It did not work on this phone.'],
   unknown:['सर, मुझे यह कदम समझ नहीं आया। कुछ नहीं किया।','Sir, I did not understand this step. I did nothing.']};
 let lastAct=null;
 function actMsg(r,a){
   const hi=sty()=='hindi',say=(h,e)=>hi?h:e,t=r.type||(a&&a.type);
   if(r.ok){
     if(t=='current_app')return say('सर, अभी "'+r.app+'" खुला है।','Sir, "'+r.app+'" is open right now.');
+    if(t=='lock')return r.locked?say('फ़ोन लॉक हो गया सर। अनलॉक मैं कभी नहीं करता, वो आप खुद कीजिए।','The phone is locked, sir. I never unlock it, you do that yourself.'):say('सर, मैंने Android से लॉक करने को कहा, पर पक्का नहीं कह सकता कि लॉक हुआ। हो सकता है फ़ोन में स्क्रीन लॉक सेट ही न हो।','Sir, I asked Android to lock the phone, but I cannot confirm it locked. The phone may have no screen lock set.');
     if(t=='back'||t=='home'||t=='swipe')return say('हो गया सर।','Done, sir.');
     return r.changed===false?say('सर, मैंने कर दिया, पर स्क्रीन पर कोई बदलाव नहीं दिखा। एक बार देख लीजिए।','Sir, I did it, but I saw no change on the screen. Please check.'):say('हो गया सर, स्क्रीन बदल गई।','Done, sir. The screen changed.');
   }
@@ -366,12 +387,12 @@ function stopAll(){
   if(window.JarvisApp&&JarvisApp.stopAll){try{const n=JSON.parse(JarvisApp.stopAll());if(n.mic)was.push('microphone');if(n.wake)was.push('Hey Jarvis');if(n.screen)was.push('screen reading');if(n.camera)was.push('photo picker');}catch(e){}}
   else if(appEars())JarvisApp.stopListen();
   if(wakeOn&&!was.includes('Hey Jarvis'))was.push('Hey Jarvis');
-  wakeOn=false;appListening=false;cmdNext=false;pendingMsg=null;screenData=null;if(appEars())wakeBtn();
+  wakeOn=false;appListening=false;cmdNext=false;convOn=false;convMiss=0;convTurns=0;pendingMsg=null;screenData=null;if(appEars()){wakeBtn();convBtn();}
   if(window.speechSynthesis)speechSynthesis.cancel();if(aud)aud.pause();
   $('say').checked=false;localStorage.setItem('jsay','0');priv=true;localStorage.setItem('jpriv','1');micState(false);
   return '🔒 Done, sir. '+(was.length?'Stopped: '+was.join(', ')+'.':'Nothing was listening or reading.')+' Voice replies are off. Jarvis stays stopped until you tap "Turn mic on". Reminders still run, they do not listen.';
 }
-$('mon').onclick=()=>{if(window.JarvisApp&&JarvisApp.restart){try{if(!JSON.parse(JarvisApp.restart()).ok){add('err','Tap the button with your finger to turn Jarvis on.');return;}}catch(e){return;}}priv=false;localStorage.setItem('jpriv','0');pv();};$('say').addEventListener('change',pv);wakeBtn();
+$('mon').onclick=()=>{if(window.JarvisApp&&JarvisApp.restart){try{if(!JSON.parse(JarvisApp.restart()).ok){add('err','Tap the button with your finger to turn Jarvis on.');return;}}catch(e){return;}}priv=false;localStorage.setItem('jpriv','0');pv();};$('say').addEventListener('change',pv);wakeBtn();convBtn();
 if(localStorage.getItem('jpre'))$('pre').value=localStorage.getItem('jpre');
 $('pre').onchange=()=>{
   const code=$('pre').value;localStorage.setItem('jpre',code);fx=['d','b'].includes(code);
