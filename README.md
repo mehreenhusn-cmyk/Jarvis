@@ -69,12 +69,14 @@ Everything below is built and pushed. "Phone test" says only what Hussain has al
 | 26 | Security check, polish, "clear history" | DONE | NOT YET |
 | - | Update status line in the app header (`~/.jarvis_last`) | DONE | YES |
 | - | Voice presets: Khattar, Rolex, Jarvis studio (Hindi), Jarvis studio (British English), Normal | DONE | Hussain will pick the closest to the movie Jarvis |
+| 27 | Security: WebView permission checks, http only for 127.0.0.1, permissions asked when first used | BUILT | NOT YET (Java not compiled yet) |
+| 28 | Real Stop kept in Java (`Privacy.java`), saved across restarts, restart only by a finger tap | BUILT | NOT YET |
 Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): Hey Jarvis works only while the app is open; mic in Chrome and in the app use different engines; the real actor's voice cannot be copied, only approached with the free voices; Android Files app may show empty ghost entries for zips that Termux already moved to `~/.jarvis_done`.
 
 ## 7. What to do next
-1. Test what is built (cheat sheet below). Report what fails with a screenshot or `build-log`.
-2. In parallel, the phone-control plan in **section 11** is ready and waits for Hussain's OK. First Part: **27**, then 28 and 29.
-3. Old roadmap letters (Batch A to G in section 10) are merged into section 11. Do not build them twice.
+1. Download the zip, wait for "pushed" in the app header, run **Build APK** on GitHub, install it. If the build fails, send `build-log`.
+2. Test Parts 27 and 28 with the list in section 11.8, plus the old cheat sheet. Report what fails with a screenshot.
+3. Next Part to build after Hussain says OK: **29** (privacy dashboard), then 30 and 31. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
 
 ## 8. Cheat sheet (type or say)
 | Say or type | What happens |
@@ -91,7 +93,7 @@ Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): He
 | read my screen | Screen reader (app only, Accessibility, not saved) |
 | camera button | Describe one photo |
 | Hey Jarvis (button in voice drawer) | Wake mode while the app is open |
-| stop listening | Mic and voice off |
+| stop listening (also: stop listening completely, mic band, sunna band) | Mic, Hey Jarvis, screen reading and photo picker off, saved. Tap "Turn mic on" to restart |
 | clear history | Delete the chat history |
 
 ## 9. Security and privacy
@@ -99,6 +101,8 @@ Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): He
 - Token is stored as a hash on the server. Keys are stored in `backend/keys.json` (owner-only file, never in Git, never sent back to the browser).
 - Passwords, OTPs and PINs are never saved. Calls, contacts and screen text are never saved. Chat history is saved on the phone only; "clear history" deletes it.
 - These go to the internet only when you use them: your question to the AI provider; voice text to Microsoft (online voice); photo to the vision AI; location to OpenStreetMap; screen text to the AI for that one answer.
+- Part 27: the page can use only the microphone, only from the Jarvis address, only after Android allowed it. Camera and other requests are denied. Plain http works only for 127.0.0.1. Microphone, location and notification permissions are asked when first used, not at app start.
+- Part 28: Stop is stored in Java. While stopped, the app will not listen, read the screen or open the photo picker, even if the page asks. Only a real finger tap on "Turn mic on" can switch Jarvis on again. A photo or camera app that is already open cannot be closed by Jarvis.
 - The Android app only opens the Jarvis address, has no file access, and is excluded from cloud backup. Accessibility is used only to read text when you ask.
 - Zips: only put zips you trust in Downloads. A zip can replace any file in the repo, including scripts.
 
@@ -127,7 +131,7 @@ Rules for all future work: (1) finish and TEST one batch on the phone before sta
 
 **Not planned:** reading private accounts or sessions of other services; remote phone control; WhatsApp or SMS sending without a confirm tap; payments.
 
-## 11. MASTER PLAN: real phone control (PLAN ONLY, nothing below is built yet)
+## 11. MASTER PLAN: real phone control (Parts 27 and 28 are built, not phone tested. The rest is plan only)
 Audit date: 15 Nov 2026. Written from the real repo files, not from old README claims.
 
 ### 11.1 Goal in simple words
@@ -156,11 +160,11 @@ Read in full: `app.py`, `memory.py`, `web.py`, `screen.py`, `MainActivity.java`,
 ### 11.3 Security findings (to fix, in order)
 | # | Finding | Evidence | Fixed in |
 |---|---|---|---|
-| S1 | WebView grants every permission request and always grants location | `MainActivity.java` 67 and 60 | Part 27 |
-| S2 | Plain http allowed for the whole app | `AndroidManifest.xml` 15 | Part 27 |
-| S3 | Mic, notification and location asked at app start, not when used | `MainActivity.java` 36 | Part 27 |
-| S4 | Stop exists only in page JavaScript. Native code can still listen | `index.html` 235, `MainActivity.java` 82 | Part 28 |
-| S5 | Bridge methods have no stop or lock check. New power (click, lock) must be checked in Java, not in the page | `MainActivity.java` 70-99 | Parts 28, 36 |
+| S1 | WebView grants every permission request and always grants location | `MainActivity.java` 67 and 60 | Part 27 (BUILT, not phone tested) |
+| S2 | Plain http allowed for the whole app | `AndroidManifest.xml` 15 | Part 27 (BUILT, not phone tested) |
+| S3 | Mic, notification and location asked at app start, not when used | `MainActivity.java` 36 | Part 27 (BUILT, not phone tested) |
+| S4 | Stop exists only in page JavaScript. Native code can still listen | `index.html` 235, `MainActivity.java` 82 | Part 28 (BUILT, not phone tested) |
+| S5 | Bridge methods have no stop or lock check. New power (click, lock) must be checked in Java, not in the page | `MainActivity.java` 70-99 | Part 28 (stop flag checked in Java, BUILT); Part 36 for app lock |
 | S6 | Screen text goes to the AI with only password fields skipped and a prompt rule. No OTP or card removal in code. `memory.SECRET` has only words (password, otp, pin, cvv), no card number pattern | `ScreenService.java` 37, `screen.py` 13-14, `memory.py` 4 | Part 32 |
 | S7 | ANY file named `Jarvis_part*.zip` in Downloads is unzipped into the repo and the server restarts. Another app with storage access could drop a zip and run code in Termux | `run.sh` 16-22, `scripts/sync.sh` 14-21 | Not by zip (scripts cannot change by zip). Owner decision D5 |
 | S8 | Pairing token is in plain app storage (backup is off, so risk is low) | `MainActivity.java` 99, `NotifyService.java` 44 | Part 36 (optional) |
@@ -196,8 +200,8 @@ Phone brand and Android version are NOT known yet (decision D4).
 ### 11.6 Parts (plan; * = new file). "With tests" = Python logic run in Termux. "Without tests" = Android Java: GitHub build plus Hussain's phone.
 | Part | What | Files | Lines | Tests | Benefit |
 |---|---|---|---|---|---|
-| 27 | Close WebView and manifest holes: permission checks, local-only http, ask permissions when used | MainActivity, AndroidManifest, res/xml/network_security_config.xml* | ~50 | Without | The page cannot get mic, camera or location by tricks |
-| 28 | Real Stop: one `Privacy.java` holds mic, wake, screen, camera state. Stop cancels all in Java. Voice cannot turn mic back on, only a visible button | Privacy.java*, MainActivity, Ears, index.html | ~140 | Without | "Stop listening completely" really stops everything |
+| 27 DONE | Close WebView and manifest holes: permission checks, local-only http, ask permissions when used | MainActivity, AndroidManifest, res/xml/network_security_config.xml* | ~50 | Without | The page cannot get mic, camera or location by tricks |
+| 28 DONE | Real Stop: one `Privacy.java` holds mic, wake, screen, camera state. Stop cancels all in Java. Voice cannot turn mic back on, only a visible button | Privacy.java*, MainActivity, Ears, index.html | ~140 | Without | "Stop listening completely" really stops everything |
 | 29 | Privacy dashboard: ON/OFF per feature, permission given vs service running, last used, small log (feature and time only), settings buttons, server-offline banner and auto-reconnect | index.html, Privacy.java, app.py, MainActivity | ~140 | Without | One screen shows what Jarvis can do and is doing |
 | 30 | Command layer: Hindi/English/Hinglish grammar plus limited AI fallback, master switch OFF by default | actions.py*, app.py, index.html | ~150 | With | Jarvis understands "WhatsApp kholo" without guessing |
 | 31 | App launch: list launchable apps, fuzzy name, ask when two match, never open unknown | Apps.java*, MainActivity, AndroidManifest, index.html, actions.py | ~110 | Without | "Chrome open karo" works safely |
@@ -256,4 +260,12 @@ Why this order: Parts 27 to 29 come first because every later power needs a safe
 
 ### 11.10 Risks and rollback
 Every Part is its own zip and its own commit. To undo a Part: GitHub > the commit > Revert. Older APKs stay in Actions artifacts. The only database change is one new `tasks` table (Part 41), nothing is removed. Phone control can be switched OFF without removing code. Rules that never change: no root, no lock-screen bypass, no hidden recording, no secret saving, no payments, no messages without a confirm tap, no OWL1 changes.
+
+### 11.11 Progress (estimated vs actual lines, code only)
+| Part | Status | Estimated | Actual | Phone test |
+|---|---|---|---|---|
+| 27 | BUILT | ~50 | 36 (`MainActivity` 26, manifest 2, new `network_security_config.xml` 8) | NOT YET. Java not compiled here, so the GitHub build is the first compile test |
+| 28 | BUILT | ~140 | 94 (`Privacy.java` 58 new, `MainActivity` 19, `index.html` 14, `Ears` 3) | NOT YET |
+Checks that were run for 27 and 28: XML parse, Java bracket balance, page script syntax, Python syntax. Nothing else was run (Not run: Java compile, phone test).
+What changes for Hussain: the first mic tap asks for the microphone; the first "where am I" asks for location and may answer "unavailable" once, so ask again; the notification question comes once after pairing.
 

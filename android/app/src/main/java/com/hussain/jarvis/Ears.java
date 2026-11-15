@@ -19,13 +19,14 @@ class Ears implements RecognitionListener {
     final Handler ui = new Handler(Looper.getMainLooper());
     SpeechRecognizer sr;
     String lang = "en-IN";
-    boolean wake, on;
+    volatile boolean wake, on;
 
     Ears(Activity a, WebView w) { act = a; web = w; }
 
     /** Main thread only. wakeMode: keep listening again and again, and the page looks for "Hey Jarvis". */
     void start(String l, boolean wakeMode) {
         stop();
+        if (Privacy.stopped) { js("onHeardErr", "Jarvis is stopped. Tap Turn mic on first"); return; }
         if (!SpeechRecognizer.isRecognitionAvailable(act)) { js("onHeardErr", "this phone has no speech service"); return; }
         lang = l; wake = wakeMode; on = true;
         sr = SpeechRecognizer.createSpeechRecognizer(act);

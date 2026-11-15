@@ -3,6 +3,7 @@ package com.hussain.jarvis;
 import android.Manifest;
 import android.app.Activity;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -10,6 +11,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.os.Handler;
+import android.view.MotionEvent;
 import android.os.Looper;
 import android.provider.Settings;
 import org.json.JSONObject;
@@ -33,7 +35,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
-        requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO, Manifest.permission.POST_NOTIFICATIONS, Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+        Privacy.init(this);
         web = new WebView(this);
         web.setBackgroundColor(Color.parseColor("#0e1116"));
         setContentView(web);
@@ -57,14 +59,27 @@ public class MainActivity extends Activity {
             }
         });
         web.setWebChromeClient(new WebChromeClient() {
-            @Override public void onGeolocationPermissionsShowPrompt(String o, android.webkit.GeolocationPermissions.Callback cb) { cb.invoke(o, true, false); }
+            // Part 27: location only for the Jarvis page, and only if Android location permission is given (asked here, when first needed).
+            @Override public void onGeolocationPermissionsShowPrompt(String o, android.webkit.GeolocationPermissions.Callback cb) {
+                boolean has = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+                if (trusted(o) && !has) requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 4);
+                cb.invoke(o, trusted(o) && has, false);
+            }
             @Override public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams p) {
+                if (Privacy.stopped) { cb.onReceiveValue(null); return true; }
                 if (picker != null) picker.onReceiveValue(null);
                 picker = cb;
                 try { startActivityForResult(p.createIntent(), 7); } catch (Exception e) { picker = null; return false; }
                 return true;
             }
-            @Override public void onPermissionRequest(PermissionRequest r) { r.grant(r.getResources()); }
+            // Part 27: the page may use only the microphone, only from the Jarvis address, only if Android already allowed it. Camera is never given.
+            @Override public void onPermissionRequest(PermissionRequest r) {
+                boolean audio = false;
+                for (String x : r.getResources()) audio |= PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(x);
+                if (audio && !Privacy.stopped && trusted(String.valueOf(r.getOrigin())) && checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
+                    r.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
+                else r.deny();
+            }
         });
         // Part 18: the page gives us the pairing token, so the background service can check reminders.
         web.addJavascriptInterface(new Object() {
@@ -80,23 +95,35 @@ public class MainActivity extends Activity {
                 return allowed(Manifest.permission.READ_CONTACTS, 3) ? ContactsInfo.find(MainActivity.this, name) : "{\"perm\":false}";
             }
             @JavascriptInterface public void listen(String lang, boolean wake) {
+                if (Privacy.stopped) { web.post(() -> web.evaluateJavascript("window.onHeardErr&&onHeardErr('Jarvis is stopped. Tap Turn mic on first',false)", null)); return; }
+                if (!allowed(Manifest.permission.RECORD_AUDIO, 1)) { web.post(() -> web.evaluateJavascript("window.onHeardErr&&onHeardErr('allow the microphone, then tap the mic again',false)", null)); return; }
                 runOnUiThread(() -> { if (ears == null) ears = new Ears(MainActivity.this, web); ears.start(lang, wake); });
             }
             @JavascriptInterface public void stopListen() {
                 runOnUiThread(() -> { if (ears != null) ears.stop(); });
             }
+            @JavascriptInterface public String privacy() { return Privacy.state(MainActivity.this).toString(); }
+            @JavascriptInterface public String stopAll() { return Privacy.stopAll(MainActivity.this); }
+            @JavascriptInterface public String restart() { return "{\"ok\":" + Privacy.restart() + "}"; }
             @JavascriptInterface public String screen() {
+                if (Privacy.stopped) return "{\"stopped\":true}";
                 if (ScreenService.live == null) {
                     runOnUiThread(() -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
                     return "{\"perm\":false}";
                 }
                 runOnUiThread(() -> moveTaskToBack(true));
-                new Handler(Looper.getMainLooper()).postDelayed(() -> screenDone(), 6000);
+                Privacy.screenJob = () -> { Privacy.screenJob = null; screenDone(); };
+                Privacy.UI.postDelayed(Privacy.screenJob, 6000);
                 return "{\"wait\":6}";
             }
             @JavascriptInterface public String phoneInfo() { return PhoneInfo.json(MainActivity.this); }
             @JavascriptInterface public void saveToken(String t) {
                 getSharedPreferences("j", 0).edit().putString("token", t).apply();
+                // Part 27: ask for notifications once, now that reminders are used (Android 13+)
+                if (Build.VERSION.SDK_INT >= 33 && !getSharedPreferences("j", 0).getBoolean("askedN", false) && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    getSharedPreferences("j", 0).edit().putBoolean("askedN", true).apply();
+                    runOnUiThread(() -> requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 5));
+                }
                 runOnUiThread(() -> startForegroundService(new Intent(MainActivity.this, NotifyService.class)));
             }
         }, "JarvisApp");
@@ -104,8 +131,18 @@ public class MainActivity extends Activity {
     }
 
     static String pending;  // screen text waiting to be handed to the page
+    static volatile long touch;  // time of the last finger tap (Part 28: needed to switch Jarvis on again)
+
+    @Override public boolean dispatchTouchEvent(MotionEvent e) {
+        if (e.getAction() == MotionEvent.ACTION_UP) touch = System.currentTimeMillis();
+        return super.dispatchTouchEvent(e);
+    }
+
+    /** Part 27: true only for the Jarvis page itself. */
+    static boolean trusted(String origin) { return origin != null && origin.replaceAll("/+$", "").equals(URL); }
 
     void screenDone() {
+        if (Privacy.stopped) return;
         pending = ScreenService.snapshot();
         try { startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NEW_TASK)); }
         catch (Exception e) { /* the notification below still works */ }
