@@ -172,11 +172,28 @@ public class ScreenService extends AccessibilityService {
         }
         int before = sig(root);
         boolean did = false;
+        boolean swiped = false;
         if ("scroll".equals(t)) {
             ArrayList<AccessibilityNodeInfo> sc = new ArrayList<>();
             collect(root, 0, sc, "scroll");
-            if (sc.isEmpty()) { cb.got(r(false, "no_scroll")); return; }
-            did = sc.get(0).performAction("up".equals(a.optString("dir")) ? AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD : AccessibilityNodeInfo.ACTION_SCROLL_FORWARD);
+            AccessibilityNodeInfo big = null;
+            long best = -1;
+            for (AccessibilityNodeInfo n : sc) {  // Part 123: the BIGGEST scroll area, not the first one (the first is often a small row of chips)
+                android.graphics.Rect rc = new android.graphics.Rect();
+                n.getBoundsInScreen(rc);
+                long ar = (long) rc.width() * rc.height();
+                if (ar > best) { best = ar; big = n; }
+            }
+            boolean up = "up".equals(a.optString("dir"));
+            if (big != null) did = big.performAction(up ? AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD : AccessibilityNodeInfo.ACTION_SCROLL_FORWARD);
+            if (!did && Build.VERSION.SDK_INT >= 24) { did = swipeNow(s, !up); swiped = did; }  // nothing to scroll (YouTube, charts, web pages): one plain swipe, it only moves the page
+        } else if ("click_nth".equals(t)) {  // Part 127: the Nth big tappable card or row from the top
+            ArrayList<AccessibilityNodeInfo> it = items(root, s.getResources().getDisplayMetrics());
+            int k = a.optInt("n", 0);
+            if (k < 1 || it.size() < k) { JSONObject o = r(false, "few"); try { o.put("count", it.size()); } catch (Exception e) { /* send what we have */ } cb.got(o); return; }
+            AccessibilityNodeInfo pick = it.get(k - 1);
+            if (DANGER.matcher(label(pick)).find() && !sure) { cb.got(r(false, "need_yes")); return; }
+            did = pick.performAction(AccessibilityNodeInfo.ACTION_CLICK);
         } else if ("click".equals(t)) {
             String q = norm(a.optString("name"));
             if (q.length() == 0) { cb.got(r(false, "not_found")); return; }
@@ -216,11 +233,66 @@ public class ScreenService extends AccessibilityService {
         if (!did) { cb.got(r(false, "refused")); return; }
         // verify: look again after a moment. If nothing on the screen changed we say so and never claim success.
         final int was = before;
+        final boolean sw = swiped, isScroll = "scroll".equals(t), dn = !"up".equals(a.optString("dir"));
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             AccessibilityNodeInfo now = live == null ? null : live.getRootInActiveWindow();
+            boolean ch = now != null && sig(now) != was;
+            if (isScroll && !ch && !sw && Build.VERSION.SDK_INT >= 24 && swipeNow(s, dn)) {  // Part 123: the scroll did nothing: swipe once, then check again
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    AccessibilityNodeInfo n2 = live == null ? null : live.getRootInActiveWindow();
+                    JSONObject o2 = r(true, null);
+                    try { o2.put("changed", n2 != null && sig(n2) != was); } catch (Exception e) { /* send what we have */ }
+                    cb.got(o2);
+                }, 900);
+                return;
+            }
             JSONObject o = r(true, null);
-            try { o.put("changed", now != null && sig(now) != was); } catch (Exception e) { /* send what we have */ }
+            try { o.put("changed", ch); } catch (Exception e) { /* send what we have */ }
             cb.got(o);
         }, 900);
+    }
+
+    /** Part 127: big tappable cards and rows (not small buttons), outermost only, top to bottom. A drawn chart has none: Android shows no items inside a picture. */
+    static ArrayList<AccessibilityNodeInfo> items(AccessibilityNodeInfo root, android.util.DisplayMetrics m) {
+        ArrayList<AccessibilityNodeInfo> all = new ArrayList<>(), out = new ArrayList<>();
+        gather(root, 0, all, m);
+        for (int i = 0; i < all.size(); i++) {
+            android.graphics.Rect a = new android.graphics.Rect();
+            all.get(i).getBoundsInScreen(a);
+            boolean inside = false;
+            for (int j = 0; j < all.size() && !inside; j++) {
+                if (j == i) continue;
+                android.graphics.Rect b = new android.graphics.Rect();
+                all.get(j).getBoundsInScreen(b);
+                if (b.contains(a) && (!b.equals(a) || j < i)) inside = true;  // another candidate holds this one: count only the outer card
+            }
+            if (!inside) out.add(all.get(i));
+        }
+        java.util.Collections.sort(out, (x, y) -> {
+            android.graphics.Rect p = new android.graphics.Rect(), q = new android.graphics.Rect();
+            x.getBoundsInScreen(p);
+            y.getBoundsInScreen(q);
+            return p.top != q.top ? Integer.compare(p.top, q.top) : Integer.compare(p.left, q.left);
+        });
+        return out;
+    }
+
+    private static void gather(AccessibilityNodeInfo n, int d, ArrayList<AccessibilityNodeInfo> out, android.util.DisplayMetrics m) {
+        if (n == null || d > 25 || out.size() > 60) return;
+        if (n.isVisibleToUser() && n.isClickable() && !n.isPassword()) {
+            android.graphics.Rect r = new android.graphics.Rect();
+            n.getBoundsInScreen(r);
+            if (r.width() >= m.widthPixels * 0.35f && r.height() >= m.heightPixels * 0.06f && r.height() < m.heightPixels * 0.9f) out.add(n);
+        }
+        for (int i = 0; i < n.getChildCount(); i++) gather(n.getChild(i), d + 1, out, m);
+    }
+
+    /** Part 123: one plain vertical swipe in the middle of the screen. down = the page moves down (finger goes up). */
+    private static boolean swipeNow(ScreenService s, boolean down) {
+        android.util.DisplayMetrics m = s.getResources().getDisplayMetrics();
+        Path p = new Path();
+        p.moveTo(m.widthPixels / 2f, m.heightPixels * (down ? 0.7f : 0.3f));
+        p.lineTo(m.widthPixels / 2f, m.heightPixels * (down ? 0.3f : 0.7f));
+        return s.dispatchGesture(new GestureDescription.Builder().addStroke(new GestureDescription.StrokeDescription(p, 0, 350)).build(), null, null);
     }
 }

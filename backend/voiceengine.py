@@ -11,8 +11,8 @@ PROFILES = {
     "tony": {"hindi": "hi-IN-MadhurNeural", "english": "en-IN-PrabhatNeural", "pitch": 0, "rate": 8},
     "jarvis": {"hindi": "hi-IN-MadhurNeural", "english": "en-GB-RyanNeural", "pitch": -14, "rate": -10},
 }
-SPEAKERS = ("shubh", "rahul", "aditya", "ratan", "amit", "rohan")  # Sarvam male voices
-SPEAKER_DEFAULT = {"tony": "aditya", "jarvis": "rahul"}  # two different speakers, so the two personalities really sound different on Sarvam
+SPEAKERS = ("shubh",)  # Part 124: one voice only (Hussain, 17 Nov). Sarvam Shubh is the default for Hindi and English; Edge stays as the hidden backup when Sarvam fails
+SPEAKER_DEFAULT = {"tony": "shubh", "jarvis": "shubh"}  # both personalities use Shubh; they differ only in speed
 ALERT = re.compile(r"\b(alert|warning|urgent|danger|emergency|low battery)\b|खतरा|khatra|सावधान", re.I)
 
 
@@ -31,7 +31,7 @@ def load():
         d = {}
     d = d if isinstance(d, dict) else {}
     s = {"auto": d.get("auto") is not False, "manual": d.get("manual") if d.get("manual") in PROFILES else "jarvis",
-         "provider": "sarvam" if d.get("provider") == "sarvam" else "edge"}
+         "provider": "edge" if d.get("provider") == "edge" else "sarvam"}  # Part 124: Sarvam unless you chose Edge. No key or Sarvam fails: Edge speaks (app.py)
     sp = d.get("speakers") if isinstance(d.get("speakers"), dict) else {}
     s["speakers"] = {p: sp.get(p) if sp.get(p) in SPEAKERS else SPEAKER_DEFAULT[p] for p in PROFILES}
     if d.get("speaker") in SPEAKERS and "jarvis" not in sp:  # a speaker chosen before Part 71 belonged to JARVIS: keep that choice

@@ -47,7 +47,7 @@ body.hm #box{background:rgba(255,255,255,.07);border-color:var(--line)}body.hm #
 #tabs{display:flex;gap:8px;padding:8px 16px;background:var(--sf);border-bottom:1px solid var(--line)}#tabs button{flex:1}#tabs button.on{background:var(--ac);color:#15120a}
 #home{flex:1;overflow-y:auto;padding:14px 14px 28px;--c1:#35c6ff;--c2:#9b6bff;--c3:#ff5fd2;--hc:rgba(16,24,54,.78);--hl:rgba(96,140,255,.26);--fg:#eaf0ff;--mut:#97a6cc;--line:rgba(96,140,255,.2);--sf2:rgba(255,255,255,.07);background:radial-gradient(130% 55% at 50% 0,#13205a 0,#070b1a 62%) #070b1a;color:var(--fg)}
 #home h4{margin:20px 2px 8px;color:var(--c1);font-size:12px;letter-spacing:.16em}#home .card{background:var(--hc);border:1px solid var(--hl);border-radius:18px;box-shadow:0 0 20px rgba(53,198,255,.07)}
-#lc .lb{font-size:11px;letter-spacing:.12em;color:var(--c1)}#lc .ld{font-size:17px;font-weight:600;margin:6px 0}#lc .lw,#lc .ll{font-size:13px;opacity:.8;margin:3px 0}#lc button{margin-top:8px}#ms .mr{display:flex;justify-content:space-between;padding:4px 0;font-size:14px}#ms b{color:var(--c1)}#ls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}#ls>div{background:var(--hc);border:1px solid var(--hl);border-radius:14px;padding:8px 10px;font-size:12px;min-width:0}#ls b{display:block;font-size:11px;letter-spacing:.12em;color:var(--c1);margin-bottom:4px}#ls p{margin:3px 0;overflow-wrap:anywhere}#ls em{font-style:normal;opacity:.7}
+#lc .lb{font-size:11px;letter-spacing:.12em;color:var(--c1)}#lc .ld{font-size:17px;font-weight:600;margin:6px 0}#lc .lw,#lc .ll{font-size:13px;opacity:.8;margin:3px 0}#lc button{margin-top:8px}#mis .mr{display:flex;justify-content:space-between;padding:4px 0;font-size:14px}#mis b{color:var(--c1)}#ls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}#ls>div{background:var(--hc);border:1px solid var(--hl);border-radius:14px;padding:8px 10px;font-size:12px;min-width:0}#ls b{display:block;font-size:11px;letter-spacing:.12em;color:var(--c1);margin-bottom:4px}#ls p{margin:3px 0;overflow-wrap:anywhere}#ls em{font-style:normal;opacity:.7}
 #home button.g{background:rgba(255,255,255,.07);color:var(--fg);border:1px solid var(--hl)}
 #hg{font-size:26px;font-weight:600;letter-spacing:.01em}#hq2{color:#b9a4ff;font-size:15px;margin-top:2px}#hd{color:var(--mut);font-size:12px;margin-top:2px}
 #wave{display:flex;align-items:center;justify-content:space-between;height:30px;margin:12px 0 2px}#wave i{width:4px;height:6px;border-radius:3px;background:linear-gradient(var(--c1),var(--c2));opacity:.6}
@@ -87,14 +87,17 @@ body.hm .sh button{background:rgba(53,120,255,.14);border:1px solid var(--line);
 @media(prefers-reduced-motion:no-preference){body.hm .m{animation:mi .18s ease-out}@keyframes mi{from{opacity:0;transform:translateY(6px)}}}
 #vstat{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 14px;font-size:13px;color:var(--mut);background:var(--sf);border-bottom:1px solid var(--line)}#vstat select{padding:4px 8px;font-size:13px;border-radius:10px}
 body.hm #vstat{background:rgba(7,11,26,.92);color:#97a6cc;border-color:rgba(96,140,255,.22)}body.hm #vstat select{background:rgba(255,255,255,.07);color:#eaf0ff;border-color:rgba(96,140,255,.22)}
+#gbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;font-size:13px;background:#3b2a05;color:#ffd98a;border-bottom:1px solid #7a5a12}#gbar[hidden]{display:none}#gbar small{opacity:.85}#gend{padding:8px 12px;border-radius:10px;background:#ffd98a;color:#241800;font-weight:700;white-space:nowrap}
+body.big .m{font-size:24px!important;line-height:1.5!important}
 </style></head><body>
 <header><div class="logo">J</div><div><b>JARVIS</b><span id="st">...</span></div><span class="sp"></span><button id="vbtn" title="Voice">🔊</button><button id="gear" title="Settings">⚙</button></header>
+<div id="gbar" hidden><span><b>Guest: temporary</b> · Memory saved: No · Session: Private<br><small>Text still goes to the AI provider. Nothing is kept here.</small></span><button type="button" id="gend">End &amp; erase</button></div>
 <div id="tabs" hidden><button type="button" class="g on" data-v="chat">Chat</button><button type="button" class="g" data-v="home">Home</button></div>
 <div id="pair"><h2>Welcome, sir</h2><p>Pair this phone with your Jarvis server:</p><p style="text-align:left;font-size:15px">1. Open the <b>Termux</b> app.<br>2. Find the line <b>PAIRING CODE: 123456</b> (the last one).<br>3. Type those 6 numbers below.<br>The code works for 10 minutes. No code, or too old? Tap the small button, then look in Termux again.</p>
 <input id="code" inputmode="numeric" maxlength="6" placeholder="••••••"><p><button id="go">Pair this phone</button> <button id="nc" class="g">Show code in Termux</button></p><p id="pe" class="bad"></p></div>
 <div id="home" hidden><div id="hg"></div><div id="hq2">What would you like to do today?</div><div id="hd"></div><div id="wave"></div>
 <div class="hero"><div id="orb" role="button" aria-label="Talk to Jarvis"><i class="r1"></i><i class="r2"></i><i class="r3"></i>J</div><div id="hs0"></div><div class="bub" id="bub"></div></div>
-<h4>Next best move</h4><div class="card" id="lc">...</div><div id="ls"></div><h4>Honest progress</h4><div class="card" id="ms">...</div>
+<h4>Next best move</h4><div class="card" id="lc">...</div><div id="ls"></div><h4>Honest progress</h4><div class="card" id="mis">...</div>
 <h4>AI tools</h4><div class="tools" id="htl"></div>
 <h4>Today's schedule</h4><div class="card" id="ht">...</div>
 <h4>Insights</h4><div class="two"><div class="card" style="text-align:center"><div class="sm">Phone battery</div><div class="ring" id="hr" style="--p:0"><b id="hrt">-</b></div><div class="sm" id="hrs"></div></div><div class="card"><div class="sm">Reminders today</div><div class="big" id="hn1">-</div><div class="sm" style="margin-top:8px">Money due or late</div><div class="big" id="hn2">-</div></div></div>
@@ -135,9 +138,12 @@ async function api(path,body){
 let lastDay='';  // Part 36: day of the last message shown, so a date line appears when the day changes
 const p2=n=>String(n).padStart(2,'0');
 function dayName(d){const t=new Date(),y=new Date(Date.now()-864e5),k=x=>x.getFullYear()+'-'+x.getMonth()+'-'+x.getDate();return k(d)==k(t)?'Today':k(d)==k(y)?'Yesterday':d.getDate()+' '+d.toLocaleString('en',{month:'short'})+(d.getFullYear()!=t.getFullYear()?' '+d.getFullYear():'');}
+let guestOn=false,lastPic=null;  // Part 119: lastPic = the last photo, kept in this page only (never saved), for follow-up questions
+function guestBar(on){guestOn=!!on;$('gbar').hidden=!on;}
+function guestErase(msg){lastPic=null;document.querySelectorAll('#log .gst').forEach(x=>x.remove());add('bot',msg);}  // Part 118: the guest bubbles leave the page too
 function add(role,text,ts){const d=ts?new Date(ts*1000):new Date(),day=d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();
   if(day!=lastDay){lastDay=day;const x=document.createElement('div');x.className='ds';x.textContent=dayName(d);$('log').appendChild(x);}
-  const m=document.createElement('div');m.className='m '+role;m.dataset.t=p2(d.getHours())+':'+p2(d.getMinutes());m.textContent=text;$('log').appendChild(m);m.scrollIntoView();return m;}
+  const m=document.createElement('div');m.className='m '+role+(guestOn?' gst':'');m.dataset.t=p2(d.getHours())+':'+p2(d.getMinutes());m.textContent=text;$('log').appendChild(m);m.scrollIntoView();return m;}
 let ncAuto=false;
 function show(){if(!token&&!ncAuto){ncAuto=true;api('/newcode',{}).catch(()=>{});}  // asks Termux to print a fresh code (it is never shown in the page)
   $('pair').hidden=!!token;go(view);}
@@ -166,6 +172,7 @@ async function ping(){
 async function history(){
   $('log').textContent='';lastDay='';
   try{const {s,d}=await api('/history');if(s==200)d.messages.forEach(m=>add(m.role,m.content,m.ts));}catch(e){}
+  try{const {s,d}=await api('/guest',{});if(s==200)guestBar(d.on);}catch(e){}
 }
 $('nc').onclick=async()=>{try{const {s:st}=await api('/newcode',{});$('pe').textContent=st==200?'Look in Termux now: the last line says PAIRING CODE.':'Wait a few seconds and tap again.';}catch(e){$('pe').textContent='Cannot reach the server. Is Termux running?';}};
 $('go').onclick=async()=>{
@@ -178,6 +185,10 @@ $('f').onsubmit=async e=>{
   e.preventDefault();const t=$('msg').value.trim();if(!t)return;$('msg').value='';
   if(/^(gsk_|sk-or-|nvapi-|mstrl_|sk-[0-9a-f]{32}$)/.test(t)){go('set');$('key').value=t;addKey();return;}
   if(/stop listening|stop everything|mic band|sunna band|सुनना बंद|माइक बंद/i.test(t)){add('user',t);add('bot',stopAll());return;}
+  if(/^\s*(?:big text|bada text|बड़ा टेक्स्ट)\s*(?:on|off|chalu|band)?\s*$/i.test(t)){add('user',t);bigText(/off|band/i.test(t)?false:!document.body.classList.contains('big'));return;}
+  const pm=t.match(/^\s*photo\s*[:\-]\s*(.{2,300})$/i);  // Part 119: a follow-up question about the last photo (the page still holds it)
+  if(pm){add('user','📷 '+pm[1]);const w=add('bot','Looking...');if(!lastPic){w.className='m err';w.textContent='Send a photo first (camera button), then type: photo: your question';return;}
+    try{const {s,d}=await api('/see',{image:lastPic,question:pm[1],style:sty()});if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply,false,'INFORMATION');}else{w.className='m err';w.textContent=d.error||'error';}}catch(e){w.className='m err';w.textContent='Could not send the photo.';}return;}
   if(BATQ.test(t)&&!BATNO.test(t)&&t.length<70){const ph=pinfo();if(ph&&ph.battery!=null){const hi=sty()=='hindi',vm0=viaMic;viaMic=false;add('user',t);
     const a=hi?`सर, बैटरी ${ph.battery}% है और फ़ोन ${ph.charging?'चार्ज हो रहा है':'चार्ज नहीं हो रहा'}।`:`Battery is at ${ph.battery}% and the phone is ${ph.charging?'charging':'not charging'}, sir.`;
     add('bot',a);if(MODE!='quiet')speak(a,vm0,'');return;}}
@@ -189,6 +200,7 @@ $('f').onsubmit=async e=>{
   const sc=screenData;screenData=null;const nf=notifData;notifData=null;const vm=viaMic;viaMic=false;add('user',t);const w=add('bot','...');
   let sp=false;busy=true;try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:(t.length<=90&&(PHQ.test(t)||/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)))?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,cal:CALQ2.test(t)?bridge('calendar',calSpec(t)):/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)?bridge('calendar','0,1'):null,screen:sc,notif:nf,app:inApp(),control:inApp()&&ctl(),mode:MODE});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
+    if(s==200&&'guest' in d){const was=guestOn;guestBar(d.guest);if(!d.guest&&was)guestErase(d.reply);}
     if(s==200){w.textContent=d.reply;w.title='via '+d.via;if(d.mode)setMode(d.mode);const said=d.action?await doAct(d.action,w):d.reply.split('\n\nSources:')[0].split('\n\nस्रोत:')[0];if(MODE!='quiet')speak(said,vm,d.action?'TASK_CONFIRMATION':'');if(d.remember)askSave(w,d.remember);extras(w,t);sp=MODE!='quiet'&&(vm||$('say').checked);}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}finally{busy=false;if((wakeOn||convOn)&&!sp)heardBack();}
 };
@@ -254,11 +266,11 @@ window.onHeard=(txt,wake)=>{txt=(txt||'').trim();
 window.onHeardErr=txt=>{if(barging||cutWait){barging=cutWait=false;return;}appListening=false;
   if(convOn){if(/did not hear/i.test(txt))return convSilent();convEnd('Conversation mode stopped. Mic: '+txt);return;}
   wakeOn=false;cmdNext=false;micState(false);wakeBtn();add('err','Mic: '+txt);};
-// Part 55: conversation mode. After Jarvis finishes speaking the phone mic opens by itself. It ends after 2 silent rounds, on "bas" / "stop", after 20 turns, or on Stop everything. App only, while the app is open.
+// Part 55: conversation mode. After Jarvis finishes speaking the phone mic opens by itself. It ends after 4 silent rounds, on "bas" / "stop", after 20 turns, or on Stop everything. App only, while the app is open.
 const STOPW=/^(?:jarvis[ ,]*)?(?:bas(?: karo| itna| ho gaya)?|stop(?: listening)?|that'?s all|that is all|enough|ruko|band karo|बस(?: करो| इतना)?|रुको|बंद करो)[\s.!,]*$/i;
 function convBtn(){$('conv').hidden=!appEars();$('conv').textContent='Conversation: '+(convOn?'on':'off');micState(appListening);}
 function convEnd(msg){convOn=false;convMiss=0;convTurns=0;if(appEars())JarvisApp.stopListen();appListening=false;convBtn();if(msg)add('bot',msg);}
-function convSilent(){if(++convMiss>=2){convEnd(sty()=='hindi'?'सर, दो बार कुछ सुनाई नहीं दिया, इसलिए बातचीत बंद कर दी। दोबारा शुरू करने के लिए Conversation दबाइए।':'I heard nothing twice, sir, so conversation mode is off. Tap Conversation to start again.');return;}
+function convSilent(){if(++convMiss>=4){convEnd(sty()=='hindi'?'सर, चार बार कुछ सुनाई नहीं दिया, इसलिए बातचीत बंद कर दी। दोबारा शुरू करने के लिए Conversation दबाइए।':'I heard nothing four times, sir, so conversation mode is off. Tap Conversation to start again.');return;}
   setTimeout(()=>{if(convOn&&!priv){appListening=true;micState(true);JarvisApp.listen($('lang').value,false);}},400);}
 $('conv').onclick=()=>{
   if(priv){add('err','Privacy mode is on. Tap "Turn mic on" first.');return;}
@@ -310,15 +322,15 @@ function voiceCard(){
     const c=el('div','dr');c.append(el('b',null,PN[k][0]),el('small',null,PN[k][1]));
     const mk=(n,key,lo,hi2)=>{const l=el('label',null,n+' ');const r=el('input');r.type='range';r.min=lo;r.max=hi2;r.step=1;r.value=VS[k][key];r.style.cssText='width:110px;padding:0';r.onchange=()=>voiceSave({[k]:{[key]:+r.value}});l.append(r,' ');return l;};
     const t=el('button','g','Test '+PN[k][0]);t.type='button';t.onclick=()=>speak(hi?PN[k][2]:PN[k][3],true,'',k);
-    const spk=el('select');[['shubh','Shubh (best for Hindi)'],['rahul','Rahul (deep)'],['aditya','Aditya (clear)'],['ratan','Ratan'],['amit','Amit'],['rohan','Rohan']].forEach(([v,n])=>spk.append(new Option(n,v)));spk.value=(VS.speakers&&VS.speakers[k])||(k=='tony'?'aditya':'rahul');spk.onchange=()=>voiceSave({speakers:{[k]:spk.value}});
+    const spk=el('select');[['shubh','Shubh (default, Hindi and English)']].forEach(([v,n])=>spk.append(new Option(n,v)));spk.value=(VS.speakers&&VS.speakers[k])||'shubh';spk.onchange=()=>voiceSave({speakers:{[k]:spk.value}});
     c.append(...(sv?[el('small',null,'Sarvam speaker for '+PN[k][0]+':'),spk]:[mk('Depth','pitch',-30,10)]),mk('Speed','rate',-25,20),t);rows.push(c);
   });
   // Part 53: voice maker. Edge is free. Sarvam is an Indian company; it needs your own key (their free credit may run out).
   const p=el('div','dr');p.append(el('b',null,'Voice maker'),el('small',null,'Edge is free. Sarvam sounds more natural in Hindi and needs your own Sarvam key. If Sarvam fails, Edge speaks instead.'));
-  const sel=el('select');sel.append(new Option('Edge (free)','edge'),new Option('Sarvam'+(VS.sarvam_saved?'':' (add key first)'),'sarvam'));sel.value=sv?'sarvam':'edge';
+  const sel=el('select');sel.append(new Option('Sarvam Shubh'+(VS.sarvam_saved?'':' (add key first)'),'sarvam'),new Option('Edge (free backup)','edge'));sel.value=sv?'sarvam':'edge';
   sel.onchange=()=>{if(sel.value=='sarvam'&&!VS.sarvam_saved){add('err','Add your Sarvam key first.');sel.value='edge';return;}voiceSave({provider:sel.value});};
   p.append(sel);
-  p.append(el('small',null,sv?'Tony and JARVIS each use their own Sarvam speaker above, so they really sound different.':'Honest note: on Edge there is only ONE male Hindi voice, so Tony and JARVIS differ only in depth and speed in Hindi (English has two different voices). For two truly different Hindi voices, use Sarvam.'));
+  p.append(el('small',null,sv?'Shubh is the only voice. If the Sarvam key or credit ends, Edge speaks instead, so Jarvis never goes silent.':'Honest note: on Edge there is only ONE male Hindi voice, so Tony and JARVIS differ only in depth and speed in Hindi (English has two different voices). For two truly different Hindi voices, use Sarvam.'));
   const ki=el('input');ki.placeholder=VS.sarvam_saved?'Key saved: '+(VS.sarvam_masked||'')+'. Paste a new one to replace.':'Paste your Sarvam key here';ki.autocomplete='off';ki.style.marginTop='8px';
   const kr=el('small',null,'');const kb=el('button','g','Save key');kb.type='button';
   kb.onclick=async()=>{const k=ki.value.trim();if(!k)return;kr.className='';kr.textContent='Checking the key...';
@@ -409,10 +421,11 @@ $('cam').onclick=()=>{if(priv){add('err','Privacy mode is on. Tap "Turn mic on" 
 $('pic').onchange=async()=>{
   const f=$('pic').files[0];$('pic').value='';if(!f)return;
   const q=$('msg').value.trim();$('msg').value='';add('user','📷 '+(q||'What do you see?'));const w=add('bot','Looking...');
-  try{const {s,d}=await api('/see',{image:await shrink(f),question:q,style:sty()});
+  try{const {s,d}=await api('/see',{image:(lastPic=await shrink(f)),question:q,style:sty()});
     if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply,false,'INFORMATION');}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Could not send the photo.';}
 };
+function bigText(on){document.body.classList.toggle('big',on);const last=[...document.querySelectorAll('#log .m.bot')].pop();add('bot',on?'Big text is on. Say "big text off" to go back.':'Big text is off.');if(on&&last&&last.textContent.length<600)speak(last.textContent,false,'INFORMATION');}  // Part 119: for elders: big letters + reads the last answer aloud
 async function led(){
   const {d}=await api('/ledger');const L=$('ll');L.textContent='';const a=d.items||[];
   if(!a.length){L.textContent='No entries. Type in chat: I owe Faisal 5000, due 15 Nov';return;}
@@ -490,6 +503,7 @@ function actMsg(r,a){
     if(t=='back'||t=='home'||t=='swipe')return say('हो गया सर।','Done, sir.');
     return r.changed===false?say('सर, मैंने कर दिया, पर स्क्रीन पर कोई बदलाव नहीं दिखा। एक बार देख लीजिए।','Sir, I did it, but I saw no change on the screen. Please check.'):say('हो गया सर, स्क्रीन बदल गई।','Done, sir. The screen changed.');
   }
+  if(r.err=='few')return say('सर, यहाँ मुझे सिर्फ़ '+r.count+' बड़े आइटम दिखे। चार्ट जैसी तस्वीर के अंदर मैं कुछ नहीं देख पाता।','Sir, I see only '+r.count+' big items here. I cannot see inside a drawn picture like a chart.');  // Part 127
   const m=ACTERR[r.err]||ACTERR.unknown;return say(m[0],m[1]);
 }
 window.onActDone=s=>{
@@ -539,6 +553,7 @@ window.onTaskDone=s=>{
 async function doCall(a,w){
   const hi=sty()=='hindi',say=(h,e)=>hi?h:e,who=a.said||a.name||a.number||'';
   w.textContent=say('कॉन्टैक्ट ढूँढ रहा हूँ: '+who+'…','Looking for the contact: '+who+'...');await new Promise(z=>setTimeout(z,80));
+  if(a.type=='scroll'){if(a.dir=='again')a=Object.assign({},a,{dir:lastDir});lastDir=a.dir;}  // Part 128: "thoda aur scroll karo" repeats the last direction
   let r;try{r=JSON.parse(JarvisApp.act(JSON.stringify(a)));}catch(e){r={ok:false,err:'unknown'};}
   let t;
   if(r.ok)t='✔ '+(r.mode=='whatsapp'?say('व्हाट्सएप चैट खुल गई सर। भेजने का बटन आप खुद दबाइए।','The WhatsApp chat is open, sir. Please press send yourself.'):r.mode=='dial'?say('डायलर खुल गया सर। हरा कॉल बटन आप खुद दबाइए।','The dialer is open, sir. Please press the green call button yourself.'):say('ठीक है सर, '+r.name+' को कॉल कर रहा हूँ।','Calling '+r.name+', sir.'));
@@ -555,6 +570,7 @@ async function doCall(a,w){
   else t='✖ '+say('Android ने कॉल नहीं लगने दिया सर।','Android did not let me place the call, sir.');
   w.textContent=t;if(!r.ok)w.className='m err';return t;
 }
+let lastDir='down';
 async function doAct(a,w){
   if(a.type=='task')return runTask(a,w);
   if(a.type=='call')return doCall(a,w);
@@ -755,13 +771,14 @@ function lensCard(){const b=$('lc'),w=$('ls');b.textContent='';w.textContent='';
   [['now','NOW'],['next','NEXT'],['later','LATER']].forEach(([key,n])=>{const d=el('div');d.appendChild(el('b','',n));const r=st[key]||[];
     if(!r.length)d.appendChild(el('p','','-'));r.forEach(x=>{const p=el('p');if(x.at)p.appendChild(el('em','',x.at+' '));p.append(x.text);d.appendChild(p);});w.appendChild(d);});}
 // Part 87: three separate counts from the README. Code built is not phone tested, and phone tested is not verified.
-function missionCard(){const b=$('ms');b.textContent='';const m=tj&&tj.mission;if(!m){b.textContent='README not found: no counts to show.';return;}
+function missionCard(){const b=$('mis');b.textContent='';const m=tj&&tj.mission;if(!m){b.textContent='README not found: no counts to show.';return;}
   [['Code built',m.built+' Parts'],['Phone tested',m.tested+' Parts'+(m.partly?' (+'+m.partly+' partly)':'')],['Verified (Table A)',m.ok+' of '+m.tests+' PASS'+(m.fail?', '+m.fail+' FAIL':'')],['Still planned',m.planned+' Parts']].forEach(([k,v])=>{const r=el('div','mr');r.append(el('span','',k),el('b','',v));b.appendChild(r);});}
 setInterval(()=>homeLoad(false),3000);
+$('gend').onclick=()=>{$('msg').value='end and erase';$('f').requestSubmit();};
 function ask(t){go('chat');$('msg').value=t;$('f').requestSubmit();}
 function fill(t){go('chat');$('msg').value=t;$('msg').focus();}  // the tool only types the start; you finish the sentence and send
 $('orb').onclick=()=>{go('chat');$('mic').click();};
-[['📝','Summarize',()=>fill('Summarize: ')],['🌐','Translate',()=>fill('Translate to Hindi: ')],['✍️','Write',()=>fill('Write a message: ')],['💡','Explain',()=>fill('Explain simply: ')],['🗓','Plan my day',()=>ask('briefing')],['📤','Handoff',()=>ask('handoff')],['🔎','Search all',()=>fill('sab jagah dhundo ')]]
+[['📝','Summarize',()=>fill('Summarize: ')],['🌐','Translate',()=>fill('Translate to Hindi: ')],['✍️','Write',()=>fill('Write a message: ')],['💡','Explain',()=>fill('Explain simply: ')],['🗓','Plan my day',()=>ask('briefing')],['📤','Handoff',()=>ask('handoff')],['🔎','Search all',()=>fill('sab jagah dhundo ')],['🧑‍🤝‍🧑','Guest session',()=>ask('guest session start')],['🔠','Big text',()=>ask('big text')],['🗺','Make a plan',()=>fill('Make a plan: ')],['✅','Reliable info',()=>fill('Reliable info: ')],['🛡','Red team',()=>fill('Red team: ')]]
   .forEach(([i,n,f])=>{const b=el('button',null);b.type='button';b.append(el('span','',i),n);b.onclick=f;$('htl').appendChild(b);});
 [['☀️','Briefing','Your day in one look','briefing'],['⏰','My reminders','Today and later','my reminders'],['🔁','Routines','Saved task sentences','my routines'],['💰','Money ledger','Who owes what','show ledger'],['🛒','Shopping list','Small things by voice','list dikhao'],['💸','Spending','What I spent','kharcha'],['💪','Habits','Streaks and check-ins','my habits'],['📊','Day report','Today in numbers','aaj ka summary'],['🖥','Explain screen','Read the app on screen','explain this screen'],['📋','Clipboard','Use what you just copied','__clip'],['🔔','Notifications','Summary of the apps you chose','__ns'],['📱','Lost phone help','Steps if the phone is gone','phone kho gaya']]
   .forEach(([i,n,sub,q])=>{const b=el('button','sc');b.type='button';const w=el('span');w.append(n,el('small','',sub));b.append(el('span','',i),w,el('b','','›'));b.onclick=()=>q=='__clip'?clip():q=='__ns'?nsum():ask(q);$('hsc').appendChild(b);});

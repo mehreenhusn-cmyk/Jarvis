@@ -37,3 +37,24 @@ def refresh_scripts(root):
             print("[update] sync.sh nayi version se badal diya", flush=True)
     except OSError as e:
         print("[update] sync.sh nahi badla:", e, flush=True)
+
+
+STRAY = {"app.py": "backend/app.py", "actions.py": "backend/actions.py", "guest.py": "backend/guest.py", "voiceengine.py": "backend/voiceengine.py", "index.html": "web/index.html",
+         "Ears.java": "android/app/src/main/java/com/hussain/jarvis/Ears.java", "MainActivity.java": "android/app/src/main/java/com/hussain/jarvis/MainActivity.java",
+         "ScreenService.java": "android/app/src/main/java/com/hussain/jarvis/ScreenService.java"}
+
+
+def move_strays(root):
+    """Parts 118 to 128 were zipped flat, so these files sat in the repo root where nothing reads them. Once the real copy exists, the root copy is moved OUT of the repo
+    (to ~/.jarvis_done/strays, nothing is deleted) so the next push cleans GitHub."""
+    import shutil
+    for name, real in STRAY.items():
+        src = os.path.join(root, name)
+        try:
+            if os.path.isfile(src) and os.path.isfile(os.path.join(root, real)):
+                d = os.path.expanduser("~/.jarvis_done/strays")
+                os.makedirs(d, exist_ok=True)
+                shutil.move(src, os.path.join(d, name))
+                print(f"[layout] root par padi {name} hata di (asli file {real} mein hai)", flush=True)
+        except OSError as e:
+            print("[layout] stray file nahi hati:", name, e, flush=True)

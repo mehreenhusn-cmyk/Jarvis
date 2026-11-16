@@ -7,7 +7,8 @@ VISION = {"groq": "meta-llama/llama-4-scout-17b-16e-instruct", "openrouter": "op
 IMG = re.compile(r"^data:image/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$")
 PROMPT = ("You are Jarvis, a calm personal assistant. Look at the photo and answer the user's question in simple words, "
           "1 to 4 short sentences, no markdown. Do not identify real people from their faces. Do not guess private details. "
-          "If the photo is unclear, say so.")
+          "If the photo is unclear, say so. If it shows a form, bill, message or text, read what is printed and translate or explain it simply when asked. "
+          "For a medicine, form or money matter: say only what is written, never advise a dose or a payment, and end with: doctor ya pharmacist se confirm karo.")
 
 
 def look(image, question, hindi, providers, getkey, names):
@@ -22,7 +23,7 @@ def look(image, question, hindi, providers, getkey, names):
         if n not in VISION or n not in providers or not getkey(n):
             continue
         base = providers[n][0]
-        body = json.dumps({"model": os.environ.get("MODEL_VISION_" + n.upper()) or VISION[n], "max_tokens": 300, "messages": [
+        body = json.dumps({"model": os.environ.get("MODEL_VISION_" + n.upper()) or VISION[n], "max_tokens": 500, "messages": [
             {"role": "system", "content": PROMPT},
             {"role": "user", "content": [{"type": "text", "text": q}, {"type": "image_url", "image_url": {"url": image}}]}]}).encode()
         req = urllib.request.Request(base + "/chat/completions", body, {

@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, autostart, backup, brief, calls, clock, handoff, habits, ledger, lens, lists, memory, modes, notes, people, phone, place, progress, remind, replyideas, screen, search, see, spend, sysinfo, tasks, tts, voiceengine, web, whatsnew
+import actions, assist, autostart, backup, brief, calls, clock, guest, handoff, habits, ledger, lens, lists, memory, modes, notes, people, phone, place, progress, redteam, remind, replyideas, screen, search, see, spend, sysinfo, tasks, tts, voiceengine, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -128,6 +128,12 @@ def check(n, k):
         call(n, [{"role": "user", "content": "Ek shabd mein jawab do: OK"}], k)
     except RuntimeError as e:
         return str(e)
+
+
+CAN = ("\n\nWHAT JARVIS CAN DO (the app does these when Hussain's words fit, not you): open any app; scroll, click, back and home on the open app; call or dial a contact by name; alarm and timer; reminders; notes, lists, habits, expenses; read the screen when asked; look at a photo; search the web in Research mode. "
+       "WHAT IT CANNOT DO: see inside another app's private data (like a trading watch list) unless it is on the screen, send a message or pay without his tap, or guess news. "
+       "If he asks for something from the CAN list, never say you cannot: tell him the exact short words to say, for example: Ammi ko call karo, or: Chrome kholo aur neeche scroll karo. "
+       "Use the earlier messages to understand words like usko, wahi, isko, that, it.")  # Part 126
 
 
 def ask(history, style="english", extra=""):
@@ -329,6 +335,8 @@ class H(BaseHTTPRequestHandler):
             bd = [{"in": k, "text": t, "on": on} for k, t, on in remind.birthdays(c, dev, n, 7)] if n else []  # Part 75: Daily Life Manager = reminders + ledger + birthdays + notes
             nts = [{"id": i, "text": x[:120]} for i, x in c.execute("SELECT id, text FROM notes WHERE device=? ORDER BY id DESC LIMIT 3", (dev,))]
             return self.send(200, {"reminders": remind.today(c, dev, now), "ledger": led, "birthdays": bd, "notes": nts, "routines": tasks.scheduled(c, dev), "lens": lens.build(c, dev, now, data.get("phone")), "mission": progress.mission()})  # Part 85/86: next best move card and Now/Next/Later strip
+        if self.path == "/guest":  # Part 118: is a guest session on (the page shows the badge after a reload)
+            return self.send(200, {"on": guest.on(dev)})
         if self.path == "/snooze":  # Part 82: the 10 min button under a reminder
             try:
                 t2 = remind.snooze(db(), dev, int(data.get("id") or 0), int(data.get("mins") or 10), str(data.get("now", "")))
@@ -422,14 +430,31 @@ class H(BaseHTTPRequestHandler):
                 ans, via = see.look(data.get("image"), data.get("question"), data.get("style") == "hindi", PROVIDERS, getkey, names())
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
-            c = db()
-            c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", "(photo) " + ans, time.time()))
-            c.commit()
+            if not guest.on(dev):  # Part 118: a guest photo answer is not saved
+                c = db()
+                c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", "(photo) " + ans, time.time()))
+                c.commit()
             return self.send(200, {"reply": ans, "via": via})
         if self.path == "/chat":
             msg = str(data.get("message", "")).strip()
             if not msg or len(msg) > 4000:
                 return self.send(400, {"error": "message khali ya bahut bada"})
+            hi = str(data.get("style", "")) == "hindi"
+            g = guest.command(dev, msg, hi)  # Part 118: guest session words. Checked BEFORE anything is saved
+            if g is not None:
+                return self.send(200, {"reply": g[0], "via": "guest", "guest": g[1]})
+            if guest.on(dev):  # guest turn: no database, no memory, no phone action, no web; RAM only, numbers masked
+                a = assist.handle(msg, hi, ask, str(data.get("now", "")), guest.mask, guest.RULE)  # Part 119: translate / explain / plan / reliable info, still RAM only
+                if a is not None:
+                    guest.add(dev, "user", guest.mask(msg))
+                    guest.add(dev, "assistant", a)
+                    return self.send(200, {"reply": a, "via": "assist", "guest": True})
+                try:
+                    reply, via = ask(guest.add(dev, "user", guest.mask(msg)), str(data.get("style", "")), guest.RULE)
+                except RuntimeError as e:
+                    return self.send(502, {"error": str(e)})
+                guest.add(dev, "assistant", reply)
+                return self.send(200, {"reply": reply, "via": via, "guest": True})
             c = db()
             last = c.execute("SELECT ts FROM messages WHERE device=? AND role='user' ORDER BY id DESC LIMIT 1", (dev,)).fetchone()  # Part 36: when did the user last write?
             prev_ts = last[0] if last else None
@@ -459,6 +484,10 @@ class H(BaseHTTPRequestHandler):
                 mem = habits.handle(c, dev, msg, style == "hindi", now)
             if mem is None:  # Part 84: "200 coffee", "kharcha" (what you spent; not the owe/get ledger)
                 mem = spend.handle(c, dev, msg, style == "hindi", now)
+            if mem is None:  # Part 119: "translate to hindi: ...", "explain simply: ...", "make a plan: ...", "reliable info: ..." (fixed words only)
+                mem = assist.handle(msg, style == "hindi", ask, now)
+            if mem is None:  # Part 91: "red team: yeh phone kharidna hai" (the AI gets only your own Jarvis numbers)
+                mem = redteam.handle(c, dev, msg, style == "hindi", ask, now)
             if mem is None:  # Part 83: "day report 9 baje" (the time at which the page offers a one-tap day summary)
                 mem = tasks.report(c, dev, msg, style == "hindi")
             if mem is None:  # Part 47: "backup", "delete everything" (typed phrase). Never takes a passphrase
@@ -493,11 +522,11 @@ class H(BaseHTTPRequestHandler):
                 c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", keep, time.time()))
                 c.commit()
                 return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {})))
-            rows = c.execute("SELECT role, content, ts FROM messages WHERE device=? ORDER BY id DESC LIMIT 10", (dev,)).fetchall()
+            rows = c.execute("SELECT role, content, ts FROM messages WHERE device=? ORDER BY id DESC LIMIT 20", (dev,)).fetchall()  # Part 126: 20 turns, not 10
             tctx = clock.context([(r, t) for r, _, t in reversed(rows)], prev_ts)
             wtxt, srcs = web.lookup(msg, now, mode == "research" and len(msg) >= 8 and not screen.used(data.get("screen")))  # Part 57: in Research mode every question is searched
             try:
-                reply, via = ask([{"role": r, "content": t} for r, t, _ in reversed(rows)], style, tctx + memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + replyideas.context(data.get("notif")) + wtxt + MOOD + modes.extra(mode))
+                reply, via = ask([{"role": r, "content": t} for r, t, _ in reversed(rows)], style, CAN + tctx + memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + replyideas.context(data.get("notif")) + wtxt + MOOD + modes.extra(mode))
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
             if srcs:  # the list of sites comes from the real search result, not from the AI
@@ -514,6 +543,7 @@ if __name__ == "__main__":
     host, port = os.environ.get("HOST", "127.0.0.1"), int(os.environ.get("PORT", "8787"))
     autostart.ensure(os.path.dirname(HERE))
     autostart.refresh_scripts(os.path.dirname(HERE))
+    autostart.move_strays(os.path.dirname(HERE))  # Part 119: one-time cleanup of files that older zips left in the repo root
     new_code()
     tasks.restart(db())  # Part 41 restart rule: a task that was RUNNING before this start is FAILED now
     print(f"Jarvis chal raha hai: http://{host}:{port}  provider={','.join(names())}", flush=True)

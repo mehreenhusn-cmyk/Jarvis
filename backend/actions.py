@@ -5,7 +5,7 @@ from difflib import get_close_matches
 import lang
 
 ACTIONS = {"open_app"}  # what the AI fallback may return. Only open_app, nothing else.
-SCREEN = {"click", "scroll", "swipe", "type", "back", "home", "current_app", "lock", "settings", "torch", "volume"}  # Part 34: only the user's own words can make these; the AI fallback never can.
+SCREEN = {"click", "click_nth", "scroll", "swipe", "type", "back", "home", "current_app", "lock", "settings", "torch", "volume"}  # Part 34: only the user's own words can make these; the AI fallback never can.
 SAFE = {"open_app"}  # Part 33: these run after the master switch. Anything else needs a preview and Hussain's own tap on Yes, every single time.
 EN = {"open", "launch", "start", "run", "ओपन", "ओपेन", "ओप्पण", "लॉन्च", "लांच", "स्टार्ट", "रन"}  # Part 59: Hindi-script spellings of the English words (phone dictation writes "open" as "ओपन")
 HI = {"उघड", "उघडा", "उघडणे", "तिर", "तिरक्क", "तिरक्कवुम", "तिरक्कुम", "तेरुवु", "तेरवंडि", "तेरे", "तेरयिरि", "तुरक्कुक", "तुरक्कू", "खोल्हो", "खोल्हें", "kholo", "khol", "kholna", "kholiye", "kholiyega", "kholen", "chalao", "chala", "chalu", "shuru", "खोलो", "खोल", "खोलना", "खोलिए", "खोलिये", "खोलें", "चलाओ", "चला", "चालू", "चालु", "शुरू"}
@@ -139,6 +139,12 @@ GO = set("go jao ja जाओ जा chalo चलो press dabao दबाओ ka
 BACKW, HOMEW = {"back", "peeche", "piche", "पीछे", "wapas", "वापस"}, {"home", "होम"}
 SCRW, DOWN, UP = {"scroll", "स्क्रॉल", "skrol"}, {"down", "neeche", "niche", "नीचे"}, {"up", "upar", "oopar", "ऊपर"}
 CLICK_EN, CLICK_HI = {"click", "tap", "press"}, {"dabao", "dabaye", "dabaiye", "दबाओ", "दबाइए", "दबाएं"}
+AGAIN = set("aur और thoda थोड़ा thora again more phir फिर bhi भी baar बार once".split())  # Part 128: "thoda aur scroll karo", "aur neeche"
+ORD = {"pehla": 1, "pehle": 1, "first": 1, "पहला": 1, "dusra": 2, "doosra": 2, "second": 2, "दूसरा": 2, "teesra": 3, "tisra": 3, "third": 3, "तीसरा": 3, "chautha": 4, "chauthha": 4, "fourth": 4, "चौथा": 4,
+       "panchva": 5, "paanchva": 5, "panchwa": 5, "fifth": 5, "पांचवा": 5, "पाँचवा": 5, "chatha": 6, "sixth": 6, "छठा": 6}
+ITEMW = set("video vedio item result chart link card post song option row videos result photo reel वीडियो आइटम चार्ट लिंक रिज़ल्ट रिजल्ट".split())
+OPENW = set("kholo khol open dabao click tap press play chalao खोलो खोल दबाओ चलाओ".split())
+NTHFILL = set("ooper upar oopar se from top the a wala wali number no nambar ka ki ke jo hai ko ऊपर से वाला वाली नंबर नम्बर".split())
 THIS = set("is isko ye yeh yah this it इस इसे यह ये".split())
 BTN = {"button", "btn", "बटन", "tab", "option"}
 LOCKW, PHONEW = {"lock", "लॉक"}, {"phone", "फोन", "फ़ोन", "mobile", "मोबाइल", "screen", "स्क्रीन"}  # Part 35: lock only. There is no unlock command and there never will be.
@@ -178,9 +184,20 @@ def screen_cmd(msg):
         return {"type": "home"}, "Going to the home screen, sir.", "ठीक है सर, होम स्क्रीन पर जा रहा हूँ।"
     if s & LOCKW and s & PHONEW and s <= LOCKW | PHONEW | GO | FILL and not s & {"app", "ऐप", "एप"}:
         return {"type": "lock"}, "Locking the phone, sir. I can lock it, but I never unlock it.", "ठीक है सर, फ़ोन लॉक कर रहा हूँ। अनलॉक मैं कभी नहीं करता।"
-    if s & SCRW and s <= SCRW | DOWN | UP | GO | FILL and bool(s & DOWN) != bool(s & UP):
+    nth = None  # Part 127: "ooper se teesra video kholo", "3rd item kholo", "number 3 result kholo"
+    for x in w:
+        if x in ORD:
+            nth = ORD[x]
+        elif re.fullmatch(r"\d{1,2}(?:st|nd|rd|th)?", x) and (s & ITEMW or s & {"number", "no", "nambar", "नंबर"}):
+            nth = int(re.match(r"\d+", x).group())
+    if nth and 1 <= nth <= 12 and s & OPENW and s <= set(ORD) | ITEMW | OPENW | NTHFILL | FILL | GO | {x for x in w if re.fullmatch(r"\d{1,2}(?:st|nd|rd|th)?", x)}:
+        return {"type": "click_nth", "n": nth}, f"Opening item number {nth} from the top, sir.", f"ऊपर से {nth} नंबर का आइटम खोल रहा हूँ सर।"
+    one = bool(s & DOWN) != bool(s & UP)
+    if one and s <= SCRW | DOWN | UP | GO | FILL | AGAIN and (s & SCRW or s & GO or s & AGAIN):  # Part 128: "upar jao", "aur neeche", "scroll karo neeche"
         d = "down" if s & DOWN else "up"
         return {"type": "scroll", "dir": d}, f"Scrolling {d}, sir.", ("नीचे" if d == "down" else "ऊपर") + " स्क्रॉल कर रहा हूँ सर।"
+    if s & SCRW and not (s & DOWN or s & UP) and s & AGAIN and s <= SCRW | AGAIN | GO | FILL:  # "thoda aur scroll karo": the page repeats the last direction
+        return {"type": "scroll", "dir": "again"}, "Scrolling again, sir.", "फिर से स्क्रॉल कर रहा हूँ सर।"
     x = _trim(w)
     name = None
     if x and (x[0] in CLICK_EN or x[0] in CLICK_HI):
@@ -257,6 +274,7 @@ def call_cmd(msg):
     """(action or None, English text, Hindi text) for a call command, else None. (None, ...) = a call word but no name, so Jarvis asks.
     A typed number only opens the dialer (raw): the green call button is the person's own tap."""
     m = msg.strip()
+    m = re.sub(r"\s+(?:at\s+\w+\s+)?(?:last|ending|end|aakhri)\s*(?:mein|me|in|with|digits?)?\s*\d{2,6}\s*[.!]?$", "", m, flags=re.I)  # Part 125: dictation noise "call ammi at anyhow last mein 5895": the name is what counts; the app asks which contact if two fit
     if "?" in m or len(m) > 80:
         return None
     w = _words(m)

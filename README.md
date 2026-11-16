@@ -15,7 +15,7 @@
 | 4 | Total plan: files and lines | What the planned Parts add up to |
 | 5 | Ideas we will not build | And why |
 | 6 | Safety rules for the new Parts | Every new Part must keep these |
-| 7 | Phone tests (Table A) | 35 things to try on the phone |
+| 7 | Phone tests (Table A) | 38 things to try on the phone |
 | 8 | Rules for every Claude | How we work |
 | 9 | Known limits and fixes | What Jarvis cannot do, honest |
 | R1 to R7 | Reference | How it works, setup, cheat sheet, security, old status, build log, master plan |
@@ -33,14 +33,17 @@ This README is long (about 750 lines). Do NOT read it all. It wastes Hussain's c
 5. Need a page anchor? In `web/index.html` run `grep -n "function NAME" web/index.html`. The page has ONE big script. Home tab code starts at `homeLoad`. Voice panel code starts at `voiceLoad`. Phone-action code starts at `doAct` and `window.onActDone`.
 6. Phone test list: `grep -n "^| [0-9]* | " README.md` shows every table row. Table A is section 7.
 
+**ZIP LAYOUT RULE (17 Nov, a real bug):** every file in a zip MUST sit at its REAL path: `backend/*.py`, `web/index.html`, `android/app/src/main/java/com/hussain/jarvis/*.java`, `README.md` at the top. Parts 118 to 128 were zipped flat (`app.py`, `index.html` in the repo root), so the server (`python backend/app.py`) never saw them and the APK build never ran. Fixed in Part 119: the root strays are moved out by `autostart.move_strays`. Before you zip, run `unzip -l` and check that no `.py`, `.html` or `.java` file is at the top.
+
 **File map (backend, real line counts, 17 Nov 2026):**
 
 | File | Lines | What it does |
 |---|---|---|
-| `app.py` | 540 | Server: all routes (`/chat`, `/tts`, `/today`, `/see`, `/guest`...). The `/chat` handler chain is the heart |
+| `app.py` | 550 | Server: all routes (`/chat`, `/tts`, `/today`, `/see`, `/guest`...). The `/chat` handler chain is the heart |
 | `actions.py` | 595 | Phone commands: open app, call, alarm, timer, WhatsApp. Fixed grammar, never the AI |
 | `tasks.py` | 287 | Multi-step tasks and routines (Chrome kholo aur neeche scroll karo) |
 | `guest.py` | 56 | Guest session: RAM only, number masking (Part 118) |
+| `assist.py`, `redteam.py` | 43, 42 | Assist words: translate, explain simply, make a plan, reliable info (Part 119). Red Team: 3 hard questions from your own numbers (Part 91) |
 | `voiceengine.py`, `tts.py` | 98, 72 | Voice choice (Sarvam Shubh default, Edge backup) and speech making |
 | `memory.py`, `people.py`, `notes.py`, `lists.py`, `habits.py`, `spend.py`, `ledger.py`, `remind.py` | 88, 82, 71, 93, 122, 109, 85, 240 | What Jarvis keeps: memory, people, notes, lists, habits, expenses, money, reminders. The list of every store is `memory.STORES` |
 | `brief.py`, `lens.py`, `progress.py`, `whatsnew.py`, `search.py` | 250, 109, 73, 77, 35 | Briefing, Home card, honest counts, what's new, search everywhere |
@@ -146,7 +149,7 @@ This README is long (about 750 lines). Do NOT read it all. It wastes Hussain's c
 | 88 | **Memory Atlas**: the `Your Data` panel in Settings now shows counts of everything Jarvis keeps (12 stores, one list `memory.STORES`) with how to remove each, plus your Notes with a Remove button. People and Memory already had Remove. Reading only; nothing new is saved | `memory.py`, `app.py`, `index.html` | 30 | No | Built, not phone tested |
 | 89 | **Search everywhere**: `sab jagah dhundo Bombay` (also `sab jagah Bombay dhundo`, `search everywhere Bombay`) looks in notes, memories, people notes, lists and reminders and says where each hit came from. Matches the same words, not the meaning. Reads only, no AI. Home tools row has a `Search all` button that types the start. Later Parts add their store to `SOURCES` in `search.py` (decisions, capsules, dreams) | `search.py`*, `app.py`, `index.html` | 39 | No | Built, not phone tested |
 | 90 | **Source label** on research answers: one line under `Sources:` from the real list of sites. `One site only: one report, not confirmed.` or `N sites seen; the first was read in full, the others only as short snippets.` It never says `agree`, because seeing a site is not proof that it agrees (changed from the first plan) | `web.py`, `app.py` | 14 | No | Built, not phone tested |
-| 91 | **Red Team**: `red team: yeh phone kharidna hai`. The AI gets only your own Jarvis numbers (this month's spending, habits, memories), asks 3 hard questions and gives 2 counter-points. No invented numbers | `redteam.py*`, `app.py`, `index.html` | ~60 | No | Planned |
+| 91 | **Red Team**: `red team: yeh phone kharidna hai`. The AI gets only your own Jarvis numbers (this month's spending, habits, memories), asks 3 hard questions and gives 2 counter-points. No invented numbers | `redteam.py`, `app.py`, `index.html` | ~60 | No | Built, not phone tested |
 | 92 | **Debate Jarvis**: `debate ruthless: ...`, `debate spiritual: ...` or `debate opposite: ...`. Jarvis argues that side with a visible badge for 10 minutes, then goes back to normal. Only when you call it | `debate.py*`, `app.py`, `index.html` | ~80 | No | Planned |
 | 93 | **Decision Debt**: `sochenge baad mein: phone lena hai` saves it; `pending decisions` lists them; the briefing shows up to 2 older than 3 days; `decision ho gaya 2` closes one | `decisions.py*`, `brief.py`, `backup.py`, `app.py` | ~90 | No | Planned |
 | 94 | **Unfinished business**: `adhoora: Faisal se baat` shows in the briefing now and then (at most once in 3 days) until `adhoora khatam 2` | `decisions.py`, `app.py` | ~50 | No | Planned |
@@ -174,7 +177,7 @@ This README is long (about 750 lines). Do NOT read it all. It wastes Hussain's c
 | 116 | **App habit map** (Java): `YouTube ke baad usually Instagram`, a count kept on the phone and shown as a note | `UsageWatch.java`, `index.html` | ~40 | Yes | Planned |
 | 117 | **What's new answers**: `last update`, `kya kya add hua`, `last 5 updates`. Jarvis answers from the zip names in `~/.jarvis_done` (name, time, files inside the zip) plus that Part's row in this README (files, lines, what it does). Fixes the chat saying `I cannot access GitHub`. It only knows what this phone received and pushed, not other commits on GitHub | `whatsnew.py`*, `app.py` | 81 | No | Built, not phone tested |
 | 118 | **Assist mode: guest session core**. `guest session shuru` and `End & erase`. While on: nothing is saved (no memory, people, notes, habits, expenses, mood, chat history), the guest chat lives in RAM only, a badge shows `Guest: temporary / Memory saved: No`. The list of stores to guard is `memory.STORES` (Part 88). Aadhaar-like 12 digit numbers, phone numbers and card numbers are masked BEFORE the text goes to the AI. The badge says the text still goes to the AI provider | `guest.py`*, `app.py`, `index.html` | 56 + 18 + 13 = 87 | No | Built, not phone tested |
-| 119 | **Assist tools** (inside a guest session or for you): **Photo or screenshot helper**: send a form, bill, medicine strip or message as a photo or screenshot; Jarvis translates it, explains it in simple words and answers your follow-up questions about it (reuses `see.py`; photo not saved). Plus Translate, Explain simply, Find reliable info (uses the Part 90 source label), Make a plan, Big-text read-aloud for elders. No emergency guide (Hussain, 17 Nov). Medicine and forms: reads what is printed and says `doctor ya pharmacist se confirm karo`. Reply help already exists in Part 84 | `assist.py`*, `see.py`, `app.py`, `index.html` | ~150 | No | Planned |
+| 119 | **Assist tools** (inside a guest session or for you): **Photo or screenshot helper**: send a form, bill, medicine strip or message as a photo or screenshot; Jarvis translates it, explains it in simple words and answers your follow-up questions about it (reuses `see.py`; photo not saved). Plus Translate, Explain simply, Find reliable info (uses the Part 90 source label), Make a plan, Big-text read-aloud for elders. No emergency guide (Hussain, 17 Nov). Medicine and forms: reads what is printed and says `doctor ya pharmacist se confirm karo`. Reply help already exists in Part 84 | `assist.py`, `see.py`, `app.py`, `index.html` | 43 + 12 + 24 + 8 = 87 | No | Built, not phone tested |
 | 120 | **Lens rail** on Home: chips Project, Phone, Life filter the Next best move card and the strip. World and Sports chips wait until a news source exists | `lens.py`, `index.html` | ~60 | No | Planned |
 | 121 | **Glass skin**: the premium glass look (orb, glass cards, gradient buttons) for Home and Assist only, dark only, with a `Reduce effects` switch. CSS from Hussain, about 330 lines. Only after Table A passes | `index.html` | ~380 | No | Planned |
 | 122 | **Bottom bar**: tabs appear as their Parts are built (Home, Talk, Assist, Timeline, Memory, Settings). Needs Parts 88, 109 and 118. Only after Table A passes | `index.html` | ~90 | No | Planned |
@@ -190,8 +193,8 @@ This README is long (about 750 lines). Do NOT read it all. It wastes Hussain's c
 
 1. GitHub > Actions > **Build APK** > Run. If it goes red, send a screenshot of the error. That is fixed before anything else.
 2. Install the APK on the phone.
-3. Try the 35 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
-4. Then say **"ok 119"** (next in order). Part 129 (look and tap) is optional and last (or 2 or 3 Part numbers together) (or any Part number from section 2). Claude builds one Part at a time.
+3. Try the 38 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
+4. Then say **"ok 92"** (next in order; 119 and 91 are built). Part 129 (look and tap) is optional and last (or 2 or 3 Part numbers together) (or any Part number from section 2). Claude builds one Part at a time.
 
 Why this order: Parts 18 to 90 and Part 117 are built and none is phone tested. A new feature on top of an untested base only makes bugs harder to find. Parts 112 to 116 (Java) wait longest, because Java is not even compiled yet. This README-only update needs no new APK.
 
@@ -284,6 +287,9 @@ Nothing below is phone tested yet. Build APK first for the Java rows. Write PASS
 | 33 | Say `call ammi at anyhow last mein 5895` and `Ammi ko call karo` | Both start the Ammi call (or ask which Ammi if two fit); the AI does not say `I cannot call` | No | not tested |
 | 34 | Open YouTube home, say `ooper se teesra video kholo`; then in Settings say `2nd item kholo` | The 3rd video card opens (the 2nd row opens in Settings). In a drawn chart (TradingView) Jarvis says it sees only N big items: that is expected | Yes (Part 127) | not tested |
 | 35 | Say `neeche scroll karo`, then `thoda aur scroll karo`, then `upar jao` | The first goes down, the second goes down again (same direction), the third goes up | No for the words, Yes for the scroll (Part 123) | not tested |
+| 36 | Say `translate to hindi: where is the bus station`, then `explain simply: this is a prepaid mobile plan`, then `make a plan: learn typing in 2 weeks`, then `reliable info: capital of Australia` | Each gives a short answer. The last one adds `Sources:` and a one line site label. Inside `guest session start` all four also work and nothing is saved | No | not tested |
+| 37 | Tap the camera, send a photo of a bill or a medicine strip with the words `translate`, then type `photo: what is the total?`. Then say `big text` | The photo is read, the follow-up answer comes without a new photo, a medicine answer ends with `doctor ya pharmacist se confirm karo`. Big text makes the letters large and reads the last answer aloud; `big text off` goes back | No | not tested |
+| 38 | Type `red team: yeh phone kharidna hai` | 3 hard questions, 2 counter-points, last line `Decision tumhara hai`. Numbers only from your own spending, habits and memories; none invented. Not available inside a guest session | No | not tested |
 
 ## 8. RULES FOR EVERY CLAUDE (always follow)
 1. Each part is under 350 lines of code. New files only when really needed. Update this README after every part.
@@ -309,6 +315,7 @@ Nothing below is phone tested yet. Build APK first for the Java rows. Write PASS
 17. **Plan before, plan after:** BEFORE building a Part say its number, files and lines in a small table (and WITH or WITHOUT tests). AFTER building say the real lines, then the NEXT Part in the same way (number, files, lines). Part numbers are plain numbers from the table in section 2 only.
 18. **Speed (Hussain, 17 Nov):** save his chat limit. Read only the files the Part touches. Edit, syntax check and one small run in as few commands as possible. After each build give a SHORT report and offer 3 or 4 next Part options in a table (Part, files, lines); he may pick 2 or 3 at once and then you build them in one zip. A new chat after every 3 or 4 Parts is cheaper than one very long chat.
 19. **Read less (Hussain, 17 Nov):** never read this whole README. Read section 0, section 3, your Part's row and the files in that row. Use `grep -n` to find things (see section 0). Say in one line which files you read.
+20. **Zip layout (17 Nov):** see the ZIP LAYOUT RULE in section 0. Real paths only, one zip with only the changed files (all latest together), never the whole repo, never flat.
 
 
 ## 9. KNOWN LIMITS AND FIXES (honest list)
@@ -661,7 +668,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 88 DONE | Memory Atlas: counts of everything Jarvis keeps, notes with Remove | memory.py, app.py, index.html | 30 | With | See and delete what Jarvis keeps in one panel |
 | 89 DONE | Search everywhere: same words in notes, memories, people, lists, reminders | search.py*, app.py, index.html | 39 | With | Find anything you told Jarvis in one go |
 | 90 DONE | Source label: how many sites an internet answer came from, said honestly | web.py, app.py | 14 | With | You see at once if an answer rests on one site |
-| 91 | Red Team: red team: yeh phone kharidna hai. The AI gets only your own Jarvis numbers (this month's spending, h | redteam.py*, app.py, index.html | ~60 | With | Planned, see section 2 |
+| 91 | Red Team: red team: yeh phone kharidna hai. The AI gets only your own Jarvis numbers (this month's spending, h | redteam.py*, app.py, index.html | ~60 | With | BUILT 17 Nov, not phone tested |
 | 92 | Debate Jarvis: debate ruthless: ..., debate spiritual: ... or debate opposite: .... Jarvis argues that side wi | debate.py*, app.py, index.html | ~80 | With | Planned, see section 2 |
 | 93 | Decision Debt: sochenge baad mein: phone lena hai saves it; pending decisions lists them; the briefing shows u | decisions.py*, brief.py, backup.py, app.py | ~90 | With | Planned, see section 2 |
 | 94 | Unfinished business: adhoora: Faisal se baat shows in the briefing now and then (at most once in 3 days) until | decisions.py, app.py | ~50 | With | Planned, see section 2 |
@@ -689,7 +696,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 116 | App habit map (Java): YouTube ke baad usually Instagram, a count kept on the phone and shown as a note | UsageWatch.java, index.html | ~40 | Without | Planned, see section 2 |
 | 117 DONE | What's new answers: last update, kya kya add hua, from zip names and this README | whatsnew.py*, app.py | 81 | With | Chat can say what was last added and how it helps |
 | 118 DONE | Assist mode guest session: nothing saved, End & erase, numbers masked. Also fixes a Part 87 bug: two page elements had the id `ms`, so the mic status text overwrote the Honest progress card | guest.py*, app.py, index.html | 87 | With | Help another person without keeping their data |
-| 119 | Assist tools: photo/screenshot helper, Translate, Explain simply, Reliable info, Plan, Big text | assist.py*, see.py, app.py, index.html | ~150 | With | Family, elders and students get quick help |
+| 119 DONE | Assist tools: photo/screenshot helper, Translate, Explain simply, Reliable info, Plan, Big text | assist.py*, see.py, app.py, index.html | ~150 | With | Family, elders and students get quick help |
 | 120 | Lens rail on Home: Project, Phone, Life chips | lens.py, index.html | ~60 | With | Filter the Home card by topic |
 | 121 | Glass skin: premium look for Home and Assist, Reduce effects switch | index.html | ~380 | With | Look only, after Table A |
 | 122 | Bottom bar with tabs as Parts are built | index.html | ~90 | With | One tap to Home, Talk, Assist, Timeline, Memory |
