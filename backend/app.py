@@ -331,7 +331,7 @@ class H(BaseHTTPRequestHandler):
                 ok = False
             return self.send(200, {"ok": ok})
         if self.path == "/brief":  # page din mein ek baar apne aap maangta hai
-            return self.send(200, {"text": brief.build(db(), dev, str(data.get("now", "")), data.get("style") == "hindi", bool(data.get("auto")))})
+            return self.send(200, {"text": brief.build(db(), dev, str(data.get("now", "")), data.get("style") == "hindi", bool(data.get("auto")), None, data.get("phone"))})
         if self.path == "/ledger/paid":
             c = db()
             c.execute("UPDATE ledger SET paid=1 WHERE id=? AND device=?", (int(data.get("id") or 0), dev))
@@ -448,7 +448,7 @@ class H(BaseHTTPRequestHandler):
             if mem is None:  # where am I
                 mem = place.handle(msg, data.get("loc"), style == "hindi")
             if mem is None:  # "briefing" / "aaj ka plan"
-                mem = brief.handle(c, dev, msg, style == "hindi", now, data.get("cal"))
+                mem = brief.handle(c, dev, msg, style == "hindi", now, data.get("cal"), data.get("phone"))
             if mem is None:  # hisab: "Faisal ko 5000 dene hain"
                 mem = ledger.handle(c, dev, msg, style == "hindi", ask, now)
             if mem is None:  # reminder: "kal 9 baje chai yaad dilana"

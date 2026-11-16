@@ -181,7 +181,7 @@ $('f').onsubmit=async e=>{
     if(r.perm===false){add('user',t);add('bot','Turn on "Jarvis screen reader" in Accessibility settings (I opened it for you), then ask again.');return;}
     pendingMsg=t;add('bot','Switch to the app you want me to read. I will read it in '+r.wait+' seconds and come back.');return;}
   const sc=screenData;screenData=null;const vm=viaMic;viaMic=false;add('user',t);const w=add('bot','...');
-  let sp=false;busy=true;try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:(t.length<=90&&PHQ.test(t))?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,cal:CALQ2.test(t)?bridge('calendar',calSpec(t)):/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)?bridge('calendar','0,1'):null,screen:sc,app:inApp(),control:inApp()&&ctl(),mode:MODE});
+  let sp=false;busy=true;try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:(t.length<=90&&(PHQ.test(t)||/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)))?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,cal:CALQ2.test(t)?bridge('calendar',calSpec(t)):/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)?bridge('calendar','0,1'):null,screen:sc,app:inApp(),control:inApp()&&ctl(),mode:MODE});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
     if(s==200){w.textContent=d.reply;w.title='via '+d.via;if(d.mode)setMode(d.mode);const said=d.action?await doAct(d.action,w):d.reply.split('\n\nSources:')[0].split('\n\nस्रोत:')[0];if(MODE!='quiet')speak(said,vm,d.action?'TASK_CONFIRMATION':'');if(d.remember)askSave(w,d.remember);extras(w,t);sp=MODE!='quiet'&&(vm||$('say').checked);}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}finally{busy=false;if((wakeOn||convOn)&&!sp)heardBack();}
@@ -679,7 +679,7 @@ async function bkLoad(){
 }
 async function brief(){
   if(!token||priv)return;const day=nowS().slice(0,10);if(localStorage.getItem('jbrief')==day)return;localStorage.setItem('jbrief',day);
-  try{const {s,d}=await api('/brief',{now:nowS(),style:sty(),auto:true});if(s==200&&d.text){add('bot',d.text);speak(d.text,false,'BRIEFING');}}catch(e){}
+  try{const {s,d}=await api('/brief',{now:nowS(),style:sty(),auto:true,phone:pinfo()});if(s==200&&d.text){add('bot',d.text);speak(d.text,false,'BRIEFING');}}catch(e){}
 }
 // Part 48: Home dashboard (neon look from the reference pictures). Everything shown here is real data from the server or the phone; nothing is made up.
 function go(v){view=v;const t=!!token;document.body.classList.toggle('hm',v=='home'||v=='chat');$('chat').hidden=!t||v!='chat';$('set').hidden=!t||v!='set';$('home').hidden=!t||v!='home';$('tabs').hidden=!t;

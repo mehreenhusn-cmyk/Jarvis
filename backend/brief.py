@@ -3,7 +3,7 @@ Part 45: phone calendar ke events (sirf jab aap khud 'briefing' likhein), sujhav
 apne aap nahi, har type alag band ho sakta hai. Settings brief.json mein (restart ke baad bhi rehti hain)."""
 import json, os, re, time
 
-import ledger, remind
+import ledger, phone, remind
 
 TRIG = re.compile(r"briefing|brief karo|aaj ka plan|aaj kya hai|my plan today|good morning jarvis|ब्रीफिंग|सुप्रभात", re.I)
 FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brief.json")
@@ -12,6 +12,7 @@ ONOFF = r"(on|off|band|chalu|bandh)"
 SET_ALL = re.compile(r"^\s*(?:suggestions?|sujhav)\s+" + ONOFF + r"\s*$", re.I)
 SET_ONE = re.compile(r"^\s*(money|birthday|tomorrow)\s+suggestions?\s+" + ONOFF + r"\s*$", re.I)
 SET_Q = re.compile(r"^\s*quiet hours?\s+(\d{1,2})\s*(?:to|-|se)\s*(\d{1,2})\s*$", re.I)
+WEEK = re.compile(r"^\s*(?:weekly summary|week(?:ly)? report|(?:is )?hafte ka (?:summary|hisab)|साप्ताहिक सारांश)\s*$", re.I)  # Part 80
 SHOW = re.compile(r"^\s*(?:briefing|suggestions?)\s+settings?\s*$", re.I)
 
 
@@ -82,7 +83,7 @@ def events(cal, hindi):
     return out
 
 
-def build(c, dev, now, hindi, auto=False, cal=None):
+def build(c, dev, now, hindi, auto=False, cal=None, ph=None):
     """Text lautata hai. auto=True aur kuch na ho to '' (page ko chup rehna hai)."""
     try:
         n = remind.tm(now)
@@ -97,7 +98,8 @@ def build(c, dev, now, hindi, auto=False, cal=None):
     sug = suggest(c, dev, n, hindi, load(), auto)
     bd = [(t, k, on) for k, t, on in remind.birthdays(c, dev, n, 3)]  # Part 75: janamdin aaj se 3 din tak
     nt = [] if auto else [r[0][:80] for r in c.execute("SELECT text FROM notes WHERE device=? ORDER BY id DESC LIMIT 2", (dev,))]  # latest notes: sirf jab aap khud briefing maangein
-    if not rem and not near and not ev and not sug and not any(k == 0 for _, k, _ in bd) and auto:
+    pw = [f"{x} {y}" for x, y in phone.analyze(ph, hindi)[:2]] if isinstance(ph, dict) else []  # Part 80: phone problems (battery, storage, heat...) in the briefing, only when there is one
+    if not rem and not near and not ev and not sug and not pw and not any(k == 0 for _, k, _ in bd) and auto:
         return ""
     say = (lambda hi, ro: hi if hindi else ro)
     out = [say("सुप्रभात सर।", "Suprabhat sir.") + " " + time.strftime("%d %b", time.gmtime(n))]
@@ -119,11 +121,38 @@ def build(c, dev, now, hindi, auto=False, cal=None):
     if nt:
         out.append(say("ताज़ा नोट्स:", "Latest notes:"))
         out += [f"- {x}" for x in nt]
-    if not rem and not near and not ev and not bd:
+    if not rem and not near and not ev and not bd and not pw:
         out.append(say("आज कुछ ज़रूरी बाकी नहीं है।", "Nothing important is pending today."))
+    if pw:
+        out.append(say("फ़ोन:", "Phone:"))
+        out += ["- " + x for x in pw]
     if sug:
         out.append(say("सुझाव:", "Suggestions:"))
         out += ["- " + x for x in sug]
+    return "\n".join(out)
+
+
+def weekly(c, dev, now, hindi):
+    """Part 80: last 7 days in numbers, from the tables Jarvis already has. Nothing new is saved."""
+    try:
+        n = remind.tm(now)
+    except ValueError:
+        return ""
+    say = (lambda hi, ro: hi if hindi else ro)
+    real = time.time() - 7 * 86400
+    rem = c.execute("SELECT count(*) FROM reminders WHERE device=? AND sent=1 AND rep='' AND text NOT LIKE '🎂%' AND due>=? AND due<=?", (dev, n - 7 * 86400, n)).fetchone()[0]
+    nts = c.execute("SELECT count(*) FROM notes WHERE device=? AND ts>=?", (dev, real)).fetchone()[0]
+    tk = dict(c.execute("SELECT state, count(*) FROM tasks WHERE device=? AND ts>=? GROUP BY state", (dev, real)).fetchall())
+    L = ledger.rows(c, dev)
+    late = len([x for x in L if x[4] and x[4] < time.strftime("%Y-%m-%d", time.gmtime(n))])
+    bd = remind.birthdays(c, dev, n, 7)
+    out = [say("पिछले 7 दिन:", "Last 7 days:"),
+           f"- {say('रिमाइंडर बताए गए', 'Reminders told')}: {rem}",
+           f"- {say('फ़ोन टास्क/रूटीन पूरे', 'Phone tasks/routines completed')}: {tk.get('COMPLETED', 0)} ({say('अधूरे/फ़ेल', 'partial/failed')}: {tk.get('PARTIAL', 0) + tk.get('FAILED', 0)})",
+           f"- {say('नोट्स सेव', 'Notes saved')}: {nts}",
+           f"- {say('खुला हिसाब', 'Open ledger entries')}: {len(L)} ({say('तारीख़ निकली', 'past date')}: {late})"]
+    if bd:
+        out.append(f"- {say('आने वाले जन्मदिन (7 दिन)', 'Birthdays in the next 7 days')}: " + ", ".join(f"{t.replace('🎂 ', '')} ({on})" for _, t, on in bd))
     return "\n".join(out)
 
 
@@ -153,8 +182,10 @@ def settings(msg, hindi):
     return None
 
 
-def handle(c, dev, msg, hindi, now, cal=None):
+def handle(c, dev, msg, hindi, now, cal=None, ph=None):
     r = settings(msg, hindi) if len(msg) < 50 else None
     if r:
         return r
-    return build(c, dev, now, hindi, False, cal) if TRIG.search(msg) and len(msg) < 50 else None
+    if WEEK.match(msg):
+        return weekly(c, dev, now, hindi) or None
+    return build(c, dev, now, hindi, False, cal, ph) if TRIG.search(msg) and len(msg) < 50 else None

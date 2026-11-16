@@ -21,7 +21,7 @@ TYPEWORD = re.compile(r"\b(?:type|likho|likh)\b|टाइप|लिखो", re.I
 def init(c):
     c.execute("CREATE TABLE IF NOT EXISTS tasks(id INTEGER PRIMARY KEY, device INT, title TEXT, steps TEXT, state TEXT, cur INT DEFAULT 0, note TEXT DEFAULT '', ts REAL, upd REAL)")
     c.execute("CREATE TABLE IF NOT EXISTS routines(id INTEGER PRIMARY KEY, device INT, name TEXT, phrase TEXT, ts REAL)")
-    for col in ("at", "last"):  # Part 76: routine ka time (HH:MM, phone ka) aur kis din aakhri baar bataya; purani table mein sirf 2 naye column
+    for col in ("at", "last", "days"):  # Part 76: routine ka time (HH:MM, phone ka) aur kis din aakhri baar bataya; purani table mein sirf 2 naye column
         if col not in [r[1] for r in c.execute("PRAGMA table_info(routines)")]:
             c.execute(f"ALTER TABLE routines ADD COLUMN {col} TEXT DEFAULT ''")
     c.commit()
@@ -137,7 +137,7 @@ RRUN = (re.compile(r"^\s*(?:run routine|start routine|routine chalao|routine run
 RPLAIN = re.compile(r"^\s*routine\s+(.{1,30}?)\s*$", re.I)
 
 
-RTIME = re.compile(r"^\s*(?:schedule\s+)?routine\s+(.{1,30}?)(?:\s+(?:roz|rozana|daily|every\s*day|har\s*din|at))?(?:\s+(subah|savere|dopahar|shaam|raat))?\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm|baje|bje|बजे)?\s*(subah|savere|dopahar|shaam|raat)?\s*$", re.I)
+RTIME = re.compile(r"^\s*(?:schedule\s+)?routine\s+(.{1,30}?)(?:\s+(?:roz|rozana|daily|every\s*day|har\s*din|at))?(?:\s+(subah|savere|dopahar|shaam|raat))?\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm|baje|bje|बजे)?\s*(subah|savere|dopahar|shaam|raat)?(?:\s+(?:sirf\s+|only\s+)?(weekdays?|weekends?|hafte\s+ke\s+din))?\s*$", re.I)
 RTOFF = re.compile(r"^\s*routine\s+(.{1,30}?)\s+(?:time\s+(?:hatao|band|off|remove)|no\s+time|unschedule)\s*$", re.I)
 
 
@@ -158,7 +158,10 @@ def due_routines(c, dev, now):
     if not re.fullmatch(r"\d{4}-\d\d-\d\d", day) or not re.fullmatch(r"\d\d:\d\d", hm):
         return []
     out, nm = [], int(hm[:2]) * 60 + int(hm[3:])
-    for i, name, at in c.execute("SELECT id, name, at FROM routines WHERE device=? AND at<>'' AND at<=? AND last<>?", (dev, hm, day)).fetchall():
+    wd = time.strptime(day, "%Y-%m-%d").tm_wday  # 0 = Monday
+    for i, name, at, dy in c.execute("SELECT id, name, at, days FROM routines WHERE device=? AND at<>'' AND at<=? AND last<>?", (dev, hm, day)).fetchall():
+        if (dy == "wk" and wd >= 5) or (dy == "we" and wd < 5):  # Part 80: sirf weekdays / sirf weekend wali routine doosre din chup
+            continue
         c.execute("UPDATE routines SET last=? WHERE id=?", (day, i))
         if nm - (int(at[:2]) * 60 + int(at[3:])) <= 180:
             out.append({"name": name, "at": at})
@@ -167,7 +170,7 @@ def due_routines(c, dev, now):
 
 
 def scheduled(c, dev):
-    return [{"name": n, "at": a} for n, a in c.execute("SELECT name, at FROM routines WHERE device=? AND at<>'' ORDER BY at", (dev,))]
+    return [{"name": n, "at": a + (" " + d if d else "")} for n, a, d in c.execute("SELECT name, at, days FROM routines WHERE device=? AND at<>'' ORDER BY at", (dev,))]
 
 
 def routine(c, dev, msg, hindi, control, in_app):
@@ -189,7 +192,7 @@ def routine(c, dev, msg, hindi, control, in_app):
         c.commit()
         return say(f"ठीक है सर, रूटीन \"{name}\" सेव हो गया ({len(got[1]['steps'])} कदम)। चलाने के लिए: routine {name}", f"Okay sir, routine \"{name}\" saved ({len(got[1]['steps'])} steps). To run it say: routine {name}"), None
     if RLIST.match(msg):
-        r = [(n + (f" ({a})" if a else ""), p) for n, p, a in c.execute("SELECT name, phrase, at FROM routines WHERE device=? ORDER BY id", (dev,)).fetchall()]
+        r = [(n + (f" ({a}{' ' + d if d else ''})" if a else ""), p) for n, p, a, d in c.execute("SELECT name, phrase, at, days FROM routines WHERE device=? ORDER BY id", (dev,)).fetchall()]
         if not r:
             return say("सर, कोई रूटीन सेव नहीं है। जैसे: routine banao subah: Chrome kholo aur neeche scroll karo", "Sir, no routines saved. Try: routine banao subah: Chrome kholo aur neeche scroll karo"), None
         return say("सर, ये रूटीन हैं:\n", "Sir, your routines:\n") + "\n".join(f"- {n}: {p}" for n, p in r), None
@@ -208,11 +211,12 @@ def routine(c, dev, msg, hindi, control, in_app):
         name, h, mi = m.group(1).strip().lower(), _hour(int(m.group(3)), m.group(2) or m.group(5) or m.group(6)), int(m.group(4) or 0)
         if h > 23 or mi > 59:
             return say("सर, समय समझ नहीं आया। जैसे: routine subah roz 7 baje", "Sir, I could not read that time. Example: routine subah roz 7 baje"), None
-        k = c.execute("UPDATE routines SET at=?, last='' WHERE device=? AND name=?", (f"{h:02d}:{mi:02d}", dev, name)).rowcount
+        dy = "wk" if re.match(r"weekday|hafte", m.group(7) or "", re.I) else "we" if m.group(7) else ""
+        k = c.execute("UPDATE routines SET at=?, days=?, last='' WHERE device=? AND name=?", (f"{h:02d}:{mi:02d}", dy, dev, name)).rowcount
         c.commit()
         if not k:
             return say("सर, ये रूटीन नहीं मिला। \"my routines\" बोलिए।", "Sir, I did not find that routine. Say \"my routines\"."), None
-        return say(f"ठीक है सर, रूटीन \"{name}\" रोज़ {h:02d}:{mi:02d} पर बताऊँगा, आपके एक टैप से चलेगा। (24 घंटे का समय है, ग़लत हो तो फिर बोलिए)", f"Okay sir, I will tell you every day at {h:02d}:{mi:02d} (24-hour clock) that routine \"{name}\" is due; it runs on your one tap. Wrong time? Say it again."), None
+        return say(f"ठीक है सर, रूटीन \"{name}\" {"सोम-शुक्र" if dy == "wk" else "शनि-रवि" if dy == "we" else "रोज़"} {h:02d}:{mi:02d} पर बताऊँगा, आपके एक टैप से चलेगा। (24 घंटे का समय है, ग़लत हो तो फिर बोलिए)", f"Okay sir, I will tell you {"on weekdays" if dy == "wk" else "on weekends" if dy == "we" else "every day"} at {h:02d}:{mi:02d} (24-hour clock) that routine \"{name}\" is due; it runs on your one tap. Wrong time? Say it again."), None
     name, explicit = None, True
     for rx in RRUN:
         m = rx.match(msg)
