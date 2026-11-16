@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, assist, autostart, backup, brief, calls, clock, debate, decisions, guest, handoff, habits, ledger, lens, lists, memory, modes, mood, notes, people, phone, place, progress, redteam, remind, replyideas, screen, search, see, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
+import actions, assist, autostart, backup, brief, calls, capsule, clock, debate, decisions, guest, handoff, habits, ledger, lens, lists, memory, modes, mood, notes, people, phone, place, progress, redteam, remind, replyideas, screen, search, see, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -57,6 +57,7 @@ def db():
     decisions.init(c)  # Parts 93 + 94
     mood.init(c)  # Part 96
     touch.init(c)  # Part 95
+    capsule.init(c)  # Part 97
     tasks.init(c)  # Part 41: tracked multi-step tasks
     return c
 
@@ -314,7 +315,16 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, {"ok": True})
         if self.path == "/due":  # page har 10 sec poochta hai: kisi reminder ka time hua?
             now = str(data.get("now", ""))
-            return self.send(200, {"due": remind.due(db(), dev, now), "routines": tasks.due_routines(db(), dev, now), "report": tasks.due_report(db(), dev, now), "follow": remind.followup(db(), dev, now)})  # Part 76: routine ka time hua to page ek-tap button dikhata hai
+            return self.send(200, {"due": remind.due(db(), dev, now), "routines": tasks.due_routines(db(), dev, now), "report": tasks.due_report(db(), dev, now), "follow": remind.followup(db(), dev, now), "capsule": capsule.due(db(), dev, now), "bd": modes.bd_due(dev, now)})  # Part 76: routine ka time hua to page ek-tap button dikhata hai
+        if self.path == "/capsule/open":  # Part 97: the text is sent only after the tap, and only if its day has come
+            try:
+                t = capsule.open_text(db(), dev, int(data.get("id") or 0), str(data.get("now", "")))
+            except ValueError:
+                t = None
+            return self.send(200 if t else 404, {"text": t} if t else {"error": "not ready"})
+        if self.path == "/bd/answer":  # Part 101: Haan / Nahi under the check-in
+            modes.bd_answer(dev, data.get("yes") is True)
+            return self.send(200, {"ok": True})
         if self.path == "/task/update":  # Part 41/42: the page tells how a task is going (RUNNING, WAITING_FOR_PERMISSION, ...)
             try:
                 ok = tasks.update(db(), dev, int(data.get("id") or 0), str(data.get("state", "")), data.get("cur") if isinstance(data.get("cur"), int) else None, data.get("note", ""))
@@ -497,6 +507,10 @@ class H(BaseHTTPRequestHandler):
                 mem = mood.handle(c, dev, msg, style == "hindi", now)
             if mem is None:  # Part 95: "ammi track karo", "ammi se baat hui" (only people you pick)
                 mem = touch.handle(c, dev, msg, style == "hindi", now)
+            if mem is None:  # Part 97: "6 mahine baad yeh sunana: ...", "my capsules", "open capsule 3" (your words only, never sent to the AI)
+                mem = capsule.handle(c, dev, msg, style == "hindi", now)
+            if mem is None:  # Part 101: "body double 45 minute" / "body double stop"
+                mem = modes.bd_command(dev, msg, style == "hindi", now)
             if mem is None:  # Part 92: "debate stop" ends it; "debate ruthless: ..." switches it on and the AI answers below
                 mem = debate.command(dev, msg, style == "hindi")
             if mem is None:  # Part 83: "day report 9 baje" (the time at which the page offers a one-tap day summary)

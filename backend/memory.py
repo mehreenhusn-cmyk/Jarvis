@@ -78,7 +78,7 @@ STORES = [("memories", "Memories", "", "Remove button"), ("people", "People note
           ("messages", "Chat history", "", "say: clear history"), ("listitems", "List items", "", "say: list se doodh hatao"),
           ("habits", "Habits", " AND day=''", "delete everything"), ("spend", "Expenses", "", "say: kharcha hatao"),
           ("decisions", "Decisions and unfinished", " AND done=0", "say: decision ho gaya N / adhoora khatam N"), ("moods", "Mood check-ins", " AND day!='care'", "delete everything"),
-          ("touch", "Last talked people", "", "say: ammi track band karo"), ("contracts", "Habit contracts", "", "say: contract hatao gym"),
+          ("touch", "Last talked people", "", "say: ammi track band karo"), ("contracts", "Habit contracts", "", "say: contract hatao gym"), ("capsules", "Time capsules", "", "say: capsule hatao N"),
           ("ledger", "Money ledger", "", "delete everything"), ("reminders", "Reminders", "", "delete everything"),
           ("routines", "Routines", "", "delete everything"), ("tasks", "Task history", "", "delete everything"), ("dayreport", "Day report time", "", "delete everything")]
 

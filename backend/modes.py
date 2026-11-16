@@ -32,3 +32,65 @@ def handle(msg, hindi):
 
 def extra(mode):
     return EXTRA.get(mode, "")
+
+
+# ---- Part 101: Body Double. `body double 45 minute`: every 15 minutes a TEXT check-in `abhi bhi kaam par?` (Haan / Nahi) and a count at the end.
+# It does not watch the screen and does not block any app. Lives in RAM only (a server restart ends it). The page asks /due every 10 seconds.
+import remind
+
+BD_START = re.compile(r"^\s*body\s+double\s+(\d{2,3})\s*(?:minute|minutes|min|mins|मिनट)\s*$", re.I)
+BD_STOP = re.compile(r"^\s*body\s+double\s+(?:stop|khatam|band|off)\s*$", re.I)
+BD_STEP = 900
+BD = {}  # device -> {"start", "end", "next", "asked", "yes"}
+
+
+def _bd_text(s, now_asked=False):
+    mins = (s["end"] - s["start"]) // 60
+    return (f"Body double done: {mins} minutes, {s['yes']} of {s['asked']} check-ins on task.", f"बॉडी डबल पूरा: {mins} मिनट, {s['asked']} में से {s['yes']} चेक-इन में काम पर।")
+
+
+def bd_command(dev, msg, hindi, now):
+    try:
+        n = remind.tm(now)
+    except (ValueError, TypeError):
+        return None
+    if BD_STOP.match(msg):
+        s = BD.pop(dev, None)
+        if not s:
+            return "सर, बॉडी डबल चालू नहीं है।" if hindi else "Sir, no body double is on."
+        s["end"] = n
+        return _bd_text(s)[1 if hindi else 0]
+    g = BD_START.match(msg)
+    if not g:
+        return None
+    mins = int(g.group(1))
+    if not 15 <= mins <= 180:
+        return "सर, 15 से 180 मिनट रखिए।" if hindi else "Sir, choose 15 to 180 minutes."
+    BD[dev] = {"start": n, "end": n + mins * 60, "next": n + BD_STEP, "asked": 0, "yes": 0}
+    return (f"ठीक है, {mins} मिनट। हर 15 मिनट पर लिखकर पूछूँगा: abhi bhi kaam par? मैं स्क्रीन नहीं देखता और कोई ऐप नहीं रोकता। रोकने के लिए: body double stop" if hindi else
+            f"Okay, {mins} minutes. Every 15 minutes I will ask in text: abhi bhi kaam par? I do not watch your screen and I block no app. To stop: body double stop")
+
+
+def bd_due(dev, now):
+    """For the page's /due poll: {"kind": "ask"} once per 15 minutes, {"kind": "end", "en", "hi"} once at the end. None otherwise."""
+    s = BD.get(dev)
+    if not s:
+        return None
+    try:
+        n = remind.tm(now)
+    except (ValueError, TypeError):
+        return None
+    if n >= s["end"]:
+        BD.pop(dev, None)
+        en, hi = _bd_text(s)
+        return {"kind": "end", "en": en, "hi": hi}
+    if n >= s["next"]:
+        s["next"] += BD_STEP
+        s["asked"] += 1
+        return {"kind": "ask"}
+    return None
+
+
+def bd_answer(dev, yes):
+    if dev in BD and yes:
+        BD[dev]["yes"] += 1
