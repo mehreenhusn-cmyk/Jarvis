@@ -47,6 +47,7 @@ body.hm #box{background:rgba(255,255,255,.07);border-color:var(--line)}body.hm #
 #tabs{display:flex;gap:8px;padding:8px 16px;background:var(--sf);border-bottom:1px solid var(--line)}#tabs button{flex:1}#tabs button.on{background:var(--ac);color:#15120a}
 #home{flex:1;overflow-y:auto;padding:14px 14px 28px;--c1:#35c6ff;--c2:#9b6bff;--c3:#ff5fd2;--hc:rgba(16,24,54,.78);--hl:rgba(96,140,255,.26);--fg:#eaf0ff;--mut:#97a6cc;--line:rgba(96,140,255,.2);--sf2:rgba(255,255,255,.07);background:radial-gradient(130% 55% at 50% 0,#13205a 0,#070b1a 62%) #070b1a;color:var(--fg)}
 #home h4{margin:20px 2px 8px;color:var(--c1);font-size:12px;letter-spacing:.16em}#home .card{background:var(--hc);border:1px solid var(--hl);border-radius:18px;box-shadow:0 0 20px rgba(53,198,255,.07)}
+#lc .lb{font-size:11px;letter-spacing:.12em;color:var(--c1)}#lc .ld{font-size:17px;font-weight:600;margin:6px 0}#lc .lw,#lc .ll{font-size:13px;opacity:.8;margin:3px 0}#lc button{margin-top:8px}#ls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}#ls>div{background:var(--hc);border:1px solid var(--hl);border-radius:14px;padding:8px 10px;font-size:12px;min-width:0}#ls b{display:block;font-size:11px;letter-spacing:.12em;color:var(--c1);margin-bottom:4px}#ls p{margin:3px 0;overflow-wrap:anywhere}#ls em{font-style:normal;opacity:.7}
 #home button.g{background:rgba(255,255,255,.07);color:var(--fg);border:1px solid var(--hl)}
 #hg{font-size:26px;font-weight:600;letter-spacing:.01em}#hq2{color:#b9a4ff;font-size:15px;margin-top:2px}#hd{color:var(--mut);font-size:12px;margin-top:2px}
 #wave{display:flex;align-items:center;justify-content:space-between;height:30px;margin:12px 0 2px}#wave i{width:4px;height:6px;border-radius:3px;background:linear-gradient(var(--c1),var(--c2));opacity:.6}
@@ -93,6 +94,7 @@ body.hm #vstat{background:rgba(7,11,26,.92);color:#97a6cc;border-color:rgba(96,1
 <input id="code" inputmode="numeric" maxlength="6" placeholder="••••••"><p><button id="go">Pair this phone</button> <button id="nc" class="g">Show code in Termux</button></p><p id="pe" class="bad"></p></div>
 <div id="home" hidden><div id="hg"></div><div id="hq2">What would you like to do today?</div><div id="hd"></div><div id="wave"></div>
 <div class="hero"><div id="orb" role="button" aria-label="Talk to Jarvis"><i class="r1"></i><i class="r2"></i><i class="r3"></i>J</div><div id="hs0"></div><div class="bub" id="bub"></div></div>
+<h4>Next best move</h4><div class="card" id="lc">...</div><div id="ls"></div>
 <h4>AI tools</h4><div class="tools" id="htl"></div>
 <h4>Today's schedule</h4><div class="card" id="ht">...</div>
 <h4>Insights</h4><div class="two"><div class="card" style="text-align:center"><div class="sm">Phone battery</div><div class="ring" id="hr" style="--p:0"><b id="hrt">-</b></div><div class="sm" id="hrs"></div></div><div class="card"><div class="sm">Reminders today</div><div class="big" id="hn1">-</div><div class="sm" style="margin-top:8px">Money due or late</div><div class="big" id="hn2">-</div></div></div>
@@ -736,8 +738,17 @@ async function homeLoad(force){
   $('bub').textContent=priv?'Jarvis is stopped. Open Chat and tap "Turn mic on" when you want me back.':greet()+'. How can I help you?';
   const ph=pinfo();if(ph&&ph.battery!=null){$('hr').style.setProperty('--p',ph.battery);$('hrt').textContent=ph.battery+'%';$('hrs').textContent=ph.charging?'charging':'';}else{$('hrt').textContent='-';$('hrs').textContent='app only';}
   if(force||Date.now()-homeT>20000){homeT=Date.now();sysCard($('hs'));
-    try{const {s,d}=await api('/today',{now:nowS()});tj=s==200?d:null;}catch(e){tj=null;}todayCard();}
+    try{const {s,d}=await api('/today',{now:nowS(),phone:pinfo()});tj=s==200?d:null;}catch(e){tj=null;}todayCard();lensCard();}
 }
+// Part 85/86: Next best move card and Now / Next / Later strip. Text only (textContent), the Show button just types a command and you tap it.
+function lensCard(){const b=$('lc'),w=$('ls');b.textContent='';w.textContent='';
+  if(!tj||!tj.lens){b.textContent='Server offline: nothing to show.';return;}
+  const k=tj.lens.card,st=tj.lens.strip||{};
+  if(!k){b.textContent='Nothing needs you right now. Say: remind me tomorrow 9 am to ...';}
+  else{b.append(el('div','lb',k.src.toUpperCase()),el('div','ld',k.do),el('div','lw','Why: '+k.why));if(k.later)b.appendChild(el('div','ll','Later: '+k.later));
+    const s=el('button','g','Show');s.type='button';s.onclick=()=>ask(k.cmd);b.appendChild(s);}
+  [['now','NOW'],['next','NEXT'],['later','LATER']].forEach(([key,n])=>{const d=el('div');d.appendChild(el('b','',n));const r=st[key]||[];
+    if(!r.length)d.appendChild(el('p','','-'));r.forEach(x=>{const p=el('p');if(x.at)p.appendChild(el('em','',x.at+' '));p.append(x.text);d.appendChild(p);});w.appendChild(d);});}
 setInterval(()=>homeLoad(false),3000);
 function ask(t){go('chat');$('msg').value=t;$('f').requestSubmit();}
 function fill(t){go('chat');$('msg').value=t;$('msg').focus();}  // the tool only types the start; you finish the sentence and send

@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, autostart, backup, brief, calls, clock, handoff, habits, ledger, lists, memory, modes, notes, people, phone, place, progress, remind, replyideas, screen, see, spend, sysinfo, tasks, tts, voiceengine, web
+import actions, autostart, backup, brief, calls, clock, handoff, habits, ledger, lens, lists, memory, modes, notes, people, phone, place, progress, remind, replyideas, screen, see, spend, sysinfo, tasks, tts, voiceengine, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -326,7 +326,7 @@ class H(BaseHTTPRequestHandler):
             c = db()
             bd = [{"in": k, "text": t, "on": on} for k, t, on in remind.birthdays(c, dev, n, 7)] if n else []  # Part 75: Daily Life Manager = reminders + ledger + birthdays + notes
             nts = [{"id": i, "text": x[:120]} for i, x in c.execute("SELECT id, text FROM notes WHERE device=? ORDER BY id DESC LIMIT 3", (dev,))]
-            return self.send(200, {"reminders": remind.today(c, dev, now), "ledger": led, "birthdays": bd, "notes": nts, "routines": tasks.scheduled(c, dev)})
+            return self.send(200, {"reminders": remind.today(c, dev, now), "ledger": led, "birthdays": bd, "notes": nts, "routines": tasks.scheduled(c, dev), "lens": lens.build(c, dev, now, data.get("phone"))})  # Part 85/86: next best move card and Now/Next/Later strip
         if self.path == "/snooze":  # Part 82: the 10 min button under a reminder
             try:
                 t2 = remind.snooze(db(), dev, int(data.get("id") or 0), int(data.get("mins") or 10), str(data.get("now", "")))
