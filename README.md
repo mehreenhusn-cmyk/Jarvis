@@ -1,20 +1,19 @@
 # JARVIS - a personal AI assistant that runs on Hussain's phone (Termux + Chrome, then an Android app)
 
 > **For any new Claude or AI (read this first):** Hussain only sends you this repo link. He has 2-3 Claude accounts and the chat limit
-> runs out often. This README has everything: what Jarvis is, where we are, what is next, the rules. Read sections 1 to 9, then start the
-> next Part he names. Do not ask him to resend the old chat. Repo: https://github.com/mehreenhusn-cmyk/Jarvis
+> runs out often. This README has everything: what Jarvis is, every Part (done and planned) in ONE table, what is next, the rules.
+> Read sections 1 to 9, then start the next Part he names. Do not ask him to resend the old chat. Repo: https://github.com/mehreenhusn-cmyk/Jarvis
 
-**Map of this file.** Sections 1 to 9 are the part everyone should read (plain words, numbered). The `R1` to `R7` sections after them are old
-reference detail; open them only when you need it.
+**Map of this file.** Sections 1 to 9 are for everyone (plain words, numbered). `R1` to `R7` after them are old reference detail; open them only when needed.
 
 | # | Section | In one line |
 |---|---|---|
 | 1 | What Jarvis is | What it does, in 5 lines |
-| 2 | Where we are today | What is built, what is really tested |
-| 3 | What Hussain does now | 4 steps, nothing else |
-| 4 | The plan: Parts 85 to 93 | Files, lines, benefit of each next Part |
-| 5 | All ideas and the verdict | Every idea so far: take, later or never |
-| 6 | Will not build | The refused list, and the safety design of the ideas we take |
+| 2 | All Parts in ONE table | Part 1 to 116: what is built, what is planned, files, lines |
+| 3 | What Hussain does now | 4 steps |
+| 4 | Total plan: files and lines | What the planned Parts add up to |
+| 5 | Ideas we will not build | And why |
+| 6 | Safety rules for the new Parts | Every new Part must keep these |
 | 7 | Phone tests (Table A) | 20 things to try on the phone |
 | 8 | Rules for every Claude | How we work |
 | 9 | Known limits and fixes | What Jarvis cannot do, honest |
@@ -30,139 +29,176 @@ reference detail; open them only when you need it.
 4. Hussain's goal in his words (16 Nov): say any app name in any language and it opens, and the screen shows what is happening or failing. "Call Ammi" just calls. Jarvis knows battery, Bluetooth and what is wrong with the phone. Jarvis stops talking when somebody speaks.
 5. Jarvis never sends, pays, deletes or runs anything on its own. Every risky step waits for Hussain's tap.
 
-## 2. WHERE WE ARE TODAY (17 Nov 2026)
+## 2. ALL PARTS IN ONE TABLE (Part 1 to 116)
 
-| Group | Parts | Code written | Tested on the phone |
-|---|---|---|---|
-| Base: server, chat, voice, reminders, memory, notes, privacy | 1 to 59 | Yes | Only Parts 1 to 26 |
-| Phone control and Indian languages (apps, calls, alarms, music, WhatsApp, search in app, interrupt) | 60 to 72 | Yes (67 weather was dropped) | No. Round 1 on 17 Nov found 3 problems, fixed in the Part 70 fix |
-| Daily life and safety (routines, follow-ups, privacy timeline, phone doctor, summaries, payment guard) | 73 to 82 | Yes | No |
-| Lists, habits, explain screen, battery guardian, day report | 83 | Yes | No |
-| Expense logger, clipboard buttons, reply ideas | 84 | Yes | No |
+**How to use this table.** Parts are plain numbers in one sequence. No letters, no groups. A new idea gets the NEXT number at the bottom (now 117). When a Part is built, change its Status and fill in the real lines. A range like `1 to 5` means the old notes did not split them. `*` = new file. `-` = not recorded in the old notes (see R5, R6, R7).
 
-- **Honest count:** code written for Parts 1 to 84 (about 6,900 lines). Phone tested: Parts 1 to 26 only. Table A (section 7): 0 of 20 tried.
-- **Java has never been fully compiled.** GitHub Build APK runs #17 to #21 were green (so Parts 48, 49b, 64, 65 compile). Not compiled yet: `QuickSet` (alarm, timer, search, media), the WhatsApp part of `CallByName`, `Ears` interrupt, `PaymentGuard`, `PhoneInfo` deep check, the `Privacy` timeline.
-- Parts 83 and 84 and this README need NO new APK (Python and page only).
+**Honest count (17 Nov 2026).** Code is written for Parts 1 to 84 (about 6,900 lines; Part 67 was dropped, Part 81 has no record). Phone tested: Parts 1 to 17 only (12 to 14 partly). Table A (section 7): 0 of 20 tried. Java has never been fully compiled: GitHub Build APK runs #17 to #21 were green (Parts 48, 49, 64, 65 compile). Not compiled yet: `QuickSet` (alarm, timer, search, media), the WhatsApp part of `CallByName`, `Ears` interrupt, `PaymentGuard`, the deep phone check, the `Privacy` timeline.
+
+| Part | What it does | Files | Lines | New APK? | Status |
+|---|---|---|---|---|---|
+| 1 to 5 | Server, pairing code, chat, history, mic in Chrome, keys, 5 AI providers | - | - | No | Built, phone tested |
+| 6 to 9 | Neural voices, voice sliders, Hindi style, memory (yaad rakho) | - | - | No | Built, phone tested |
+| 10 to 11 | Reminders, money ledger (owe/get), auto-update `run.sh`, auto-start | - | - | No | Built, phone tested |
+| 12 to 14 | Privacy bar, web read and search, morning briefing, duplicate-zip protection | - | - | No | Built, partly tested |
+| 15 | Professional look (dark and light) | - | - | No | Built, phone tested |
+| 16 to 17 | Android app shell, GitHub APK build, build log | - | - | Yes | Built, phone tested |
+| 18 | Reminder notifications with the app closed | - | - | Yes | Built, not phone tested |
+| 19 | Calls and contacts (not saved) | - | - | Yes | Built, not phone tested |
+| 20 | People notes | `people.py` | - | No | Built, not phone tested |
+| 21 | Location, only when asked | - | - | Yes | Built, not phone tested |
+| 22 | Camera: describe one photo | - | - | Yes | Built, not phone tested |
+| 23 | Screen reader (not saved) | `ScreenService.java` | - | Yes | Built, not phone tested |
+| 24 | Phone check (`why is my phone slow`) | `phone.py` | - | Yes | Built, not phone tested |
+| 25 | Mic inside the app, Hey Jarvis while the app is open | `Ears.java` | - | Yes | Built, not phone tested |
+| 26 | Security check, polish, `clear history` | - | - | No | Built, not phone tested |
+| 27 | WebView security: permission checks, local-only http | `MainActivity.java` | 36 | Yes | Built, not phone tested |
+| 28 | Real Stop that cannot be undone by voice | `Privacy.java` | 94 | Yes | Built, not phone tested |
+| 29 | Privacy dashboard in Settings | `Privacy.java`, `index.html` | 109 | Yes | Built, not phone tested |
+| 30 | Command layer: `WhatsApp kholo` becomes one safe action | `actions.py` | 120 | No | Built, not phone tested |
+| 31 | Open an app by name | `Apps.java` | 128 | Yes | Built, not phone tested |
+| 32 | Better screen reading (buttons, fields, switches) | `screen.py` | 63 | Yes | Built, not phone tested |
+| 33 | Risk and confirm rules (send, pay, delete need your tap) | `actions.py` | 52 | No | Built, not phone tested |
+| 34 | Safe screen actions (press, scroll, type) and `kitna kaam hua` | `ScreenService.java`, `progress.py` | 355 | Yes | Built, not phone tested |
+| 35 | Lock the phone by voice | `ScreenService.java` | 22 | Yes | Built, not phone tested |
+| 36 | App lock with Android's prompt, fixed signing key, chat times | `AppLock.java`, `clock.py` | 176 | Yes | Built, not phone tested |
+| 37 | Settings by voice (Wi-Fi, Bluetooth, torch, volume) | `PhoneSettings.java` | 152 | Yes | Built, not phone tested |
+| 38 | Quick Settings tile and shortcut | `JarvisTile.java` | 46 | Yes | Built, not phone tested |
+| 39 | Background listening test (8 hour limit) | `ListenService.java` | 216 | Yes | Built, not phone tested |
+| 40 | Offline wake word (Vosk) | `WakeEngine.java` | 230 | Yes | Built, not phone tested |
+| 41 | Task engine: several steps in one sentence | `tasks.py` | 133 | No | Built, not phone tested |
+| 42 | Task runner in the app | `TaskRunner.java` | 181 | Yes | Built, not phone tested |
+| 43 | Phone checklist table | README only | 40 | No | Built, not phone tested |
+| 44 | Repeat reminders, birthdays, phone calendar | `remind.py`, `CalendarInfo.java` | 130 | Yes | Built, not phone tested |
+| 45 | Richer briefing, suggestions, quiet hours | `brief.py` | 140 | No | Built, not phone tested |
+| 46 | Routines (saved task sentences) | `tasks.py` | 75 | No | Built, not phone tested |
+| 47 | Encrypted backup, restore with preview, delete everything | `backup.py` | 210 | No | Built, not phone tested |
+| 48 | Share to Jarvis, handoff summary, lost-phone card, new Home look | `handoff.py`, `index.html` | 215 | Yes | Built, not phone tested |
+| 49 | Clipboard button and notification summary (old notes call them 49a and 49b) | `NotifySummary.java`, `index.html` | - | Yes | Built, not phone tested |
+| 50 | System card in Settings | `sysinfo.py` | - | No | Built, not phone tested |
+| 51 | Two voices engine (Tony and JARVIS) | `voiceengine.py` | 90 | No | Built, not phone tested |
+| 52 | Voice personality cards in Settings | `index.html` | 46 | No | Built, not phone tested |
+| 53 | Sarvam voice provider and neon chat look (old notes: 53 and 53b) | `voiceengine.py`, `index.html` | - | No | Built, not phone tested |
+| 54 | Smart memory: remembers personal facts you state | `memory.py` | 41 | No | Built, not phone tested |
+| 55 | Conversation mode | `index.html` | 31 | No | Built, not phone tested |
+| 56 | Home tab (orb, today, quick buttons) | `index.html` | 75 | No | Built, not phone tested |
+| 57 | Research answers with sources, mood-support rules | `web.py` | - | No | Built, not phone tested |
+| 58 | Voice modes: research, quiet, focus, normal | `modes.py` | - | No | Built, not phone tested |
+| 59 | Hindi-script spelling of English words, clean message bar | `actions.py`, `index.html` | 70 | No | Built, not phone tested |
+| 60 | Search inside an app (YouTube, Maps, Play Store...) | `actions.py`, `QuickSet.java` | 114 | Yes | Built, not phone tested |
+| 61 | Smart interrupt: Jarvis stops when you speak (earphones only) | `Ears.java`, `index.html` | 68 | Yes | Built, not phone tested |
+| 62 | Open any app in any script | `actions.py`, `lang.py` | 60 | Yes | Built, not phone tested |
+| 63 | Any Indian language | `lang.py` | 85 | No | Built, not phone tested |
+| 64 | Call by name (`Ammi ko call karo`) | `CallByName.java` | 199 | Yes | Built, not phone tested |
+| 65 | Phone health questions in Hindi or English | `phone.py`, `PhoneInfo.java` | 147 | Yes | Built, not phone tested |
+| 66 | Alarm and timer by voice | `QuickSet.java` | 150 | Yes | Built, not phone tested |
+| 67 | Weather on Home | - | - | No | DROPPED by Hussain |
+| 68 | Music control by voice | `QuickSet.java` | 62 | Yes | Built, not phone tested |
+| 69 | WhatsApp message by contact name (you tap Send) | `CallByName.java` | 95 | Yes | Built, not phone tested |
+| 70 | Fixes after phone test round 1 (app opening, mic error 11, voice message) | `Apps.java`, `Ears.java` | - | Yes | Built, not phone tested |
+| 71 | Dual voice fix (Tony for talk, JARVIS for information) | `voiceengine.py` | - | No | Built, not phone tested |
+| 72 | Voice notes and recall (`note karo ...`) | `notes.py` | - | No | Built, not phone tested |
+| 73 | Misheard-word matching, pause for payment apps, screen wake | `PaymentGuard.java` | - | Yes | Built, not phone tested |
+| 74 | Settings redesign (5 collapsible cards) | `index.html` | - | No | Built, not phone tested |
+| 75 | Daily life: Home card, birthdays, notes in the briefing | `remind.py`, `brief.py` | - | No | Built, not phone tested |
+| 76 | Routine at a fixed time (one-tap Run) | `tasks.py` | - | No | Built, not phone tested |
+| 77 | Smart follow-up (`ho gaya?`) | `remind.py` | - | No | Built, not phone tested |
+| 78 | Privacy timeline and missed-reminders summary | `Privacy.java` | - | Yes | Built, not phone tested |
+| 79 | Deep phone doctor | `phone.py`, `PhoneInfo.java` | - | Yes | Built, not phone tested |
+| 80 | Phone problems in briefing, weekly summary, weekday routines | `brief.py`, `tasks.py` | - | No | Built, not phone tested |
+| 81 | No separate record in the old notes | - | - | No | Unknown |
+| 82 | Snooze, night summary, Hindi routine words, storage trend, payment apps list, backup of routine time | `PaymentGuard.java`, `phone.py` | 250 | Yes | Built, not phone tested |
+| 83 | Shopping lists, habit tracker, explain screen, battery guardian, day report | `lists.py`, `habits.py` | 297 | No | Built, not phone tested |
+| 84 | Expense logger, clipboard buttons, reply ideas | `spend.py`, `replyideas.py` | 162 | No | Built, not phone tested |
+| 85 | Home card **next best move**: one card with Do, Why and Later, and where it came from (reminder, routine, expense, habit, phone). Fixed rules, no AI | `lens.py*`, `app.py`, `index.html` | ~130 | No | Planned |
+| 86 | **Now / Next / Later** strip under that card, same data | `lens.py`, `index.html` | ~60 | No | Planned |
+| 87 | **Honest Mission view**: three separate counts, Code built, Phone tested, Verified, read from Table A | `progress.py`, `index.html` | ~70 | No | Planned |
+| 88 | **Memory Atlas**: memories, people and notes on one page, with delete. Nothing new is saved | `memory.py`, `people.py`, `app.py`, `index.html` | ~110 | No | Planned |
+| 89 | **Search everywhere**: `sab jagah dhundo Bombay` looks in notes, memories, people, lists, reminders (and later decisions, capsules, dreams) and says where each hit came from. Matches words, not meaning | `search.py*`, `app.py`, `index.html` | ~70 | No | Planned |
+| 90 | **Source label** on research answers: `One report` or `N sources agree`, counted from the real search result | `web.py`, `index.html` | ~45 | No | Planned |
+| 91 | **Red Team**: `red team: yeh phone kharidna hai`. The AI gets only your own Jarvis numbers (this month's spending, habits, memories), asks 3 hard questions and gives 2 counter-points. No invented numbers | `redteam.py*`, `app.py`, `index.html` | ~60 | No | Planned |
+| 92 | **Debate Jarvis**: `debate ruthless: ...`, `debate spiritual: ...` or `debate opposite: ...`. Jarvis argues that side with a visible badge for 10 minutes, then goes back to normal. Only when you call it | `debate.py*`, `app.py`, `index.html` | ~80 | No | Planned |
+| 93 | **Decision Debt**: `sochenge baad mein: phone lena hai` saves it; `pending decisions` lists them; the briefing shows up to 2 older than 3 days; `decision ho gaya 2` closes one | `decisions.py*`, `brief.py`, `backup.py`, `app.py` | ~90 | No | Planned |
+| 94 | **Unfinished business**: `adhoora: Faisal se baat` shows in the briefing now and then (at most once in 3 days) until `adhoora khatam 2` | `decisions.py`, `app.py` | ~50 | No | Planned |
+| 95 | **Last talked**: only people you pick. `ammi track karo`, then `ammi se baat hui`. The briefing says `Ammi se 7 din se baat nahi hui` (days changeable). No call log, no WhatsApp reading | `touch.py*`, `brief.py`, `backup.py`, `app.py` | ~90 | No | Planned |
+| 96 | **Mood check-in**, only when you say it: `mood 3` (1 to 5) or `aaj mood low`; `mood history`. After 4 low days one gentle line in the briefing, only if you switched `mood care on` | `mood.py*`, `brief.py`, `backup.py`, `app.py` | ~80 | No | Planned |
+| 97 | **Time Capsule** (text): `6 mahine baad yeh sunana: ...`. On that day a card appears and Jarvis reads it after your tap | `capsule.py*`, `backup.py`, `app.py`, `index.html` | ~85 | No | Planned |
+| 98 | **Conditional capsule**: show a capsule only when a phrase you chose is typed to Jarvis, or when 30 days pass without talking to a person from Part 95 | `capsule.py`, `touch.py`, `app.py` | ~70 | No | Planned |
+| 99 | **Habit Contract**: `contract gym 7 din penalty 100`. Each day that closes without `aaj gym gaya` adds 100 to a penalty pot shown in `my habits`. The pot is only a number; no real money moves | `habits.py`, `app.py` | ~80 | No | Planned |
+| 100 | **Timed modes**: `meeting mode 45 minute`, `namaz mode 20 minute`, `sleep mode`, `focus 45 minute`. No voice, short replies, reminders as text; ends by itself | `modes.py`, `index.html` | ~70 | No | Planned |
+| 101 | **Body Double**: `body double 45 minute`. Every 15 minutes a text check-in `abhi bhi kaam par?` with Haan / Nahi; a count at the end. It does not watch the screen and does not block apps | `modes.py`, `index.html` | ~60 | No | Planned |
+| 102 | **Cool-down** before a message: say `thanda karo` first, then the WhatsApp command. A 20 second countdown shows your text and a Continue button. Only when you ask for it | `actions.py`, `index.html` | ~60 | No | Planned |
+| 103 | **Dream journal**: `sapna: ...` saves your words as they are; `sapne dikhao`; `sapno me Ammi kitni baar` counts a word. An AI explanation only if you ask `sapne ka matlab` (sends only that dream) | `dreams.py*`, `backup.py`, `app.py`, `index.html` | ~90 | No | Planned |
+| 104 | **Signs log**: `sign: 11:11 dekha`; `signs dikhao` counts repeats. Only what you type; nothing is detected by itself | `signs.py*`, `backup.py`, `app.py` | ~40 | No | Planned |
+| 105 | **One honest question**: `sach sawal on` lets Jarvis ask at most ONE hard question every 14 days. The AI gets only counts from your decisions, unfinished business, habits and mood, and the reply says what was sent. `sach sawal off` stops it | `redteam.py`, `brief.py`, `app.py` | ~60 | No | Planned |
+| 106 | **Topic drift**: `drift on`, then `drift dikhao` compares the words you used most last month and this month in your chat history. Word counts, no AI. Says so if there are not 2 months of history yet | `drift.py*`, `app.py` | ~80 | No | Planned |
+| 107 | **Context Ghost**: `Chrome kholo research ke liye` keeps the reason for 7 days; opening the same app through Jarvis again asks once `Pehle wali research continue karni hai?`. Jarvis does not watch other app use | `ghost.py*`, `actions.py`, `index.html` | ~70 | No | Planned |
+| 108 | **Recovery card** `jab tu door tha`: 3 reminders, 1 phone issue, with Review and Dismiss | `index.html`, `app.py` | ~45 | No | Planned |
+| 109 | **Life Timeline**: reminder done, routine run, note saved, expense noted, with filters | `events.py*`, `app.py`, `index.html` | ~145 | No | Planned |
+| 110 | **Money picture**: `kamai 40000 mahina`, `bachat 5000`; `paisa picture` shows income, spending (Part 84) and what is left | `money.py*`, `backup.py`, `brief.py`, `app.py` | ~70 | No | Planned |
+| 111 | **What-if**: `agar job chhod du`. Plain arithmetic on the numbers from Parts 84 and 110 (months you can manage). It says clearly that it is a simple calculation, not advice | `money.py`, `app.py`, `index.html` | ~60 | No | Planned |
+| 112 | **Note after a call** (Java): after a call ends Jarvis asks `kuch yaad rakhna hai?`. Needs the phone-state permission | `CallNote.java*`, `MainActivity.java`, manifest, `index.html` | ~80 | Yes | Planned |
+| 113 | **Reminders by place** (Java): `jab ghar pahunchu`. Needs background location; battery and privacy design first | `PlaceWatch.java*`, `MainActivity.java`, manifest, `index.html`, `app.py` | ~120 | Yes | Planned |
+| 114 | **Place and Bluetooth triggers** (Java): a note shows when you reach a place or a chosen Bluetooth device connects. Jarvis never changes its tone or guesses a mood | `PlaceWatch.java`, `index.html`, `app.py` | ~90 | Yes | Planned |
+| 115 | **Anti-Doomscroll** (Java): one calm line after N minutes in the same app (you set N). Needs Usage Access. Never blocks anything | `UsageWatch.java*`, `MainActivity.java`, manifest, `index.html` | ~110 | Yes | Planned |
+| 116 | **App habit map** (Java): `YouTube ke baad usually Instagram`, a count kept on the phone and shown as a note | `UsageWatch.java`, `index.html` | ~40 | Yes | Planned |
 
 ## 3. WHAT HUSSAIN DOES NOW
 
-1. GitHub > Actions > **Build APK** > Run. If it goes red, send a screenshot of the error. That gets fixed before anything else.
+1. GitHub > Actions > **Build APK** > Run. If it goes red, send a screenshot of the error. That is fixed before anything else.
 2. Install the APK on the phone.
 3. Try the 20 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
-4. Then say **"ok 86"** (or any Part number in section 4). Claude builds one Part at a time.
+4. Then say **"ok 85"** (or any Part number from section 2). Claude builds one Part at a time.
 
-Why this order: 20 features are already built and none is phone tested. A new feature on top of an untested base only makes the bugs harder to find.
+Why this order: Parts 18 to 84 are built and none is phone tested. A new feature on top of an untested base only makes bugs harder to find. Parts 112 to 116 (Java) wait longest, because Java is not even compiled yet. This README-only update needs no new APK.
 
-## 4. THE PLAN: PARTS 85 TO 93
+## 4. TOTAL PLAN: FILES AND LINES (Parts 85 to 116)
 
-`*` = new file. Lines are estimates for code only; the last two Parts ran about 25 percent over, so expect about 2,100 real lines for the whole plan. Every Part: no full test suite (Hussain's rule), only a syntax check and a small run; everything else is written as NOT RUN.
-
-| Part | What Hussain gets (plain words) | Ideas inside (section 5) | Files | Est. lines | New APK? | When |
-|---|---|---|---|---|---|---|
-| 85 | Java: after a call ends Jarvis asks "kuch yaad rakhna hai?". Reminders by place (`jab ghar pahunchu`) | B9, B11 | `CallNote.java`*, `PlaceWatch.java`*, `MainActivity.java`, manifest, `index.html`, `app.py` | ~200 | YES | After Build APK and the phone test of Parts 78, 79, 82, 83, 84 |
-| 86 | Home gets ONE card "your next best move" (Do, Why, Later), a Now / Next / Later strip, and an honest Mission view: Code built, Phone tested, Verified | D1, D2, D3 | `lens.py`*, `progress.py`, `app.py`, `index.html` | ~260 | No | After the phone test, so we see which cards he really uses |
-| 87 | Memory Atlas (memories, people, notes on one page, with delete) and "search everywhere" (`sab jagah dhundo Bombay`) | D4, G14 | `search.py`*, `memory.py`, `people.py`, `notes.py`, `app.py`, `index.html` | ~180 | No | After 86 |
-| 88 | Research answers show "One report" or "N sources agree". Red Team: Jarvis argues against a big decision using YOUR own numbers | D6, G9 | `web.py`, `redteam.py`*, `app.py`, `index.html` | ~105 | No | After 87 |
-| 89 | Remember for later: Decision Debt (`sochenge baad mein`) and a text Time Capsule (`6 mahine baad yeh sunana`) | G5, G6 | `decisions.py`*, `capsule.py`*, `brief.py`, `backup.py`, `app.py`, `index.html` | ~175 | No | After 88 |
-| 90 | Care and people: mood check-in (only when you say it) and "last talked" for the few people you choose | G2, G4 | `mood.py`*, `touch.py`*, `brief.py`, `backup.py`, `app.py` | ~170 | No | After 89 |
-| 91 | Discipline: Habit Contract with a penalty pot (a number, no real money) and Meeting / Namaz / Sleep modes with a timer | G12, G7, D8 | `habits.py`, `modes.py`, `app.py`, `index.html` | ~150 | No | After 90 |
-| 92 | Later pile: Context Ghost, Recovery card ("jab tu door tha"), Life Timeline | G1, D7, D5 | `ghost.py`*, `events.py`*, `app.py`, `index.html` | ~260 | No | Only if Hussain wants them after using 86 to 91 |
-| 93 | Java later: Anti-Doomscroll, app-habit map (Usage Access), reminder at a place with a note (Memory Palace) | G3, G8, G10 | `UsageWatch.java`*, `PlaceWatch.java`, `MainActivity.java`, manifest, `index.html` | ~210 | YES | After Part 85 is phone tested |
-
-**Totals:** Parts 86 to 91 (Python and page, no APK) about 1,040 lines. Part 92 about 260. Java Parts 85 and 93 about 410. All together about 1,710 lines.
-
-**Order in plain words:** test the phone first (3) > Java for calls and places (85) > the smart Home (86) > find and think (87, 88) > remember and care (89, 90) > discipline (91) > the rest only if wanted (92, 93).
-
-**Part sizes.** Each Part stays under 350 lines of code (rule 1). If a Part runs over, the last idea moves to the next Part.
-
-## 5. ALL IDEAS AND THE VERDICT
-
-Numbers: **B** = our own ideas, **G** = the 15 ideas from Grok, **D** = the "Ultra-Premium Frontend Concept" (Jarvis Continuum). Verdicts: TAKE (planned), LATER (wanted, not yet), NEVER (see section 6).
-
-### 5A. Already built (nothing left to do except the phone test)
-
-| # | Idea | Part |
-|---|---|---|
-| B1 | Shopping and packing lists by voice | 83 |
-| B2 | Habit and streak tracker | 83 |
-| B3 | Quick expense logger (`200 coffee`) | 84 |
-| B4 | Explain this screen, one tap | 83 |
-| B5 | Battery guardian suggestion | 83 |
-| B6 | Day report at a fixed time, one tap | 83 |
-| B7 | Clipboard buttons: Save as note, Add to list | 84 |
-| B8 | Reply ideas for a notification (nothing is sent) | 84 |
-
-### 5B. Older ideas not built yet
-
-| # | Idea | Verdict | Part |
+| What | Parts | Count | Lines (estimate) |
 |---|---|---|---|
-| B9 | After a call ends: `kuch yaad rakhna hai?` (needs the phone-state permission) | TAKE | 85 |
-| B10 | Routines that run with no tap | NEVER: the one-tap Run button is the safety design | none |
-| B11 | Location reminders (`jab ghar pahunchu`; needs background location, battery and privacy design first) | TAKE | 85 |
+| Python and page, no new APK | 85 to 111 | 27 Parts | 2020 |
+| Java, new APK needed | 112 to 116 | 5 Parts | 440 |
+| **Everything** | 85 to 116 | **32 Parts** | **2460** (expect about 3100 real lines, because the last two rounds ran about 25 percent over) |
 
-### 5C. Grok's 15 ideas (what we take, in a safe form)
+- **New Python files (14):** `capsule.py`, `debate.py`, `decisions.py`, `dreams.py`, `drift.py`, `events.py`, `ghost.py`, `lens.py`, `money.py`, `mood.py`, `redteam.py`, `search.py`, `signs.py`, `touch.py`.
+- **New Java files (3):** `CallNote.java`, `PlaceWatch.java`, `UsageWatch.java`.
+- **Older files that grow:** `MainActivity.java`, `actions.py`, `app.py`, `backup.py`, `brief.py`, `habits.py`, `index.html`, `memory.py`, `modes.py`, `people.py`, `progress.py`, `web.py` and the manifest.
+- **Order:** the table order. Python Parts first, Java Parts last. Part 98 needs Parts 95 and 97. Part 111 needs Parts 84 and 110. Part 114 needs Part 113. Part 116 needs Part 115.
+- **Each Part stays under 350 lines** (rule 1). Every Part: no full test suite (Hussain's rule), only a syntax check and a small run; everything else is written as NOT RUN.
 
-| # | Grok idea | Verdict | What we really build | Files | Lines | Part |
-|---|---|---|---|---|---|---|
-| G1 | Context Ghost | TAKE, small | `Chrome kholo research ke liye` saves the reason for 7 days. If you open the same app through Jarvis again, it asks once: "Pehle wali research continue karni hai?" Jarvis does NOT watch what other apps you open | `ghost.py`*, `actions.py`, `index.html` | ~70 | 92 |
-| G2 | Emotional check-in memory | TAKE, only when you say it | `mood 3` (1 to 5) or `aaj mood low`. `mood history` shows the days. Jarvis never guesses your mood from chats. After 4 low days one gentle line in the briefing, only if you switched `mood care on` | `mood.py`*, `brief.py`, `backup.py`, `app.py` | ~80 | 90 |
-| G3 | Anti-Doomscroll Guardian | LATER (Java) | Needs Usage Access. One calm line after N minutes in the same app; you set N. Never blocks anything | `UsageWatch.java`*, `index.html` | ~110 | 93 |
-| G4 | Family Presence Radar | TAKE, small | Only people you pick: `ammi track karo`, then `ammi se baat hui`. The briefing says "Ammi se 7 din se baat nahi hui" (days changeable). No call log and no WhatsApp reading | `touch.py`*, `brief.py`, `backup.py`, `app.py` | ~90 | 90 |
-| G5 | Decision Debt Tracker | TAKE | `sochenge baad mein: phone lena hai` saves it. `pending decisions` lists them. The briefing shows up to 2 that are older than 3 days. `decision ho gaya 2` closes one | `decisions.py`*, `brief.py`, `backup.py`, `app.py` | ~90 | 89 |
-| G6 | Voice Time Capsule | TAKE, text only | `6 mahine baad yeh sunana: ...` saves the text with the date. On that day a card appears and Jarvis reads it after your tap. Audio recording is not part of this (needs Java) | `capsule.py`*, `backup.py`, `app.py`, `index.html` | ~85 | 89 |
-| G7 | Silent Mode Intelligence | TAKE the safe half | Page modes `meeting`, `namaz`, `sleep` with a timer (`namaz mode 20 minute`): no voice, short replies, reminders as text, ends by itself. Reading the phone's real silent state needs Java and is not planned | `modes.py` (shared with D8) | ~30 | 91 |
-| G8 | App Relationship Map | LATER (Java) | Comes with G3, same Usage Access: "YouTube ke baad usually Instagram". Only a count on the phone, shown as a note | `UsageWatch.java` | ~40 | 93 |
-| G9 | Personal Red Team | TAKE | `red team: yeh phone kharidna hai`. The AI gets ONLY your own Jarvis data (this month's spending, habits, memories) and must ask 3 hard questions plus 2 counter-points. No invented numbers. Needs the AI to be reachable | `redteam.py`*, `app.py`, `index.html` | ~60 | 88 |
-| G10 | Memory Palace Mode | LATER (Java) | The place half only: a note that shows when you reach a place. It rides on Part 85's place reminders. The "when I am angry" half is NEVER (Jarvis does not detect emotions) | `PlaceWatch.java`, `index.html` | ~60 | 93 |
-| G11 | Jarvis as Witness (screen recording) | NEVER | A screen recording stores everything on screen, including other people's chats and OTPs. `note karo ...` already saves a moment with the time | none | 0 | none |
-| G12 | Habit Contract with a penalty pot | TAKE, honest version | `contract gym 7 din penalty 100`. Each day that closes without `aaj gym gaya` adds 100 to a penalty pot. The pot is only a number in `my habits`. Jarvis moves no real money | `habits.py`, `app.py` | ~80 | 91 |
-| G13 | Parallel Life Simulator | LATER, blocked | Jarvis has spending only, no income, savings or job data, so a "simulation" would be invented. It needs a small income and savings table first (about 60 lines). Not planned until Hussain wants to type those numbers | none yet | ~60 + 70 | none |
-| G14 | Voice-only Second Brain Search | TAKE, keyword version | `sab jagah dhundo Bombay` searches notes, memories, people, lists, reminders, decisions and capsules and says which place each hit came from. It matches words, not meaning, and says so | `search.py`*, `app.py`, `index.html` | ~70 | 87 |
-| G15 | Protective Interruption (detect a heated WhatsApp argument) | NEVER | It would read private chats and typing. Jarvis only reads notifications you chose, and only for a summary | none | 0 | none |
+## 5. IDEAS WE WILL NOT BUILD (and why)
 
-### 5D. The frontend concept (Jarvis Continuum)
-
-| # | Idea in the concept | Verdict | Files | Lines | Part |
-|---|---|---|---|---|---|
-| D1 | Context Lens: ONE card "your next best move" with Do, Why, Later and the source (Reminder, Routine, Ledger, Habit, Phone). Picked by fixed rules, no AI | TAKE | `lens.py`*, `app.py`, `index.html` | ~130 | 86 |
-| D2 | Now / Next / Later strip under the lens (same data as D1) | TAKE | `lens.py`, `index.html` | ~60 | 86 |
-| D3 | Honest Mission view: Code built, Phone tested, Verified as three separate counts read from Table A | TAKE | `progress.py`, `index.html` | ~70 | 86 |
-| D4 | Memory Atlas: memories, people, notes grouped, with delete; nothing new saved | TAKE | `memory.py`, `people.py`, `app.py`, `index.html` | ~110 | 87 |
-| D5 | One Life Timeline (reminder done, routine run, note saved, expense noted) with filters | LATER: needs a small events table and a few hooks | `events.py`*, `app.py`, `index.html` | ~145 | 92 |
-| D6 | Source label on research answers: "One report" or "N sources agree", counted from the real search result (no AI confidence number) | TAKE, small | `web.py`, `index.html` | ~45 | 88 |
-| D7 | Recovery card "while you were away: 3 reminders, 1 phone issue" with Review and Dismiss (extends Part 78) | LATER | `index.html`, `app.py` | ~45 | 92 |
-| D8 | Focus contract: "protect my next 45 minutes" | TAKE, merged with G7 (quiet mode already exists, add a timer) | `modes.py`, `index.html` | ~40 | 91 |
-| D9 | Five-tab bottom bar, new colours, orb motion, splitting `index.html` into many files | NOT NOW: a cosmetic rewrite of a page that is not phone tested is the biggest regression risk. The concept itself says to split only after the UX is validated | none | none | none |
-| D10 | Evidence drawer, trust meter, hologram HUD, weather and stock cards | NEVER: needs data Jarvis does not have, or is decoration | none | none | none |
-
-## 6. WILL NOT BUILD
-
-### 6A. Refused or dropped (do not build)
-
-| Item | Why |
+| Idea | Why not |
 |---|---|
 | Unlock the phone by voice, or any lock-screen bypass | REFUSED: a spoken secret that opens the phone is the pattern banking trojans use |
-| Voice commands with the screen locked or off | REFUSED; Android also does not allow it. The only safe form is the optional test in Settings that wakes the screen, and the lock screen still needs you |
+| Voice commands with the screen locked or off | REFUSED; Android also does not allow it. The only safe form is the optional test in Settings that wakes the screen |
 | Always-on "Hey Jarvis" as the default phone assistant | NOT PLANNED: big and risky. The background listening test is the safe version |
 | Saving Aadhaar, card or bank numbers | REFUSED: passwords, OTPs, PINs and card numbers are never saved |
-| Group or family status ("who is at home") | REFUSED: needs other people's data and consent. (G4 is different: only what Hussain tells Jarvis about his own contact) |
-| Screen recording as a memory (G11) and detecting arguments in chats (G15) | REFUSED: they record or read other people's private messages |
-| Detecting mood or anger from chats, typing or voice | REFUSED: Jarvis only notes a mood when Hussain says it |
-| Moving real money as a penalty (G12) | REFUSED: the penalty pot is only a number |
+| Group or family status ("who is at home") | REFUSED: needs other people's data and consent. (Part 95 is different: only what Hussain tells Jarvis about his own contact) |
+| Recording the screen or "everything I say and do" as a memory | REFUSED: it records other people's chats, voices and OTPs |
+| Detecting arguments, mood or anger from chats, typing, voice or heart rate | REFUSED: Jarvis notes a mood only when Hussain says it (Part 96) |
+| A personality that appears by itself when you are alone or low | REFUSED: it needs mood detection. Part 92 gives the same thing only when YOU call it, with a visible badge |
+| Sending messages to people automatically after the phone is unused for some days | REFUSED: Jarvis never sends on its own, and a wrong trigger would message people by mistake |
+| Blocking apps or sites, or watching the screen all the time, for focus | NOT PLANNED: Part 101 is a check-in only |
+| Spotting coincidences by reading notifications | NOT PLANNED: Part 104 is a log you type yourself |
+| Moving real money as a penalty | REFUSED: the penalty pot (Part 99) is only a number |
+| Routines that run with no tap | NOT PLANNED on purpose: the one-tap Run is the safety design |
+| Five-tab bottom bar, new colours, orb motion, splitting `index.html` into files | NOT NOW: a cosmetic rewrite of a page that is not phone tested is the biggest regression risk |
+| Evidence drawer, trust meter, hologram HUD, weather and stock cards | NOT PLANNED: needs data Jarvis does not have, or is decoration |
 | Weather on Home (Part 67), car mode | DROPPED by Hussain |
-| Routines that run without a tap (B10) | NOT PLANNED on purpose |
 
-### 6B. How the ideas we take stay safe (every Part must keep these)
+## 6. SAFETY RULES FOR THE NEW PARTS (every Part must keep these)
 
 1. Only real data from Jarvis's own tables. No fake percentages, no invented numbers, no "confidence" score.
 2. Nothing is saved that Hussain did not say or tap. Passwords, OTPs, PINs, CVVs and card numbers are refused in every new feature (same filter as `memory.SECRET`).
-3. New personal data (mood, last talked, decisions, capsules, contract pot) stays in the phone's own database, is part of Backup and Restore, is wiped by `delete everything`, and is never sent to the AI. The only exception is Red Team (G9), which sends the few numbers it needs, and says so.
+3. New personal data (mood, last talked, decisions, capsules, dreams, signs, contract pot, money) stays in the phone's own database, is part of Backup and Restore, is wiped by `delete everything`, and is never sent to the AI. The only exceptions are Parts 91, 103 (only if asked), 105 and 111, which send the few things they need and say so in the reply.
 4. Jarvis only suggests. Sending, paying, deleting and running steps still need Hussain's tap.
-5. Every new feature has an OFF word (`mood care off`, `track band karo`, `contract band karo`) and a delete word.
+5. Every new feature has an OFF word (`mood care off`, `sach sawal off`, `drift off`, `track band karo`, `contract band karo`) and a delete word.
+6. Heavy emotional features (Parts 92, 94, 96, 103, 105) are opt-in, show a clear badge or label, and are never started by Jarvis on its own.
 
 ## 7. PHONE TESTS (TABLE A)
 
-Nothing below is phone tested yet. Build APK first for the Java rows. Write PASS, FAIL or not tested in the last column. Part 86 reads this column for the "Verified" count, so keep the table format. Parts 85 to 93 will add rows 21 and up when they are built.
+Nothing below is phone tested yet. Build APK first for the Java rows. Write PASS, FAIL or not tested in the last column. Part 87 reads this column for the "Verified" count, so keep the table format. Every new Part adds rows 21 and up when it is built.
 
 | # | Try this | Expected | Needs new APK | Result |
 |---|---|---|---|---|
@@ -204,9 +240,11 @@ Nothing below is phone tested yet. Build APK first for the Java rows. Write PASS
 10. Before each Part, say first if it is WITH tests or WITHOUT tests, and why. Python logic is tested (it can be run). Android Java cannot be compiled by Claude: the GitHub build is its compile test and Hussain's phone is its real test. Anything not run is written as "Not run".
 11. Phone control rules: see section 11. Plan first, code only after Hussain says OK to a Part. Every Part must list files, lines and benefit.
 12. App lock stays OFF unless Hussain turns it on himself in Settings (16 Nov 2026: he did not want the fingerprint prompt on every open). Never switch it on by default.
-13. **How to resume (any new Claude):** (1) Read sections 1 to 9. (2) Take the Part Hussain names; if he names none, ask him for the Build APK and Table A result first (section 3). (3) Say first "with tests" or "without tests" and why. (4) Build it, give the changed files with real line counts, keep ONE cumulative zip. (5) Update this README: the Part row in section 4 (real lines, status), the idea verdicts in section 5, the new Table A rows in section 7, the Part row in R7 (11.6) and the real-lines line in R6. (6) Never touch `run.sh` or `sync.sh` through a zip.
-14. **Zip name and shape:** `Jarvis_partN.zip` (UNDERSCORE, a letter after the number is fine, like `Jarvis_part84b.zip`), files at the top level with NO `Jarvis-main/` folder. `run.sh` and `sync.sh` pick up only `Jarvis_part*.zip`. A wrongly named zip once left `lang.py` out and the server crashed in a loop.
-15. **Keep this README simple:** a normal person must understand sections 1 to 9. New detail goes to the R sections, not to the top.
+13. **How to resume (any new Claude):** (1) Read sections 1 to 9. (2) Take the Part Hussain names; if he names none, ask him for the Build APK and Table A result first (section 3). (3) Say first "with tests" or "without tests" and why. (4) Build it, give the changed files with real line counts, keep ONE cumulative zip. (5) Update this README: the Part row in section 2 (real lines, status), the totals in section 4, the new Table A rows in section 7, the Part row in R7 (11.6) and the real-lines line in R6. (6) Never touch `run.sh` or `sync.sh` through a zip.
+14. **Zip name and shape:** `Jarvis_partN.zip` where N is the Part number (underscore, NO letters). A README-only update reuses the last built Part number. Files at the top level with NO `Jarvis-main/` folder. `run.sh` and `sync.sh` pick up only `Jarvis_part*.zip`. A wrongly named zip once left `lang.py` out and the server crashed in a loop.
+15. **Keep this README simple:** a normal person must understand sections 1 to 9. One table (section 2) lists every Part with plain numbers only: never letters like 49a, never separate lists with other codes. New detail goes to the R sections, not to the top. Never paste chat text or other AI's answers into this file.
+16. **Language:** Hussain may speak or dictate in ANY language or script (Hindi, Marathi, Urdu, English...). Always answer him in Roman script (English letters), in simple Hinglish or simple English. Never Devanagari or any other script in replies.
+17. **Plan before, plan after:** BEFORE building a Part say its number, files and lines in a small table (and WITH or WITHOUT tests). AFTER building say the real lines, then the NEXT Part in the same way (number, files, lines). Part numbers are plain numbers from the table in section 2 only.
 
 
 ## 9. KNOWN LIMITS AND FIXES (honest list)
@@ -551,19 +589,42 @@ Phone brand and Android version are NOT known yet (decision D4).
 | Repo today | - | - | about 2,000 lines, about 30 files |
 | Repo after required Parts | - | - | about 4,800 lines, about 42 files |
 | Repo after everything | - | - | about 5,400 lines, about 46 files |
-| 85 | Java: note after a call, reminders by place | CallNote.java*, PlaceWatch.java*, MainActivity, manifest, index.html, app.py | ~200 | Without | Notes from calls and place reminders |
-| 86 | Home: next best move card, Now Next Later strip, honest Mission view | lens.py*, progress.py, app.py, index.html | ~260 | With | One card tells what matters now |
-| 87 | Memory Atlas and search everywhere | search.py*, memory.py, people.py, notes.py, app.py, index.html | ~180 | With | Find anything Jarvis knows |
-| 88 | Source labels and Red Team | web.py, redteam.py*, app.py, index.html | ~105 | With | Honest research answers and a second opinion |
-| 89 | Decision Debt and text Time Capsule | decisions.py*, capsule.py*, brief.py, backup.py, app.py, index.html | ~175 | With | Postponed decisions and messages to the future |
-| 90 | Mood check-in and last talked | mood.py*, touch.py*, brief.py, backup.py, app.py | ~170 | With | Care and people, only what he says |
-| 91 | Habit Contract and timed modes | habits.py, modes.py, app.py, index.html | ~150 | With | Discipline without real money |
-| 92 | Context Ghost, Recovery card, Life Timeline | ghost.py*, events.py*, app.py, index.html | ~260 | With | Optional, later |
-| 93 | Java: Anti-Doomscroll, app map, Memory Palace | UsageWatch.java*, PlaceWatch.java, MainActivity, manifest, index.html | ~210 | Without | Optional, after Part 85 |
+| 85 | Home card next best move: one card with Do, Why and Later, and where it came from (reminder, routine, expense, | lens.py*, app.py, index.html | ~130 | With | Planned, see section 2 |
+| 86 | Now / Next / Later strip under that card, same data | lens.py, index.html | ~60 | With | Planned, see section 2 |
+| 87 | Honest Mission view: three separate counts, Code built, Phone tested, Verified, read from Table A | progress.py, index.html | ~70 | With | Planned, see section 2 |
+| 88 | Memory Atlas: memories, people and notes on one page, with delete. Nothing new is saved | memory.py, people.py, app.py, index.html | ~110 | With | Planned, see section 2 |
+| 89 | Search everywhere: sab jagah dhundo Bombay looks in notes, memories, people, lists, reminders (and later decis | search.py*, app.py, index.html | ~70 | With | Planned, see section 2 |
+| 90 | Source label on research answers: One report or N sources agree, counted from the real search result | web.py, index.html | ~45 | With | Planned, see section 2 |
+| 91 | Red Team: red team: yeh phone kharidna hai. The AI gets only your own Jarvis numbers (this month's spending, h | redteam.py*, app.py, index.html | ~60 | With | Planned, see section 2 |
+| 92 | Debate Jarvis: debate ruthless: ..., debate spiritual: ... or debate opposite: .... Jarvis argues that side wi | debate.py*, app.py, index.html | ~80 | With | Planned, see section 2 |
+| 93 | Decision Debt: sochenge baad mein: phone lena hai saves it; pending decisions lists them; the briefing shows u | decisions.py*, brief.py, backup.py, app.py | ~90 | With | Planned, see section 2 |
+| 94 | Unfinished business: adhoora: Faisal se baat shows in the briefing now and then (at most once in 3 days) until | decisions.py, app.py | ~50 | With | Planned, see section 2 |
+| 95 | Last talked: only people you pick. ammi track karo, then ammi se baat hui. The briefing says Ammi se 7 din se | touch.py*, brief.py, backup.py, app.py | ~90 | With | Planned, see section 2 |
+| 96 | Mood check-in, only when you say it: mood 3 (1 to 5) or aaj mood low; mood history. After 4 low days one gentl | mood.py*, brief.py, backup.py, app.py | ~80 | With | Planned, see section 2 |
+| 97 | Time Capsule (text): 6 mahine baad yeh sunana: .... On that day a card appears and Jarvis reads it after your | capsule.py*, backup.py, app.py, index.html | ~85 | With | Planned, see section 2 |
+| 98 | Conditional capsule: show a capsule only when a phrase you chose is typed to Jarvis, or when 30 days pass with | capsule.py, touch.py, app.py | ~70 | With | Planned, see section 2 |
+| 99 | Habit Contract: contract gym 7 din penalty 100. Each day that closes without aaj gym gaya adds 100 to a penalt | habits.py, app.py | ~80 | With | Planned, see section 2 |
+| 100 | Timed modes: meeting mode 45 minute, namaz mode 20 minute, sleep mode, focus 45 minute. No voice, short replie | modes.py, index.html | ~70 | With | Planned, see section 2 |
+| 101 | Body Double: body double 45 minute. Every 15 minutes a text check-in abhi bhi kaam par? with Haan / Nahi; a co | modes.py, index.html | ~60 | With | Planned, see section 2 |
+| 102 | Cool-down before a message: say thanda karo first, then the WhatsApp command. A 20 second countdown shows your | actions.py, index.html | ~60 | With | Planned, see section 2 |
+| 103 | Dream journal: sapna: ... saves your words as they are; sapne dikhao; sapno me Ammi kitni baar counts a word. | dreams.py*, backup.py, app.py, index.html | ~90 | With | Planned, see section 2 |
+| 104 | Signs log: sign: 11:11 dekha; signs dikhao counts repeats. Only what you type; nothing is detected by itself | signs.py*, backup.py, app.py | ~40 | With | Planned, see section 2 |
+| 105 | One honest question: sach sawal on lets Jarvis ask at most ONE hard question every 14 days. The AI gets only c | redteam.py, brief.py, app.py | ~60 | With | Planned, see section 2 |
+| 106 | Topic drift: drift on, then drift dikhao compares the words you used most last month and this month in your ch | drift.py*, app.py | ~80 | With | Planned, see section 2 |
+| 107 | Context Ghost: Chrome kholo research ke liye keeps the reason for 7 days; opening the same app through Jarvis | ghost.py*, actions.py, index.html | ~70 | With | Planned, see section 2 |
+| 108 | Recovery card jab tu door tha: 3 reminders, 1 phone issue, with Review and Dismiss | index.html, app.py | ~45 | With | Planned, see section 2 |
+| 109 | Life Timeline: reminder done, routine run, note saved, expense noted, with filters | events.py*, app.py, index.html | ~145 | With | Planned, see section 2 |
+| 110 | Money picture: kamai 40000 mahina, bachat 5000; paisa picture shows income, spending (Part 84) and what is lef | money.py*, backup.py, brief.py, app.py | ~70 | With | Planned, see section 2 |
+| 111 | What-if: agar job chhod du. Plain arithmetic on the numbers from Parts 84 and 110 (months you can manage). It | money.py, app.py, index.html | ~60 | With | Planned, see section 2 |
+| 112 | Note after a call (Java): after a call ends Jarvis asks kuch yaad rakhna hai?. Needs the phone-state permissio | CallNote.java*, MainActivity.java, manifest, index.html | ~80 | Without | Planned, see section 2 |
+| 113 | Reminders by place (Java): jab ghar pahunchu. Needs background location; battery and privacy design first | PlaceWatch.java*, MainActivity.java, manifest, index.html, app.py | ~120 | Without | Planned, see section 2 |
+| 114 | Place and Bluetooth triggers (Java): a note shows when you reach a place or a chosen Bluetooth device connects | PlaceWatch.java, index.html, app.py | ~90 | Without | Planned, see section 2 |
+| 115 | Anti-Doomscroll (Java): one calm line after N minutes in the same app (you set N). Needs Usage Access. Never b | UsageWatch.java*, MainActivity.java, manifest, index.html | ~110 | Without | Planned, see section 2 |
+| 116 | App habit map (Java): YouTube ke baad usually Instagram, a count kept on the phone and shown as a note | UsageWatch.java, index.html | ~40 | Without | Planned, see section 2 |
 Estimates are rough (plus or minus 25 percent). Real numbers go into this table after each Part.
 
 
-**Build order (next first):** 85, 86, 87, 88, 89, 90, 91. Optional: 92, 93.
+**Build order (next first):** 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116.
 First of all comes Build APK and the phone tests of Table A (section 7). Weather is dropped.
 
 ### 11.6b Dual voice personality plan (added 15 Nov 2026; Parts 51, 52 and 53 built 16 Nov 2026; Tony hidden, provider changed to Sarvam)
