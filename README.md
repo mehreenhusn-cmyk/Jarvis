@@ -1,30 +1,169 @@
 # JARVIS - a personal AI assistant that runs on Hussain's phone (Termux + Chrome, then an Android app)
 
 > **For any new Claude or AI (read this first):** Hussain only sends you this repo link. He has 2-3 Claude accounts and the chat limit
-> runs out often. This README has the full plan: what we build, why, how, the rules, where we are, and what is next.
-> Read it, then start the next part. Do not ask him to resend the old chat. Repo: https://github.com/mehreenhusn-cmyk/Jarvis
+> runs out often. This README has everything: what Jarvis is, where we are, what is next, the rules. Read sections 1 to 9, then start the
+> next Part he names. Do not ask him to resend the old chat. Repo: https://github.com/mehreenhusn-cmyk/Jarvis
 
-## 00. START HERE (the one page to read; updated 16 Nov 2026, after Parts 62 and 63)
+**Map of this file.** Sections 1 to 9 are the part everyone should read (plain words, numbered). The `R1` to `R7` sections after them are old
+reference detail; open them only when you need it.
 
-**How to read this file (map).** Section 00 = this page (what, progress, what is left, next step). Section 0 = short status groups. 1-3 = what and how. 4 = RULES (always follow). 5 = setup. 6 = full status table. 7 = what to do next. 8 = cheat sheet of voice commands. 9 = security. 10 = old roadmap. 11 = master plan, checklist, progress numbers.
+| # | Section | In one line |
+|---|---|---|
+| 1 | What Jarvis is | What it does, in 5 lines |
+| 2 | Where we are today | What is built, what is really tested |
+| 3 | What Hussain does now | 4 steps, nothing else |
+| 4 | The plan: Parts 85 to 93 | Files, lines, benefit of each next Part |
+| 5 | All ideas and the verdict | Every idea so far: take, later or never |
+| 6 | Will not build | The refused list, and the safety design of the ideas we take |
+| 7 | Phone tests (Table A) | 20 things to try on the phone |
+| 8 | Rules for every Claude | How we work |
+| 9 | Known limits and fixes | What Jarvis cannot do, honest |
+| R1 to R7 | Reference | How it works, setup, cheat sheet, security, old status, build log, master plan |
 
-**What Jarvis is.** A personal AI assistant on Hussain's phone. A Python server runs in Termux; an Android app (WebView plus Java) shows chat and Home and controls the phone. Hussain speaks in any Indian language or English, and Jarvis answers, opens apps, runs steps in a row, reminds, remembers, and keeps the phone safe. Everything arrives as ONE zip; GitHub Actions builds the APK.
+---
 
-**Hussain's goal in his words (16 Nov).** Say any app name in any language and it opens, and the screen shows clearly what is happening or failing. "Call Ammi" should just call. Jarvis must know battery, Bluetooth and what is wrong with the phone. Jarvis must know when to stop talking if somebody speaks.
+## 1. WHAT JARVIS IS
 
-### Progress dashboard
+1. A personal assistant on Hussain's phone. A small Python server runs in Termux; an Android app (a WebView plus some Java) shows chat and Home and controls the phone.
+2. Hussain speaks or types in any Indian language or English. Jarvis answers, opens apps, calls, sets alarms, runs steps in a row, reminds, remembers, keeps lists, habits and expenses, and keeps the phone safe.
+3. Everything he gets is ONE zip. He downloads it; `run.sh` unzips it, pushes it to GitHub, restarts the server. GitHub Actions builds the APK.
+4. Hussain's goal in his words (16 Nov): say any app name in any language and it opens, and the screen shows what is happening or failing. "Call Ammi" just calls. Jarvis knows battery, Bluetooth and what is wrong with the phone. Jarvis stops talking when somebody speaks.
+5. Jarvis never sends, pays, deletes or runs anything on its own. Every risky step waits for Hussain's tap.
 
-| Phase | Parts | Built | Left | Code lines (approx) |
-|---|---|---|---|---|
-| Phase 1: base, phone control, voices, memory, Home, notifications, research | 1 to 59 (with 49a, 49b, 53b) | all built | 0 | about 5,000 |
-| Phase 2: any app, any language, calls, phone health, alarm, search in app, interrupt, weather (dropped), music control, WhatsApp by name | 60 to 69 | 60, 61, 62, 63, 64, 65, 66, 68, 69, 71, 72 | 67 (dropped by Hussain, 17 Nov 2026) | built about 1,250, left 0 required |
-| Phase 3: Daily Life, safety and phone doctor (Parts 73 to 84) | 73 to 84 | all built (Parts 73 to 84) | 0 required | about 1,560 |
+## 2. WHERE WE ARE TODAY (17 Nov 2026)
 
-**Overall: 11 of 12 Phase 2 Parts built (60 to 66, 68, 69, 71, 72); the 10th (Part 67, weather) was dropped by Hussain, so no Part is left to code. Parts 60 and 66 and the missing `backend/lang.py` fix came in the 17 Nov 2026 zip. Phase 1 is complete in code, but only Parts 1 to 26 were tested on a phone. The most important next step is Build APK plus the phone checklist (section 11.8), because Java has never been compiled.**
+| Group | Parts | Code written | Tested on the phone |
+|---|---|---|---|
+| Base: server, chat, voice, reminders, memory, notes, privacy | 1 to 59 | Yes | Only Parts 1 to 26 |
+| Phone control and Indian languages (apps, calls, alarms, music, WhatsApp, search in app, interrupt) | 60 to 72 | Yes (67 weather was dropped) | No. Round 1 on 17 Nov found 3 problems, fixed in the Part 70 fix |
+| Daily life and safety (routines, follow-ups, privacy timeline, phone doctor, summaries, payment guard) | 73 to 82 | Yes | No |
+| Lists, habits, explain screen, battery guardian, day report | 83 | Yes | No |
+| Expense logger, clipboard buttons, reply ideas | 84 | Yes | No |
 
-### Phase 3 (Parts 73 to 82): tests, pending work and decisions (updated 17 Nov 2026)
+- **Honest count:** code written for Parts 1 to 84 (about 6,900 lines). Phone tested: Parts 1 to 26 only. Table A (section 7): 0 of 20 tried.
+- **Java has never been fully compiled.** GitHub Build APK runs #17 to #21 were green (so Parts 48, 49b, 64, 65 compile). Not compiled yet: `QuickSet` (alarm, timer, search, media), the WhatsApp part of `CallByName`, `Ears` interrupt, `PaymentGuard`, `PhoneInfo` deep check, the `Privacy` timeline.
+- Parts 83 and 84 and this README need NO new APK (Python and page only).
 
-**Table A: phone tests (nothing below is phone tested yet; Build APK first for the Java rows)**
+## 3. WHAT HUSSAIN DOES NOW
+
+1. GitHub > Actions > **Build APK** > Run. If it goes red, send a screenshot of the error. That gets fixed before anything else.
+2. Install the APK on the phone.
+3. Try the 20 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
+4. Then say **"ok 86"** (or any Part number in section 4). Claude builds one Part at a time.
+
+Why this order: 20 features are already built and none is phone tested. A new feature on top of an untested base only makes the bugs harder to find.
+
+## 4. THE PLAN: PARTS 85 TO 93
+
+`*` = new file. Lines are estimates for code only; the last two Parts ran about 25 percent over, so expect about 2,100 real lines for the whole plan. Every Part: no full test suite (Hussain's rule), only a syntax check and a small run; everything else is written as NOT RUN.
+
+| Part | What Hussain gets (plain words) | Ideas inside (section 5) | Files | Est. lines | New APK? | When |
+|---|---|---|---|---|---|---|
+| 85 | Java: after a call ends Jarvis asks "kuch yaad rakhna hai?". Reminders by place (`jab ghar pahunchu`) | B9, B11 | `CallNote.java`*, `PlaceWatch.java`*, `MainActivity.java`, manifest, `index.html`, `app.py` | ~200 | YES | After Build APK and the phone test of Parts 78, 79, 82, 83, 84 |
+| 86 | Home gets ONE card "your next best move" (Do, Why, Later), a Now / Next / Later strip, and an honest Mission view: Code built, Phone tested, Verified | D1, D2, D3 | `lens.py`*, `progress.py`, `app.py`, `index.html` | ~260 | No | After the phone test, so we see which cards he really uses |
+| 87 | Memory Atlas (memories, people, notes on one page, with delete) and "search everywhere" (`sab jagah dhundo Bombay`) | D4, G14 | `search.py`*, `memory.py`, `people.py`, `notes.py`, `app.py`, `index.html` | ~180 | No | After 86 |
+| 88 | Research answers show "One report" or "N sources agree". Red Team: Jarvis argues against a big decision using YOUR own numbers | D6, G9 | `web.py`, `redteam.py`*, `app.py`, `index.html` | ~105 | No | After 87 |
+| 89 | Remember for later: Decision Debt (`sochenge baad mein`) and a text Time Capsule (`6 mahine baad yeh sunana`) | G5, G6 | `decisions.py`*, `capsule.py`*, `brief.py`, `backup.py`, `app.py`, `index.html` | ~175 | No | After 88 |
+| 90 | Care and people: mood check-in (only when you say it) and "last talked" for the few people you choose | G2, G4 | `mood.py`*, `touch.py`*, `brief.py`, `backup.py`, `app.py` | ~170 | No | After 89 |
+| 91 | Discipline: Habit Contract with a penalty pot (a number, no real money) and Meeting / Namaz / Sleep modes with a timer | G12, G7, D8 | `habits.py`, `modes.py`, `app.py`, `index.html` | ~150 | No | After 90 |
+| 92 | Later pile: Context Ghost, Recovery card ("jab tu door tha"), Life Timeline | G1, D7, D5 | `ghost.py`*, `events.py`*, `app.py`, `index.html` | ~260 | No | Only if Hussain wants them after using 86 to 91 |
+| 93 | Java later: Anti-Doomscroll, app-habit map (Usage Access), reminder at a place with a note (Memory Palace) | G3, G8, G10 | `UsageWatch.java`*, `PlaceWatch.java`, `MainActivity.java`, manifest, `index.html` | ~210 | YES | After Part 85 is phone tested |
+
+**Totals:** Parts 86 to 91 (Python and page, no APK) about 1,040 lines. Part 92 about 260. Java Parts 85 and 93 about 410. All together about 1,710 lines.
+
+**Order in plain words:** test the phone first (3) > Java for calls and places (85) > the smart Home (86) > find and think (87, 88) > remember and care (89, 90) > discipline (91) > the rest only if wanted (92, 93).
+
+**Part sizes.** Each Part stays under 350 lines of code (rule 1). If a Part runs over, the last idea moves to the next Part.
+
+## 5. ALL IDEAS AND THE VERDICT
+
+Numbers: **B** = our own ideas, **G** = the 15 ideas from Grok, **D** = the "Ultra-Premium Frontend Concept" (Jarvis Continuum). Verdicts: TAKE (planned), LATER (wanted, not yet), NEVER (see section 6).
+
+### 5A. Already built (nothing left to do except the phone test)
+
+| # | Idea | Part |
+|---|---|---|
+| B1 | Shopping and packing lists by voice | 83 |
+| B2 | Habit and streak tracker | 83 |
+| B3 | Quick expense logger (`200 coffee`) | 84 |
+| B4 | Explain this screen, one tap | 83 |
+| B5 | Battery guardian suggestion | 83 |
+| B6 | Day report at a fixed time, one tap | 83 |
+| B7 | Clipboard buttons: Save as note, Add to list | 84 |
+| B8 | Reply ideas for a notification (nothing is sent) | 84 |
+
+### 5B. Older ideas not built yet
+
+| # | Idea | Verdict | Part |
+|---|---|---|---|
+| B9 | After a call ends: `kuch yaad rakhna hai?` (needs the phone-state permission) | TAKE | 85 |
+| B10 | Routines that run with no tap | NEVER: the one-tap Run button is the safety design | none |
+| B11 | Location reminders (`jab ghar pahunchu`; needs background location, battery and privacy design first) | TAKE | 85 |
+
+### 5C. Grok's 15 ideas (what we take, in a safe form)
+
+| # | Grok idea | Verdict | What we really build | Files | Lines | Part |
+|---|---|---|---|---|---|---|
+| G1 | Context Ghost | TAKE, small | `Chrome kholo research ke liye` saves the reason for 7 days. If you open the same app through Jarvis again, it asks once: "Pehle wali research continue karni hai?" Jarvis does NOT watch what other apps you open | `ghost.py`*, `actions.py`, `index.html` | ~70 | 92 |
+| G2 | Emotional check-in memory | TAKE, only when you say it | `mood 3` (1 to 5) or `aaj mood low`. `mood history` shows the days. Jarvis never guesses your mood from chats. After 4 low days one gentle line in the briefing, only if you switched `mood care on` | `mood.py`*, `brief.py`, `backup.py`, `app.py` | ~80 | 90 |
+| G3 | Anti-Doomscroll Guardian | LATER (Java) | Needs Usage Access. One calm line after N minutes in the same app; you set N. Never blocks anything | `UsageWatch.java`*, `index.html` | ~110 | 93 |
+| G4 | Family Presence Radar | TAKE, small | Only people you pick: `ammi track karo`, then `ammi se baat hui`. The briefing says "Ammi se 7 din se baat nahi hui" (days changeable). No call log and no WhatsApp reading | `touch.py`*, `brief.py`, `backup.py`, `app.py` | ~90 | 90 |
+| G5 | Decision Debt Tracker | TAKE | `sochenge baad mein: phone lena hai` saves it. `pending decisions` lists them. The briefing shows up to 2 that are older than 3 days. `decision ho gaya 2` closes one | `decisions.py`*, `brief.py`, `backup.py`, `app.py` | ~90 | 89 |
+| G6 | Voice Time Capsule | TAKE, text only | `6 mahine baad yeh sunana: ...` saves the text with the date. On that day a card appears and Jarvis reads it after your tap. Audio recording is not part of this (needs Java) | `capsule.py`*, `backup.py`, `app.py`, `index.html` | ~85 | 89 |
+| G7 | Silent Mode Intelligence | TAKE the safe half | Page modes `meeting`, `namaz`, `sleep` with a timer (`namaz mode 20 minute`): no voice, short replies, reminders as text, ends by itself. Reading the phone's real silent state needs Java and is not planned | `modes.py` (shared with D8) | ~30 | 91 |
+| G8 | App Relationship Map | LATER (Java) | Comes with G3, same Usage Access: "YouTube ke baad usually Instagram". Only a count on the phone, shown as a note | `UsageWatch.java` | ~40 | 93 |
+| G9 | Personal Red Team | TAKE | `red team: yeh phone kharidna hai`. The AI gets ONLY your own Jarvis data (this month's spending, habits, memories) and must ask 3 hard questions plus 2 counter-points. No invented numbers. Needs the AI to be reachable | `redteam.py`*, `app.py`, `index.html` | ~60 | 88 |
+| G10 | Memory Palace Mode | LATER (Java) | The place half only: a note that shows when you reach a place. It rides on Part 85's place reminders. The "when I am angry" half is NEVER (Jarvis does not detect emotions) | `PlaceWatch.java`, `index.html` | ~60 | 93 |
+| G11 | Jarvis as Witness (screen recording) | NEVER | A screen recording stores everything on screen, including other people's chats and OTPs. `note karo ...` already saves a moment with the time | none | 0 | none |
+| G12 | Habit Contract with a penalty pot | TAKE, honest version | `contract gym 7 din penalty 100`. Each day that closes without `aaj gym gaya` adds 100 to a penalty pot. The pot is only a number in `my habits`. Jarvis moves no real money | `habits.py`, `app.py` | ~80 | 91 |
+| G13 | Parallel Life Simulator | LATER, blocked | Jarvis has spending only, no income, savings or job data, so a "simulation" would be invented. It needs a small income and savings table first (about 60 lines). Not planned until Hussain wants to type those numbers | none yet | ~60 + 70 | none |
+| G14 | Voice-only Second Brain Search | TAKE, keyword version | `sab jagah dhundo Bombay` searches notes, memories, people, lists, reminders, decisions and capsules and says which place each hit came from. It matches words, not meaning, and says so | `search.py`*, `app.py`, `index.html` | ~70 | 87 |
+| G15 | Protective Interruption (detect a heated WhatsApp argument) | NEVER | It would read private chats and typing. Jarvis only reads notifications you chose, and only for a summary | none | 0 | none |
+
+### 5D. The frontend concept (Jarvis Continuum)
+
+| # | Idea in the concept | Verdict | Files | Lines | Part |
+|---|---|---|---|---|---|
+| D1 | Context Lens: ONE card "your next best move" with Do, Why, Later and the source (Reminder, Routine, Ledger, Habit, Phone). Picked by fixed rules, no AI | TAKE | `lens.py`*, `app.py`, `index.html` | ~130 | 86 |
+| D2 | Now / Next / Later strip under the lens (same data as D1) | TAKE | `lens.py`, `index.html` | ~60 | 86 |
+| D3 | Honest Mission view: Code built, Phone tested, Verified as three separate counts read from Table A | TAKE | `progress.py`, `index.html` | ~70 | 86 |
+| D4 | Memory Atlas: memories, people, notes grouped, with delete; nothing new saved | TAKE | `memory.py`, `people.py`, `app.py`, `index.html` | ~110 | 87 |
+| D5 | One Life Timeline (reminder done, routine run, note saved, expense noted) with filters | LATER: needs a small events table and a few hooks | `events.py`*, `app.py`, `index.html` | ~145 | 92 |
+| D6 | Source label on research answers: "One report" or "N sources agree", counted from the real search result (no AI confidence number) | TAKE, small | `web.py`, `index.html` | ~45 | 88 |
+| D7 | Recovery card "while you were away: 3 reminders, 1 phone issue" with Review and Dismiss (extends Part 78) | LATER | `index.html`, `app.py` | ~45 | 92 |
+| D8 | Focus contract: "protect my next 45 minutes" | TAKE, merged with G7 (quiet mode already exists, add a timer) | `modes.py`, `index.html` | ~40 | 91 |
+| D9 | Five-tab bottom bar, new colours, orb motion, splitting `index.html` into many files | NOT NOW: a cosmetic rewrite of a page that is not phone tested is the biggest regression risk. The concept itself says to split only after the UX is validated | none | none | none |
+| D10 | Evidence drawer, trust meter, hologram HUD, weather and stock cards | NEVER: needs data Jarvis does not have, or is decoration | none | none | none |
+
+## 6. WILL NOT BUILD
+
+### 6A. Refused or dropped (do not build)
+
+| Item | Why |
+|---|---|
+| Unlock the phone by voice, or any lock-screen bypass | REFUSED: a spoken secret that opens the phone is the pattern banking trojans use |
+| Voice commands with the screen locked or off | REFUSED; Android also does not allow it. The only safe form is the optional test in Settings that wakes the screen, and the lock screen still needs you |
+| Always-on "Hey Jarvis" as the default phone assistant | NOT PLANNED: big and risky. The background listening test is the safe version |
+| Saving Aadhaar, card or bank numbers | REFUSED: passwords, OTPs, PINs and card numbers are never saved |
+| Group or family status ("who is at home") | REFUSED: needs other people's data and consent. (G4 is different: only what Hussain tells Jarvis about his own contact) |
+| Screen recording as a memory (G11) and detecting arguments in chats (G15) | REFUSED: they record or read other people's private messages |
+| Detecting mood or anger from chats, typing or voice | REFUSED: Jarvis only notes a mood when Hussain says it |
+| Moving real money as a penalty (G12) | REFUSED: the penalty pot is only a number |
+| Weather on Home (Part 67), car mode | DROPPED by Hussain |
+| Routines that run without a tap (B10) | NOT PLANNED on purpose |
+
+### 6B. How the ideas we take stay safe (every Part must keep these)
+
+1. Only real data from Jarvis's own tables. No fake percentages, no invented numbers, no "confidence" score.
+2. Nothing is saved that Hussain did not say or tap. Passwords, OTPs, PINs, CVVs and card numbers are refused in every new feature (same filter as `memory.SECRET`).
+3. New personal data (mood, last talked, decisions, capsules, contract pot) stays in the phone's own database, is part of Backup and Restore, is wiped by `delete everything`, and is never sent to the AI. The only exception is Red Team (G9), which sends the few numbers it needs, and says so.
+4. Jarvis only suggests. Sending, paying, deleting and running steps still need Hussain's tap.
+5. Every new feature has an OFF word (`mood care off`, `track band karo`, `contract band karo`) and a delete word.
+
+## 7. PHONE TESTS (TABLE A)
+
+Nothing below is phone tested yet. Build APK first for the Java rows. Write PASS, FAIL or not tested in the last column. Part 86 reads this column for the "Verified" count, so keep the table format. Parts 85 to 93 will add rows 21 and up when they are built.
+
 | # | Try this | Expected | Needs new APK | Result |
 |---|---|---|---|---|
 | 1 | Open a payment app, close it, then Settings > Privacy | Timeline shows 'Paused for a payment app' (no app name) | Yes (Parts 73, 78) | not tested |
@@ -48,211 +187,7 @@
 | 19 | Copy a text, Home > Clipboard, tap Save as note, then copy a short word and tap Add to list | `meri notes` shows the note; `list dikhao` shows the item | No | not tested |
 | 20 | Notification summary ON, Home > Notifications > Reply ideas > pick one | 3 short options with Copy buttons; nothing is sent; the chat history shows a placeholder, not the notification text | No (notification access from the older Part) | not tested |
 
-**Table B: ideas not built yet (benefit, files, lines, APK)**
-| # | Idea | Benefit for Hussain | Files | Est. lines | New APK? | Status |
-|---|---|---|---|---|---|---|
-| 1 | Shopping or packing list by voice (`list me doodh add karo`, `list dikhao`) | Never forget small things; no typing | `lists.py`*, `app.py`, `backup.py`, `index.html` | ~85 | No | BUILT (Part 83), not phone tested |
-| 2 | Habit and streak tracker (`aaj gym gaya`, `medicine le li`, weekly report) | Builds habits; stays on the phone, never sent to the AI | `habits.py`*, `app.py`, `brief.py` | ~80 | No | BUILT (Part 83), not phone tested |
-| 3 | Quick expense logger (`200 coffee`, `50 auto`) with week total | Money awareness without the owe/get ledger | `spend.py`*, `brief.py`, `app.py`, `backup.py` | ~70 | No | BUILT (Part 84), not phone tested |
-| 4 | `explain this screen` as one command | One tap instead of three steps | `index.html`, `screen.py` | ~20 | No | BUILT (Part 83), not phone tested |
-| 5 | Battery guardian suggestion (below 20 percent, not charging) | A calm early warning in the briefing and as a suggestion | `brief.py` | ~30 | No | BUILT (Part 83), not phone tested |
-| 6 | Evening day summary at a fixed time (one tap, like routines) | Day report without asking | `tasks.py`, `index.html` | ~30 | No | BUILT (Part 83), not phone tested |
-| 7 | Clipboard buttons: Save as note, Add to list | Copy once, keep it | `index.html` | ~20 | No | BUILT (Part 84), not phone tested |
-| 8 | Suggest 2 or 3 short replies to a notification (nothing is sent) | Faster replies; you tap Send yourself | `replyideas.py`*, `index.html`, `app.py` | ~40 | No | BUILT (Part 84), not phone tested |
-| 9 | Call follow-up after a call ends (`kuch yaad rakhna hai?`) | Notes from calls | Java + `index.html` | ~80 | Yes | PLANNED: Part 85 (Java, needs a phone-state permission, after phone test) |
-| 10 | Routine auto-run without a tap | Fully hands-free routines | `tasks.py`, `index.html` | ~40 | No | NOT PLANNED: the one-tap Run is the safety design |
-| 11 | Location reminders (`jab ghar pahunchu`) | Reminders by place | Java (geofence) | ~120 | Yes | PLANNED: Part 85 (Java, last; needs background location, battery and privacy design first) |
-
-**Table C: refused or dropped (do not build)**
-| Item | Why |
-|---|---|
-| Unlock the phone by voice, or any lock-screen bypass | REFUSED: a spoken secret that opens the phone is the pattern banking trojans use |
-| Voice commands with the screen locked or off | REFUSED; Android also does not allow it. The only safe form is the optional test in Settings that wakes the screen, and the lock screen still needs you |
-| Always-on 'Hey Jarvis' as the default phone assistant | NOT PLANNED: big and risky. The background listening test is the safe version |
-| Saving Aadhaar, card or bank numbers (a personal knowledge base for them) | REFUSED: passwords, OTPs, PINs and card numbers are never saved |
-| Group or family status ('who is at home') | REFUSED: needs other people's data and consent |
-| Weather on Home (Part 67) | DROPPED by Hussain |
-| Car mode | DROPPED |
-| Duplicate folder `Jarvis-main/Jarvis-main/` | DONE (Part 80) |
-
-**Where we stopped (17 Nov 2026):** Parts 1 to 84 are in this repo. Part 83 (lists, habits, explain screen tile, battery guardian, day report) and Part 84 (expense logger, clipboard buttons, reply ideas) are built, Python and page only, NOT phone tested. Part 82's Java (`PaymentGuard.java`, `MainActivity.java`) was never compiled. Table B ideas 1 to 8 are all built now.
-
-**Next Parts (name, files, estimated lines, benefit):**
-- **Part 85 = Java, NEW APK, about 200 lines.** Call follow-up note (B 9, ~80) and location reminders (B 11, ~120). Starts only after Build APK and the phone test of Parts 78, 79, 82, 83 and 84.
-- **Parts 86 to 88 = the frontend ideas worth taking (Table D below), Python + page, no APK, about 530 lines in all.** Only after the phone test, so that we know which Home cards Hussain really uses.
-- **Before any of this (Hussain's job):** run Build APK, install it, and try Table A (20 tests). If the build fails, send the error screenshot; that is fixed first.
-- Rule for every Part: no full test suite (Hussain's rule); only a syntax check and a small run; everything else is written as NOT RUN.
-
-**Table D: the 'Ultra-Premium Frontend Concept' (Jarvis Continuum), what to take (17 Nov 2026).** The concept's own advice is right: build and phone-test first, no big redesign before that. Rules stay: only real data from Jarvis's own tables, no fake percentages, no auto-run.
-| # | Idea in the concept | Verdict | Files | Est. lines | Part |
-|---|---|---|---|---|---|
-| D1 | Context Lens: ONE card 'your next best move' with Do, Why, Later and the source (Reminder, Routine, Ledger, Habit, Phone). Picked by fixed rules, no AI | TAKE | `lens.py`*, `app.py`, `index.html` | ~130 | 86 |
-| D2 | Now / Next / Later strip under the lens (same data as D1) | TAKE | `lens.py`, `index.html` | ~60 | 86 |
-| D3 | Honest Mission view: Code built, Phone tested, Verified as three separate counts read from the Table A results | TAKE | `progress.py`, `index.html` | ~70 | 86 |
-| D4 | Memory Atlas: memories, people and notes grouped, with delete; shown on a page, nothing new saved | TAKE (after D1 to D3) | `memory.py`, `people.py`, `app.py`, `index.html` | ~110 | 87 |
-| D5 | One Life Timeline (reminder done, routine run, note saved, expense noted) with filters | LATER: needs a small events table and a few hooks | `events.py`*, `app.py`, `index.html` | ~145 | 87 |
-| D6 | Source labels in research answers: 'One report' or 'N sources agree', counted from the real search result (no AI confidence number) | TAKE, small | `web.py`, `index.html` | ~45 | 88 |
-| D7 | Recovery card: 'while you were away: 3 reminders, 1 phone issue' with Review and Dismiss (extends Part 78) | LATER | `index.html`, `app.py` | ~45 | 88 |
-| D8 | Focus contract ('protect my next 45 minutes') | LATER: quiet mode exists; add a timer only if Hussain wants it | `modes.py`, `index.html` | ~40 | not planned yet |
-| D9 | Five-tab bottom bar, new colours, orb motion, splitting `index.html` into many files | NOT NOW: a cosmetic rewrite of an 870-line page that is not phone tested yet is the biggest regression risk; the concept itself says to split only after UX is validated | | | |
-| D10 | Evidence drawer, trust meter, fake hologram HUD, weather and stock cards | SKIP: needs data Jarvis does not have, or is decoration (Table C spirit) | | | |
-
-**Part 82: files and real lines.** `backup.py` 5, `remind.py` 31, `brief.py` 32, `phone.py` 68, `tasks.py` 15, `app.py` 6, `index.html` 31, `PaymentGuard.java` 48, `MainActivity.java` 15, `.gitignore` 1 (about 250 lines of code), README 60. The estimate was about 295. Tests: the full test suite was NOT RUN (Hussain's rule); only a Python syntax check, a JavaScript syntax check, a parse-only check of the Java and a small run of the new Python code were done.
-
-**Part 83 (this round): files and real lines.** `lists.py` 93 (new), `habits.py` 122 (new), `tasks.py` 47, `brief.py` 19, `app.py` 10, `backup.py` 3, `index.html` 3 (about 297 lines of code; `screen.py` was not touched, the screen reader already existed). The estimate for these five ideas was about 245. Tests: the full test suite was NOT RUN (Hussain's rule). Done: Python compile of every backend file, a JavaScript syntax check of the page, a small run of each new function (lists, habits, day report time, battery guardian, backup and restore of the new tables, no clash with the older commands and no normal sentence taken by mistake). Not done: any phone test.
-
-**Part 84 (this round): files and real lines.** `spend.py` 109 (new), `replyideas.py` 26 (new), `brief.py` 10, `app.py` 7, `index.html` 8, `backup.py` 2 (about 162 lines of code; the estimate for ideas 3, 7 and 8 was about 130; the expense logger got its own file instead of growing `ledger.py`). Tests: the full test suite was NOT RUN (Hussain's rule). Done: Python compile of every backend file, a JavaScript syntax check of the page, a small run of the expense logger (logging, totals, undo, 12 ordinary sentences NOT taken), of the reply-ideas text (a secret in a notification is refused), and of backup and restore of the spending table. Not done: any phone test, and the real AI answer for reply ideas.
-
-
-### Phase 2 plan (each Part: files, lines, benefit, status)
-
-| Part | What it does | Files | Est. lines | Real lines | Benefit for Hussain | Status |
-|---|---|---|---|---|---|---|
-| 62 | Open ANY app on the phone by saying its name, in any script. The name is matched with the phone's real app list (exact, spelling, same consonants). Chat shows "Looking for the app...", then a tick or a cross. | `actions.py`, `lang.py`*, `Apps.java`, `index.html` | ~120 | about 60 | Every installed app opens, and he sees what happened | BUILT, not phone tested, Java not compiled |
-| 63 | Any Indian language: Hindi, Marathi, Gujarati, Tamil, Telugu, Kannada, Malayalam, Bengali, Punjabi, Odia, Urdu (commands) and English. Open app, torch, volume, settings pages and multi-step all work. Open-app answers come in the language spoken. Chat answers in that language. Voice for Tamil, Telugu, Gujarati, Kannada, Malayalam, Bengali, Marathi, Urdu. Speak language list in the app. | `lang.py`*, `actions.py`, `tasks.py`, `app.py`, `tts.py`, `index.html` | ~180 | about 85 | Speak in his own language and get work done | BUILT, not phone tested |
-| 64 | "Ammi ko call karo" (any language) calls the contact by name. Two matches: asks which. Screen shows "Calling Ammi...". | `CallByName.java`*, `MainActivity.java`, manifest, `actions.py`, `tasks.py`, `index.html` | ~110 | about 199 (`CallByName.java` 105 new, `actions.py` 61, `index.html` 22, `MainActivity` 6, `tasks.py` 3, manifest 2) | No speed dial needed | BUILT, not phone tested, Java not compiled |
-| 65 | Phone health in Roman Hindi or English: "phone me kya problem hai", "bluetooth connected hai kya", "internet chal raha hai kya", "storage kitna bacha", "battery health". Says what is wrong and how to fix it (low battery, hot or failing battery, airplane mode, no internet, Wi-Fi without internet, full storage or memory, restart needed). | `PhoneInfo.java`, `phone.py`, `index.html`, manifest | ~100 | about 147 (`phone.py` 96, `PhoneInfo.java` 46, `index.html` 4, manifest 1) | One question tells him what is wrong with the phone | BUILT, not phone tested, Java not compiled |
-| 66 | Alarm and timer by voice in Roman Hindi or English: `subah 6 baje alarm laga`, `alarm 18:30`, `saade 6 baje alarm`, `raat 1 baje alarm`, `5 minute ka timer`, `aadha ghanta ka timer`, `alarm band karo` (opens the alarm list: Android lets no app delete alarms). A bare "6 baje" with no AM or PM becomes whichever comes next on the phone's clock. Uses Android's own Clock app. | `QuickSet.java`*, `MainActivity.java`, manifest (SET_ALARM, a normal permission), `actions.py`, `index.html`, `tasks.py` | ~60 | about 150 (`actions.py` about 105, `QuickSet.java` about 40, `index.html` 4, `MainActivity` 6, manifest 1) | Alarm and timer without touching the phone | BUILT, Python tested, Java not compiled, not phone tested |
-| 60 | Search inside an app, no typing: `YouTube par Arijit ke gaane search karo`, `play Kesariya on YouTube`, `Maps par petrol pump search karo`, `Chrome par weather in Mumbai search karo`; also Google, Play Store, Amazon, Flipkart, Spotify. Hindi script works too. Java builds the web address from its own fixed list (the page never sends a link); if the app is not installed the same search opens in the browser. `YouTube kholo` alone still just opens the app. | `actions.py`, `QuickSet.java`*, `MainActivity.java`, `index.html`, `tasks.py` | ~110 | about 114 (`actions.py` about 58, `QuickSet.java` about 46, `tasks.py` 3, `index.html` 1, tests 12) | "YouTube par Shah Rukh ke gaane chalao" works | BUILT, Python tested, Java not compiled, not phone tested |
-| 61 | Smart interrupt: while Jarvis speaks, the phone mic listens; the moment you start talking Jarvis stops and answers what you said. Button `Interrupt: on/off` next to Conversation (OFF by default). Works only with earphones connected (wired, USB or Bluetooth; checked each time Jarvis speaks), because the mic would hear Jarvis' own voice from the speaker. Words that match Jarvis' own sentence are ignored (echo filter). `ruko` / `stop` only stops him. Stop everything and Privacy mode switch it off. | `index.html`, `Ears.java`, `MainActivity.java` | ~160 | about 68 (`index.html` 33, `Ears.java` 29, `MainActivity` 6) | He can speak in the middle of an answer | BUILT, not phone tested, Java not compiled. Risk: some phones lower or pause Jarvis' voice when the speech service starts |
-| 67 | Weather on Home from a free weather service | `app.py`, `index.html` | ~80 | - | - | DROPPED by Hussain (17 Nov 2026): not wanted |
-| 68 | Music control by voice: `gaana pause karo`, `next song`, `agla gaana`, `pichla gaana`, `music band karo`, `gaana badlo`, a lone `pause` or `resume`. Sends the same media keys as earphone buttons to whatever player is active (Spotify, YouTube Music, YouTube...). Says honestly if nothing was playing. Volume words go to Part 37; `play Kesariya on YouTube` stays a search (Part 60). | `actions.py`, `QuickSet.java`, `index.html`, `tasks.py` | ~50 | about 62 (`actions.py` 40, `QuickSet.java` 19, `index.html` 3) | Pause or skip a song without touching the phone | BUILT, Python tested, Java not compiled, not phone tested |
-| 69 | WhatsApp message by contact name: `Ammi ko WhatsApp pe hello bhejo`, `Ammi ko whatsapp karo`, `send hello to Ammi on WhatsApp`, `Ammi ko whatsapp par bol do ki main late hu`, Hindi script works. Java finds the number in the phone's contacts (same finder as Part 64: sure match opens at once, several or close spelling show buttons). It only OPENS the chat with the text filled in; WhatsApp's send button is YOUR tap, Jarvis never sends. Needs Phone control ON and the Contacts permission. Uses `wa.me` (WhatsApp, then WhatsApp Business, then browser). | `actions.py`, `CallByName.java`, `index.html` | ~90 | about 95 (`actions.py` 56, `CallByName.java` 14, `index.html` 3, tests 6) | Message a person by name, hands free until send | BUILT, Python tested, Java not compiled, not phone tested |
-| 71 | Dual voice FIX (from the 17 Nov audit): Conversation now speaks as TONY; information, tasks, reminders, briefings, alerts and any unclear intent speak as JARVIS. Tony is shown again in Settings. Both are there from the first install, auto routing ON, saved in `voice.json` across restarts. On Sarvam each personality has its OWN speaker (Tony: aditya, JARVIS: rahul, changeable), so they really sound different. The badge and Settings say honestly when Edge Hindi uses ONE male voice (Madhur) for both, so only depth and speed differ. A speaker chosen before this Part is kept for JARVIS. | `voiceengine.py`, `app.py` (`/tts`), `index.html` | ~60 | about 55 | Two personalities that match what you asked for | BUILT, Python tested (routing, persistence), not phone tested, nobody has LISTENED to the voices yet |
-| 72 | Voice notes and recall: `note karo ki kal bijli ka bill bharna hai`, `note: ...`, `take a note ...`, `नोट करो कि ...`; `meri notes`, `notes me bijli dhundo`, `bijli wala note`, `delete note 3`. Saved only on your own words, kept in a new small `notes` table in the SAME database (no second database), included in backup and restore and wiped by `delete everything`. Never sent to the AI. Passwords, OTPs, PINs, CVVs and card numbers are refused. Max 300 notes of 500 characters. The note text also sits in chat history like any message; `clear history` removes that copy. | `notes.py`*, `app.py`, `backup.py`, `test_app.py` | ~60 | about 75 (`notes.py` 70, `backup.py` 4, `app.py` 3) | Say a thought, find it later | BUILT, Python tested, not phone tested |
-
-`*` = new file. Estimates are rough; real numbers are filled in after each Part.
-
-**Total left: 0 required Parts.** Part 67 (weather) is dropped. The only open work is Build APK, the phone test (section 11.8) and the optional ideas in the list below.
-
-### Phone test round 1 (17 Nov 2026, from Hussain's screenshots) and the fixes
-| What was seen | Cause | Fix (in `Jarvis_part70_fix.zip`) |
-|---|---|---|
-| Page shows `Update: Jarvis_part68_69.zip ... skipped, same zip already done` | The zip had already been pushed once; the second copy is skipped on purpose | Nothing to fix. The server, the new page and the new APK (Interrupt button present) are live |
-| `Open YouTube` / `ओपन युटुब` gives `Android did not let me open it` (the app WAS found) | Java used `getLaunchIntentForPackage`, which can return null or be refused on some phones | `Apps.java` now opens the exact launcher screen found in the app list, then tries the old way, and the chat shows the real Android reason in brackets, e.g. `(SecurityException: ...)`. If it still fails, send that reason |
-| `ओपन बाइनेंस`, `ट्रेडिंगव्यू`: `could not find an app` | Not a bug if the app is not installed (the list is the phone's real list). Check Home, then Smart shortcuts, then the app list. If installed, tell me the exact app name shown on the phone | none yet |
-| `Mic: speech error 11` | Android's speech service disconnected (error 11). Jarvis created and destroyed the recognizer every second in Hey Jarvis mode | `Ears.java` reuses one recognizer, and on error 11, 10 or 5 retries up to 4 times with a growing pause. Only if it keeps failing does it say to update Google Speech Services or restart |
-| `Online voice failed ... NoAudioReceived`, then `No voice on this phone` | The `edge-tts` package in Termux is too old for Microsoft's voice service, and the phone has no Android text-to-speech voice for the fallback | In Termux run `pip install -U edge-tts`, then restart `bash run.sh`. The error text now says this. Also Android Settings, Google Speech Services, install a voice |
-
-### After the 17 Nov audit: what was built and what was left out on purpose
-| Item | Decision |
-|---|---|
-| Dual voice, Conversation = Tony | BUILT (Part 71) |
-| Voice notes and recall | BUILT (Part 72) |
-| Fuzzy/misheard command words (alarm, timer, music) | BUILT (Part 73), Python tests pass, phone not tested |
-| Pause ScreenService while a payment app is open | BUILT (Part 73): auto OFF only (disableSelf), Android never lets an app turn accessibility back ON by itself, so a notification takes you straight to the Settings toggle. Default package list in `PaymentGuard.java`, editable later from Settings |
-| Screen wakes (like the power button) when "Jarvis" is heard with the screen off | BUILT (Part 73): same as pressing power, the lock screen still shows and still needs your own fingerprint/PIN/swipe |
-| Phone unlock by voice / bypassing the lock screen | REFUSED, will not be built in any form (always-listening + spoken secret = the exact pattern banking trojans use; a stolen or overheard phrase would open the phone to anyone) |
-| Settings page redesign | BUILT (Part 74): all 10 old flat sections grouped into 5 collapsible cards (Voice & Personality, Privacy & Security, Your Data, Notifications, Advanced). 🔊 voice panel is now a bottom sheet with its own ✕ close button instead of a tall inline row. No element id changed, so no backend/JS wiring broke; JS syntax check pass |
-| Daily Life Manager: Home card and briefing show today's reminders, ledger, birthdays (next 7 days) and latest notes in one place | BUILT (Part 75): `/today` now also returns `birthdays` and `notes`; one shared helper `remind.birthdays()`; briefing lists birthdays (3 days) and the 2 latest notes (only when you ask, never in the automatic one). Python only, no APK needed, not phone tested |
-| Routine at a fixed time | BUILT (Part 76): `routine subah roz 7 baje` (also `routine subah 7:30`, `routine gym shaam 6 baje`, `routine subah time hatao`). Time is the phone's clock, 24-hour; the reply repeats it so a wrong AM/PM can be fixed. No second scheduler: the page's existing 10-second `/due` check also asks `tasks.due_routines`. When the time comes the chat shows a message with a **Run** button (one tap, Jarvis never starts the phone steps by itself); once a day; silent if the page was closed for more than 3 hours. `my routines` shows the time; Home card shows timed routines (tap to run). Python + page only, no APK needed, not phone tested |
-| Smart Follow-up | BUILT (Part 77): 3 to 48 hours after a ONE-TIME reminder was told, the chat asks once 'ho gaya?' with buttons Haan / Nahi abhi. Spam rules: one question per day, one per reminder, never for repeating reminders or birthdays, silent from 22:00 to 07:00. Nahi = the same reminder once more after 2 hours (or 09:00 next morning), no further follow-up on it. New column `ask` on `reminders` (nothing deleted). Python + page only, no APK needed, not phone tested |
-| Privacy Activity Timeline | BUILT (Part 78): Settings > Privacy now shows a timeline grouped by day (Today / Yesterday / date), a 'Today: Mic 5x, Apps 3x' summary, and 40 latest lines. Java keeps the last 200 uses (was 30). New events logged, name and time only: Stop everything, Phone control ON/OFF, Paused for a payment app (app name NOT saved). Needs a new APK (`Privacy.java`, `ScreenService.java`); Java not compiled, not phone tested |
-| Missed-reminders summary (Claude's idea) | BUILT (Part 78): if 3 or more reminders are waiting when the page opens (you were away), they come as ONE chat message and ONE short voice line, not a pile of voices. 1 or 2 reminders speak one by one as before |
-| Deep Phone Performance Doctor | BUILT (Part 79): say `phone doctor`, `deep phone check`, `phone performance` or `full phone check`. Normal phone check plus a Deep check block: battery voltage, charge cycles (only Android 14+ if the phone reports it), charge now in mAh, RAM in GB, days since restart, brightness, screen timeout, with advice (long timeout, high brightness, old battery). Anything Android does not give is said as UNAVAILABLE, nothing is made up: CPU load, per-app battery/RAM/storage, heavy-app names (Jarvis does not ask for Usage Access). Needs a new APK (`PhoneInfo.java`); Java not compiled, not phone tested |
-| Phone problems in the briefing | BUILT (Part 80): `briefing` (and the automatic morning one) adds a 'Phone:' block with up to 2 real problems (low battery, full storage, heat...) from the same rules as Phone Doctor; nothing is added when the phone is fine. Python + page, no APK |
-| Weekly summary | BUILT (Part 80): say `weekly summary` or `is hafte ka summary`: last 7 days in numbers (reminders told, phone tasks/routines completed and failed, notes saved, open ledger entries and late ones, birthdays in the next 7 days). Read from existing tables, nothing new saved |
-| Routine on weekdays or weekends | BUILT (Part 80): `routine subah roz 7 baje sirf weekdays` (Mon to Fri) or `... weekend` (Sat, Sun). Without the word it is every day. New column `days` on `routines`. `my routines` shows it |
-| Duplicate folder cleanup | BUILT (Part 80): `scripts/sync.sh` now deletes the old stale copy `Jarvis-main/Jarvis-main/` (only if it holds its own `backend` and `README.md`) before each push, so GitHub loses it too and no old zip can bring it back. One-time command for right now: see the chat |
-| Backup keeps routine time and days | BUILT (Part 82): `backup.py` now saves and restores the routine time (HH:MM) and days (every day, weekdays, weekend). Old backups still restore (they get no time). A bad time in a file becomes 'no time', never an error. Python only, no APK |
-| Reminder snooze | BUILT (Part 82): every reminder in chat has a `⏰ 10 min` button; or say `snooze`, `snooze 20 min`, `10 min baad phir yaad dilao`, `थोड़ी देर बाद फिर याद दिलाओ` (the reminder told in the last 6 hours). The same text comes again, once, and gets no 'ho gaya?' question. New route `/snooze`. Python + page, no APK |
-| Day summary at night | BUILT (Part 82): say `aaj ka summary`, `day summary`, `evening summary` or `आज का सारांश`: reminders told, phone tasks and routines done, notes saved, open ledger, tomorrow's reminders and birthdays. Numbers only from existing tables, nothing new saved. Python only, no APK |
-| Hindi-script words | BUILT (Part 82): `रूटीन बनाओ`, `रूटीन सुबह रोज़ 7 बजे सिर्फ़ वीकडेज़`, `रूटीन सुबह समय हटाओ`, `रूटीन हटाओ ...`, `... रूटीन चलाओ`, the day words (`सुबह शाम रात दोपहर`) and weekday words. Letters like ज़ and फ़ work typed either way (NFC). Python only, no APK |
-| Phone Doctor storage trend | BUILT (Part 82): once a day (when you say `briefing` or a phone check in the app, or the morning briefing runs) Jarvis keeps TWO numbers, free and total storage, in `backend/phone_trend.json` (40 days, not in git). Say `storage trend` or `phone trend`: how much less or more free storage than up to 7 days ago, and if it keeps falling, in about how many days it is full. `phone doctor` shows the change and warns when it would be full in under 30 days. Needs 2 days of numbers. Chrome page numbers are never used (they are Termux's disk). Python only, no APK |
-| Payment apps list in Settings | BUILT (Part 82): Settings > Privacy & Security > Payment apps. The built-in apps cannot be removed. You add your own bank or UPI app from the phone's app list (up to 20) and can remove only your own. Add and remove need a real finger tap (same 3 second rule). Only package names are kept. Timeline shows 'Payment app list changed'. Needs a new APK (`PaymentGuard.java`, `MainActivity.java`); Java not compiled here (parse check only), not phone tested |
-| Shopping and packing lists by voice | BUILT (Part 83): `list me doodh bread add karo` (spaces or commas between items; use commas for two-word items like `brown bread, doodh`), `list dikhao`, `list se doodh hatao` (or the number), `list saaf karo`. A word before list makes another list: `packing list me charger add karo`. Max 100 items, 40 characters each. Passwords, OTPs, PINs and card numbers are refused. In Backup and Restore. Home tile Shopping list. Python + page, no APK |
-| Habit and streak tracker | BUILT (Part 83): first `habit banao gym` (max 10), then `aaj gym gaya`, `medicine le li` or `gym done` marks today once. `my habits` shows streaks, `habit report` the last 7 days, `gym streak` one habit, `habit hatao gym` removes it. Only habits you made are marked, so normal chat is never taken. The briefing lists the habits not done yet and the day summary shows done today. In Backup and Restore. Home tile Habits. Python + page, no APK |
-| Explain this screen in one tap | BUILT (Part 83): Home tile Explain screen, or say `explain this screen`, `screen samjhao`, `is screen pe kya hai`, `स्क्रीन समझाओ`. The old flow stays: switch to the app, Jarvis reads it after a few seconds, secrets are hidden first, nothing is saved. Page only, no APK |
-| Battery guardian | BUILT (Part 83): in the briefing, battery 16 to 19 percent and not charging gives one calm suggestion (charger, or battery saver and the words `battery settings kholo`). At 15 or less the older Phone Doctor line shows instead. It only suggests, nothing is switched. Python only, no APK |
-| Day report at a fixed time | BUILT (Part 83): `day report 9 baje` (a bare 9 means evening, 21:00; say `subah` or `am` for morning), `day report` shows the time, `day report off` stops it. Once a day at that time (up to 3 hours late) the page shows a Show day report button; the summary appears only after your tap and never by itself. Python + page, no APK |
-| Quick expense logger | BUILT (Part 84): `200 coffee`, `kharcha 50 auto`, `50 rupaye auto mein diye`, `spent 300 on petrol`. Category from a short word list (food, travel, bills, health, shopping, other). `kharcha` shows today, 7 days, this month and the 7-day split; `kharcha hatao` removes the last entry (or `#number`). The bare form `200 coffee` needs an amount of 10 or more and is not taken for time or counting words (`10 baje`, `5 minute`). Briefing, day summary and weekly summary show the total. Not the owe/get ledger. In Backup and Restore. Home tile Spending. Python + page, no APK |
-| Clipboard: Save as note, Add to list | BUILT (Part 84): after Home > Clipboard (or any text shared to Jarvis) two more buttons: Save as note (runs `note karo`) and Add to list (one item, up to 40 characters, runs `list me ... add karo`). Secrets are refused as before. Page only, no APK |
-| Reply ideas for a notification | BUILT (Part 84): Home > Notifications > Reply ideas, pick one of the last 5. The AI writes 3 short options, you tap Copy and send it yourself; Jarvis sends nothing. The notification text goes only in its own field, secrets are cleaned first, it is treated as data, and the chat history keeps only a placeholder. Needs the AI to be reachable. Python + page, no APK |
-| Smart App Search, Voice interruption | Already built (Parts 60, 61): only phone testing is left |
-| Scheduled routines at a time | BUILT (Part 76), see above: one-tap Run button, no auto-run |
-| Smart follow-ups, Privacy activity timeline | BUILT (Parts 77 and 78), see the rows above |
-| PC companion | NOT built: a security design must be agreed first, phone-first stays |
-| Weather on Home | DROPPED by Hussain |
-
-### Pending and easy-to-forget list (checked 17 Nov 2026 against the chats and this README)
-| Item | Status |
-|---|---|
-| Phone checklist (11.8). Round 1 done on 17 Nov 2026 (see the test table above); apps opening, mic error 11 and online voice need a re-test after `Jarvis_part70_fix.zip`. Then listen to Tony and JARVIS (Part 71) and try notes (Part 72) | OPEN, the most important step |
-| GitHub Build APK runs #17 to #21 (Parts 48, 49b, 64, 65 and older) are GREEN, so those Java files compile. NOT yet compiled: `QuickSet` (alarm, timer, search, media), WhatsApp part of `CallByName`, `Ears` interrupt (Parts 66, 60, 61, 68, 69) | OPEN, the next build may need a small fix |
-| Nested duplicate folder `Jarvis-main/Jarvis-main/` inside the repo (an old copy) | DONE (Part 80): `sync.sh` removes it; it was also removed from GitHub with one Termux command |
-| Part 67 weather | DROPPED by Hussain |
-| Auto-detect the spoken language (needs Sarvam speech-to-text and a key) | NOT BUILT, later, Hussain said languages can wait |
-| Routine at a fixed time | BUILT (Part 76), with weekdays or weekend (Part 80). Optional auto-run without a tap is NOT built on purpose, see Table B |
-| Zips must be named `Jarvis_part*.zip` (UNDERSCORE) and hold the files at the top level (no `Jarvis-main/` folder), because `run.sh` and `sync.sh` pick up only that name and unzip straight into the repo. Wrong name = nothing is pushed | RULE (a wrongly named zip on 17 Nov 2026 left `lang.py` out and the server crashed in a loop) |
-| Default phone assistant (works with screen off) | NOT PLANNED, too big and risky |
-
-### Known limits (honest list)
-- Speech to text: the phone listens in ONE language at a time. For Tamil, Gujarati and so on, choose that language in "Speak:" (Settings, voice panel). Switching by itself between languages needs the Sarvam key (not built yet).
-- Urdu: command words (open, torch, on, off) work; unknown Urdu app names are NOT matched, only known apps such as YouTube.
-- Odia: commands work; answers come in English or Hindi text (no Odia voice).
-- Sarvam voice speaks only Hindi and English. Other languages use the free Edge voices.
-- Send, pay, delete and similar steps always need Hussain's own tap. Passwords, OTPs and PINs are never typed.
-- Android does not let any app switch Wi-Fi, Bluetooth or location on or off by itself. Jarvis opens the page.
-- Interrupt (61): only with earphones; a Bluetooth speaker counts as earphones and may echo (the echo filter helps, not perfect). The phone speech service may beep and on some phones lowers Jarvis' voice while it listens. Needs a phone test.
-- Alarm (66): Android lets no app delete or switch off alarms or stop a timer; Jarvis opens the alarm list instead. Alarm, timer and search are said on their own, never inside a multi-step task.
-- Screen off: Android does not let an app open itself from the background. Making Jarvis the default phone assistant is the only full fix; it is big and risky, NOT planned.
-- Contacts saved in Tamil or other non-Latin, non-Hindi script are not found by `call` (Part 64).
-- Lists (Part 83): with only spaces, every word is one item; use commas for two-word items. Habits (Part 83): `aaj gym gaya` works only after `habit banao gym`, on purpose, so normal sentences are not taken. The streak counts the phone's calendar days. The day report is a button, it never runs by itself.
-
-### How to resume (for any new Claude)
-1. Read sections 00 and 4 (RULES). 2. Check the Phase 2 table: take the first PLANNED Part in the suggested order. 3. Say first "with tests" or "without tests" and why (Hussain's rule). 4. Build it, give changed files with line counts, keep ONE cumulative zip (this round plus earlier changed files). 5. Update this page: the table row (real lines, status), the dashboard numbers, and the Progress table in 11.11. Never touch `run.sh` or `sync.sh`.
-
-## 0. AT A GLANCE (updated 16 Nov 2026, after Parts 53, 53b, 49b, 57 and 58)
-**What:** Jarvis, a personal AI assistant on Hussain's phone (Termux server + Android app). **Why:** one app on the phone, no PC, works by download only.
-**Done:** every planned Part is built except the dropped weather Part 67 (about 5,300 lines of code). Part 49 was split into 49a (clipboard) and 49b (notification summary), both built. Only Parts 1 to 26 were partly phone tested; Parts 27 to 40, 41 to 48, 49a, 50, 51, 52, 54, 55 and 56 are built but NOT phone tested. Java is still not compiled: the GitHub Build APK is the first compile test.
-**Part 59 (fix, built):** phone dictation writes English words in Hindi script ("ओपन यूट्यूब", "ओपन टॉर्च", "एंड"), which Jarvis did not know, so the AI said "cannot". Now those spellings work for open app, torch and multi-step. Battery and charging questions are answered from the phone itself. The message bar has clean icons (stop, camera inside the box, round send, mic). Python checked with a few phrases; page JS syntax checked only; NOT phone tested.
-**Phase 2 (new, see section 00):** Parts 62 (any app), 63 (any Indian language), 64 (call by name) and 65 (phone health) are BUILT, not phone tested. Parts 66 (alarm, timer), 60 (search inside an app) and 61 (interrupt) came later (17 Nov 2026), plus the missing `backend/lang.py` fix (the server crashed with `No module named 'lang'` because the file sat in a nested duplicate folder). Part 67 weather: dropped.
-**Next step:** run **Build APK**, install, test with section 11.8. Java was never compiled (49b, 64, 65, 66, 60, 61 included), so the first build may need a small fix zip. Send a screenshot or the build log.
-| Group | Parts | Status |
-|---|---|---|
-| Base: server, chat, voice, reminders, app, privacy | 1 to 29 | DONE |
-| Phone control: commands, apps, screen, confirm rules, lock phone | 30 to 35 | BUILT, not phone tested |
-| App lock, chat times, conversation wait | 36 | BUILT |
-| Settings by voice (pages, flashlight, volume), Quick Settings tile and shortcut | 37, 38 | BUILT |
-| Background mic test (Settings card, 8 h limit) | 39 | BUILT (this zip) |
-| Task engine (server) and task runner (app): several steps in one sentence | 41, 42 | BUILT (this zip) |
-| Phone checklist (section 11.8 is now a table). No test file, Hussain's no-tests rule | 43 | BUILT (this zip) |
-| Repeat reminders, birthdays, phone calendar | 44 | BUILT (this zip) |
-| Richer briefing, suggestions, quiet hours | 45 | BUILT (this zip) |
-| Routines (saved task sentences) | 46 | BUILT (this zip) |
-| Backup (encrypted file, restore with preview, delete everything) | 47 | BUILT (this zip) |
-| Share to Jarvis, handoff summary, lost-phone card, app lock OFF by default, new neon Home dashboard | 48 | BUILT (this zip) |
-| Two voices (Tony and JARVIS): engine and Settings cards | 51, 52 | BUILT (this zip) |
-| Second voice provider: Sarvam (not Google), Tony hidden, JARVIS only | 53 | BUILT (this zip), not phone tested |
-| Chat screen redesigned in the same neon look as Home (CSS only) | 53b | BUILT (this zip), not rendered, not phone tested |
-| Home tab (orb, today, quick buttons, stats). Redesigned in Part 48 | 56, 48 | BUILT |
-| Offline wake word (Vosk, model downloaded by tap) and Clipboard button | 40, 49a | BUILT (this zip) |
-| Research answers with sources, mood-support rules (57) and voice modes with a status line (58) | 57, 58 | BUILT (this zip), not phone tested |
-| Any app by name in any script (62) and any Indian language (63) | 62, 63 | BUILT (this zip), not phone tested, Java not compiled |
-| Notification summary (optional feature, OFF by default, chosen apps only) | 49b | BUILT (this zip), not compiled, not phone tested |
-
-## 1. What we are building
-A personal AI assistant like Jarvis from Iron Man. It talks, remembers things, sets reminders, keeps a money ledger, reads links and
-searches the web. Final goal: one app on the phone, no PC needed.
-
-## 2. Why
-Hussain is a beginner and works on his phone in Termux. He wants everything to work by download only, with no copy-paste.
-So: small code, runs on the phone, and says "working" only when it really works.
-
-## 3. How it works
-```
-Chrome or Android app  -->  Python server in Termux (127.0.0.1:8787)  -->  AI provider (Groq, OpenRouter, ...)
-   web/index.html             backend/app.py + helper files               SQLite: backend/jarvis.db
-```
-- Backend: plain Python (no FastAPI, it fails to build in Termux). Frontend: one file, `web/index.html`.
-- AI: 5 providers (groq, openrouter, mistral, deepseek, nvidia). The first one that works answers.
-- Keys: paste in Settings. Jarvis finds the company, tests the key, shows a green tick. Stored in `backend/keys.json` (gitignored).
-- Pairing: 6-digit code in Termux, valid 10 minutes, one use. The phone gets a token. Only its hash is stored.
-- Voice: free Microsoft neural voices through `edge-tts` (`pip install edge-tts`). Target: calm, deep Hindi-dub Iron Man Jarvis
-  (Rajesh Khattar style). A real actor's voice cannot be cloned, so we get close with Madhur + lower pitch + slower speed.
-- App (Part 16): a thin Android WebView shell in `android/`. It shows the same page from the Termux server. Built by GitHub Actions.
-
-## 4. RULES
+## 8. RULES FOR EVERY CLAUDE (always follow)
 1. Each part is under 350 lines of code. New files only when really needed. Update this README after every part.
 2. **Talk to Hussain in simple Roman Hinglish or simple English (Roman script only, NEVER Devanagari), even when he writes or dictates in Hindi/Devanagari.** Short, plain words, like WhatsApp.
    The app text is simple English. Show files and lines in a table. He dictates by voice, so spelling mistakes are normal.
@@ -269,74 +204,53 @@ Chrome or Android app  -->  Python server in Termux (127.0.0.1:8787)  -->  AI pr
 10. Before each Part, say first if it is WITH tests or WITHOUT tests, and why. Python logic is tested (it can be run). Android Java cannot be compiled by Claude: the GitHub build is its compile test and Hussain's phone is its real test. Anything not run is written as "Not run".
 11. Phone control rules: see section 11. Plan first, code only after Hussain says OK to a Part. Every Part must list files, lines and benefit.
 12. App lock stays OFF unless Hussain turns it on himself in Settings (16 Nov 2026: he did not want the fingerprint prompt on every open). Never switch it on by default.
+13. **How to resume (any new Claude):** (1) Read sections 1 to 9. (2) Take the Part Hussain names; if he names none, ask him for the Build APK and Table A result first (section 3). (3) Say first "with tests" or "without tests" and why. (4) Build it, give the changed files with real line counts, keep ONE cumulative zip. (5) Update this README: the Part row in section 4 (real lines, status), the idea verdicts in section 5, the new Table A rows in section 7, the Part row in R7 (11.6) and the real-lines line in R6. (6) Never touch `run.sh` or `sync.sh` through a zip.
+14. **Zip name and shape:** `Jarvis_partN.zip` (UNDERSCORE, a letter after the number is fine, like `Jarvis_part84b.zip`), files at the top level with NO `Jarvis-main/` folder. `run.sh` and `sync.sh` pick up only `Jarvis_part*.zip`. A wrongly named zip once left `lang.py` out and the server crashed in a loop.
+15. **Keep this README simple:** a normal person must understand sections 1 to 9. New detail goes to the R sections, not to the top.
 
-## 5. Setup (phone, Termux)
+
+## 9. KNOWN LIMITS AND FIXES (honest list)
+- Speech to text: the phone listens in ONE language at a time. For Tamil, Gujarati and so on, choose that language in "Speak:" (Settings, voice panel). Switching by itself between languages needs the Sarvam key (not built yet).
+- Urdu: command words (open, torch, on, off) work; unknown Urdu app names are NOT matched, only known apps such as YouTube.
+- Odia: commands work; answers come in English or Hindi text (no Odia voice).
+- Sarvam voice speaks only Hindi and English. Other languages use the free Edge voices.
+- Send, pay, delete and similar steps always need Hussain's own tap. Passwords, OTPs and PINs are never typed.
+- Android does not let any app switch Wi-Fi, Bluetooth or location on or off by itself. Jarvis opens the page.
+- Interrupt (61): only with earphones; a Bluetooth speaker counts as earphones and may echo (the echo filter helps, not perfect). The phone speech service may beep and on some phones lowers Jarvis' voice while it listens. Needs a phone test.
+- Alarm (66): Android lets no app delete or switch off alarms or stop a timer; Jarvis opens the alarm list instead. Alarm, timer and search are said on their own, never inside a multi-step task.
+- Screen off: Android does not let an app open itself from the background. Making Jarvis the default phone assistant is the only full fix; it is big and risky, NOT planned.
+- Contacts saved in Tamil or other non-Latin, non-Hindi script are not found by `call` (Part 64).
+- Lists (Part 83): with only spaces, every word is one item; use commas for two-word items. Habits (Part 83): `aaj gym gaya` works only after `habit banao gym`, on purpose, so normal sentences are not taken. The streak counts the phone's calendar days. The day report is a button, it never runs by itself.
+- Fixes from phone test round 1 (17 Nov 2026): if `Open YouTube` says `Android did not let me open it`, the chat now shows Android's real reason in brackets; send that reason. If `Mic: speech error 11` keeps coming, update Google Speech Services or restart. If `Online voice failed ... NoAudioReceived`, run `pip install -U edge-tts` in Termux, restart `bash run.sh`, and make sure the phone has a Google speech voice installed. An app that is not installed is not found (the list is the phone's real list).
+- Termux closing by itself: Android kills it to save battery. Settings > Apps > Termux > Battery > No restriction; keep the Termux notification visible; install Termux:Boot for restarts.
+
+
+---
+
+# REFERENCE (old detail, open only when needed)
+
+## R1. How it works
+```
+Chrome or Android app  -->  Python server in Termux (127.0.0.1:8787)  -->  AI provider (Groq, OpenRouter, ...)
+   web/index.html             backend/app.py + helper files               SQLite: backend/jarvis.db
+```
+- Backend: plain Python (no FastAPI, it fails to build in Termux). Frontend: one file, `web/index.html`.
+- AI: 5 providers (groq, openrouter, mistral, deepseek, nvidia). The first one that works answers.
+- Keys: paste in Settings. Jarvis finds the company, tests the key, shows a green tick. Stored in `backend/keys.json` (gitignored).
+- Pairing: 6-digit code in Termux, valid 10 minutes, one use. The phone gets a token. Only its hash is stored.
+- Voice: free Microsoft neural voices through `edge-tts` (`pip install edge-tts`). Target: calm, deep Hindi-dub Iron Man Jarvis
+  (Rajesh Khattar style). A real actor's voice cannot be cloned, so we get close with Madhur + lower pitch + slower speed.
+- App (Part 16): a thin Android WebView shell in `android/`. It shows the same page from the Termux server. Built by GitHub Actions.
+
+## R2. Setup (phone, Termux)
 Once: `pkg install git python unzip openssl-tool && termux-setup-storage` (openssl-tool is for backups, Part 47), `pip install edge-tts`, GitHub login (`git config --global credential.helper store`).
 The GitHub token must also allow **workflow** files (needed from Part 16, or the push is rejected).
 Daily: `cd ~/Jarvis && bash run.sh`. Open **http://127.0.0.1:8787** (or the Jarvis app). First time: pairing code, then Settings for the key.
 Auto-start (Part 11): Termux starts Jarvis when opened. Turn off with `JARVIS_NO_AUTOSTART=1` in `.env`.
+**Pairing screen:** open Termux, find the last line `PAIRING CODE: 123456` and type those 6 numbers (valid 10 minutes). Old or missing? Tap "Show code in Termux". Pairing stays after updates because Part 36 uses one fixed signing key; if an old APK was signed with a random key, uninstall it ONCE, install the new APK and pair one last time.
 
-## 6. STATUS (16 Nov 2026): Parts 1 to 39, 41 to 47, 50, 51, 52, 54, 55 and 56 are built
-Everything below is built and pushed. "Phone test" says only what Hussain has already seen working on his phone. Anything not marked YES still needs one quick try (a bug found there = one small fix zip, not unfinished work).
-| Part | What | Status | Phone test |
-|---|---|---|---|
-| 1-5 | Server, pairing, chat, history, mic (Chrome), keys, 5 AI providers | DONE | YES |
-| 6-9 | Voice: neural voices, sliders, Hindi style, memory | DONE | YES (voice plays; matching the movie voice is still being tuned) |
-| 10-11 | Reminders, money ledger, auto-update `run.sh`, auto-start | DONE | YES (update and push seen in Termux) |
-| 12-14 | Privacy bar, web read and search, morning briefing, duplicate-zip protection | DONE | YES for duplicate-zip protection, NOT YET for the rest |
-| 15 | New professional look (dark/light, gold accent, simple English) | DONE | YES |
-| 16-17 | Android app shell, GitHub APK build, build log | DONE | YES (build is green, app opens) |
-| 18 | Reminder notifications with the app closed | DONE | NOT YET |
-| 19 | Calls and contacts (app only, not saved) | DONE | NOT YET |
-| 20 | People notes | DONE | NOT YET |
-| 21 | Location, only when asked | DONE | NOT YET |
-| 22 | Camera: describe one photo | DONE | NOT YET |
-| 23 | Screen reader (app only, not saved) | DONE | NOT YET |
-| 24 | Phone check "why is my phone slow" | DONE | NOT YET |
-| 25 | Mic inside the app, "Hey Jarvis" while the app is open | DONE | NOT YET |
-| 26 | Security check, polish, "clear history" | DONE | NOT YET |
-| - | Update status line in the app header (`~/.jarvis_last`) | DONE | YES |
-| - | Voice presets: Khattar, Rolex, Jarvis studio (Hindi), Jarvis studio (British English), Normal | DONE | Hussain will pick the closest to the movie Jarvis |
-| 27 | Security: WebView permission checks, http only for 127.0.0.1, permissions asked when first used | BUILT | NOT YET (Java not compiled yet) |
-| 28 | Real Stop kept in Java (`Privacy.java`), saved across restarts, restart only by a finger tap | BUILT | NOT YET |
-| 29 | Privacy dashboard in Settings (allowed vs running, last used, activity log), server-offline banner | BUILT | NOT YET |
-| 30 | Command layer: "WhatsApp kholo" (Hindi, English, Hinglish) becomes one action from a fixed list. Master switch "Phone control" OFF by default, only a finger tap turns it on, Stop turns it off. Limited AI fallback, checked by the server | BUILT | NOT YET (server tests pass; Java not compiled) |
-| 31 | App launch: Java lists apps with a launcher icon, matches by name (Hindi names, small spelling mistakes), asks with buttons when two fit, never opens an app that is not on the phone | BUILT | NOT YET (Java not compiled) |
-| 32 | Better screen reading: lines are tagged button, field, switch, scroll area; typed text in fields is never read; OTP, PIN, CVV, card, Aadhaar, PAN, bank account and password values are hidden before the AI sees them; honest message when an app shows nothing | BUILT | NOT YET (redaction tested in Python; Java not compiled) |
-| 33 | Risk and confirm rules: send, pay, buy, delete, install, account need a preview and Hussain's own tap on Yes (script clicks ignored, 60 s timeout); typing a password, OTP, PIN or card number is always refused. No action can send or change anything yet; Part 34 plugs into this gate | BUILT | NOT YET |
-| 34 | Safe screen actions: press a button by name, scroll, type in a text box, back, home, which app is open. Each step finds the control again on the live screen, never types in password/OTP/PIN/card boxes, checks after the step and says if nothing changed. Send, pay, delete type buttons need your Yes (and a real finger tap checked in Java). Swipe only as a confirmed fallback when nothing can scroll. Jarvis can now also answer "how far is the app" from this README | BUILT | NOT YET (server tests pass; Java not compiled) |
-| 35 | Lock phone: "phone lock kar do" uses Android's own lock action (Android 9 or newer), then Java checks the real lock state and Jarvis says honestly if it could not confirm. There is no unlock command | BUILT | NOT YET (Java not compiled) |
-| 36 | App lock with Android's own prompt (fingerprint, face, PIN; closes the app if cancelled; 1 minute grace; the bridge refuses while locked). WhatsApp-style time under every message and a date line (Today, Yesterday). Jarvis now knows the time and how long you were away. Mic waits 4 to 5 seconds of quiet before it ends your sentence. "Kitna kaam ho gaya" now answers progress. **Pairing fix:** one fixed signing key, so an update installs over the old app and keeps your pairing | BUILT | NOT YET (Java not compiled; install once with uninstall first, see section 7) |
-| 37 | Settings help: "wifi settings kholo", "bluetooth", "location", "sound", "brightness" (opens Display page), "battery", "permissions", "notifications" open fixed Android pages. "torch on/off" switches the flashlight. "volume badhao/kam karo" changes the music volume and says what Android really did. Wi-Fi, Bluetooth, location and brightness are NEVER switched by Jarvis (Android does not allow it): Jarvis opens the page and says so. Needs Phone control ON | BUILT | NOT YET (Java not compiled) |
-| 38 DONE | Quick Settings tile \"Jarvis\" (swipe down, edit tiles, add it) and an icon shortcut (long-press the Jarvis icon, \"Listen\"). One tap opens Jarvis and starts the mic. Never works while Jarvis is stopped or locked | BUILT | NOT YET (Java not compiled) |
-| 39 | Background mic TEST (Settings > "Background listening test"): Start test, a notification with Stop stays visible, ends by itself after 8 h. It only COUNTS how often it heard "Jarvis", how often with the screen off and with the app closed. It keeps no words, sends nothing to the page or server, does no phone action. Starts only after your finger tap, never while Jarvis is stopped or locked. Stop everything ends it. Opening the mic in the app ends it (one listener at a time). The card also shows phone brand, Android version, battery limit and says if Android killed it | BUILT | NOT YET (Java not compiled; needs one day on the phone) |
-| 56 | Home tab: a Chat / Home switch under the header. Home shows the orb (gold = ready, pulsing = listening, red = stopped), greeting and date, today's reminders and money entries due today or late, quick buttons (Talk, Briefing, Reminders, Ledger, Settings, Stop everything) and the phone and server numbers. New server route `/today` | BUILT | NOT YET (page syntax checked only) |
-| 41 | Task engine (server): "Chrome kholo aur neeche scroll karo phir back jao" is split into up to 6 steps from the fixed action list (open app, back, home, scroll, click, torch, volume, settings page, which app is open, lock only as the last step). No AI is used to plan. Table `tasks` with the 10 states. Restart rule: when the server starts, RUNNING and VERIFYING tasks become FAILED with a note (also after 10 minutes of no news). Steps that need your Yes (send, pay, delete) or that type text or touch passwords are NEVER put in a task: Jarvis says so and does nothing | BUILT | NOT YET (server syntax checked only) |
-| 42 | Task runner (app): runs the steps in Java one at a time with Jarvis in the background. Before every step it checks Stop, Phone control, app lock and Cancel. After every step it checks the step really did something (a click or scroll that changed nothing counts as failed). It stops at the first failed step. Notification with a Cancel button while it runs. Result (steps with tick or cross, and why it stopped) comes back to the chat when you return. The server then sets COMPLETED, PARTIAL, FAILED or CANCELLED from what the app really reported. Stop everything ends it at once | BUILT | NOT YET (Java not compiled) |
-| 55 | Conversation mode (app only): button "Conversation" starts it. After each answer the phone mic opens by itself (0.5 s pause so it does not hear Jarvis). Ends after 2 silent rounds, on "bas" or "stop", after 20 turns, on Stop everything, or if the app goes to the background. Phone speech service may beep | BUILT | NOT YET (page and Java not run) |
-| 54 | Smart memory: when you state a personal fact ("mere bhatije ka naam Arman hai") Jarvis answers and shows "Should I remember this?" Yes / No. Only your finger tap on Yes saves it (normal "yaad rakho" path, so passwords and OTPs are still refused). Questions are never offered | BUILT | NOT YET (server tests pass; page JS syntax checked only) |
-| 43 | Phone checklist: section 11.8 is now one table, one row per Part (what to do, what you should see). Docs only, no code, no test file | BUILT | NOT YET (nothing to run) |
-| 51 | Voice engine (server): new `voiceengine.py`. Two voices, TONY (conversation) and JARVIS (information, task result, reminder, briefing, alert). Six intents, a policy table, JARVIS when unsure. `/tts` without `voice` now takes `intent` or `profile` and sends the header `X-Voice` (who spoke). New routes `GET /voice` and `POST /voice/set`; settings live in `voice.json` (survives restart, gitignored). Old `/tts` with `voice` still works (classic). Hindi has only one male Edge voice (Madhur), so in Hindi the two differ by depth and speed; in English they are different voices (Tony: Prabhat, JARVIS: Ryan) | BUILT | NOT YET (Python syntax checked only) |
-| 52 | Voice settings (page): Settings > "Voice personality" with a Tony card and a JARVIS card (Depth, Speed, Test, Use always), Auto routing switch, a switch for the classic voice, and a badge that shows the voice that really spoke (Tony, JARVIS, classic, or phone voice if the online voice failed). Changing a setting stops the voice that is speaking. Reminders, briefing, task results and photo answers now send an intent | BUILT | NOT YET (page JS syntax checked only) |
-| 44 | Repeat reminders and birthdays (server): say "roz subah 9 baje chai yaad dilana", "har hafte", "har mahine", "har saal" (or daily, every week, monthly, yearly) and the reminder repeats; one new column `rep` in `reminders` (old rows untouched). "Faisal ka birthday 15 Nov" saves a yearly reminder at 09:00 and a note in People; "birthdays" lists them; "my reminders" now only lists (before it could create a new reminder by mistake). Phone calendar (app): "my calendar", "aaj ke events", "events tomorrow", "events this week" read title, time and place for up to 14 days through the new `CalendarInfo.java`; permission READ_CALENDAR asked when first used; a Calendar row in the privacy dashboard; never saved, not sent to the AI | BUILT | NOT YET (Python logic run here; Java not compiled; page JS syntax checked only) |
-| 45 | Richer briefing: "briefing" now also shows today's phone calendar events (app only, only when you type or say briefing, never at the automatic morning briefing so no surprise permission prompt). Suggestions: up to 3 a day in total, three fixed rules (late ledger entries, a birthday in the next 3 days, reminders tomorrow), no AI. The automatic morning briefing stays silent in quiet hours (default 22:00 to 07:00). Switch by chat: `suggestions off/on`, `money|birthday|tomorrow suggestions off/on`, `quiet hours 22 to 7`, `briefing settings`. Settings live in `brief.json` (gitignored, survives restart). **Also in this zip:** battery bar is green when full and red only when low (20 percent or less; amber 40 or less); Settings > Privacy card now explains how to turn on "Jarvis screen reader" when Android greys it out (Restricted settings: Jarvis app info > 3 dots > Allow restricted settings) | BUILT | NOT YET (Python logic run here; page JS syntax checked only) |
-| 46 | Routines: a routine is a name for a task sentence. `routine banao subah: Chrome kholo aur neeche scroll karo` saves it (2 to 6 steps, checked when saved: no send, pay, delete, typing; lock only last). Run it with `routine subah` (or `run routine subah`, `subah routine chalao`). `my routines` lists, `routine delete subah` removes; max 10; same name replaces. Running plans the sentence again through the task engine, so the Phone control switch, app-only rule, Stop, app lock and per-step checks apply every time and the run shows in task history. New table `routines` (name and sentence only). Home tab has a Routines button. No time trigger yet (use a reminder to remember it) | BUILT | NOT YET (Python logic run here; page JS syntax checked only; steps run by the Part 42 Java runner, not compiled) |
-| 47 | Backup: Settings > Backup card. Type a passphrase (8+ characters), tap Make backup: memory, people, pending reminders (with repeat), open ledger entries and routines go into ONE file `Jarvis_backup_DATE.jbk` in Downloads, locked with OpenSSL AES-256 (pbkdf2, 200000 rounds), no home-made encryption. Chat history only if you tick the box. API keys, pairing, tasks and paid/old items are never in it. Restore: type the passphrase, tap Restore on a file, see a preview (how many NEW rows per kind), then tap Yes. It only ADDS what is new, never overwrites or deletes; password/OTP/PIN words are skipped; People and Memory keep their limits. Works on a new phone after pairing. Wrong passphrase or a damaged file is refused (a SHA-256 check inside the file catches damage, it is not protection against someone who knows your passphrase). Delete everything: say `delete everything`, Jarvis explains, then only the exact capital-letter phrase DELETE ALL MY JARVIS DATA wipes memory, people, reminders, ledger, routines, tasks and chat (keys and pairing stay). The passphrase is never typed in chat, never saved, never logged. Needs once: `pkg install openssl-tool` | BUILT | NOT YET (Python logic run here with real OpenSSL; page JS syntax checked only) |
-| 48 | **App lock fix:** the fingerprint prompt came back on every open because App lock was ON in Settings and asked again after 1 minute. Now it is switched OFF once on update, and if you turn it on again it waits 5 minutes. **Share to Jarvis:** in any app tap Share > Jarvis (text or a link); Jarvis shows it in chat with buttons Summarize, Explain simply, Hindi me batao, Reply draft, Remember. Nothing goes to the AI until you tap a button. **Handoff:** say `handoff` and Jarvis writes a short summary of the last chat lines (passwords, OTPs and private phone answers left out) with Copy and Share buttons, to paste in Claude or ChatGPT. **Lost phone:** say `phone kho gaya`: 5 steps (Google Find Hub, block SIM, Google password and sign-out, bank and UPI, FIR then Sanchar Saathi CEIR block) with buttons that open Find Hub and Sanchar Saathi. Jarvis cannot find, lock or erase the phone itself. **New Home dashboard** (from your two reference pictures): neon blue look, moving sound bars, a ring orb you tap to talk, greeting bubble, AI tools (Summarize, Translate, Write, Explain type the start of a sentence for you; Plan my day = briefing; Handoff), today's schedule, battery ring, reminders and money counts, smart shortcuts, phone and server numbers. The app now opens on Home. Weather, devices and trending news are NOT shown because Jarvis has no real data for them yet | BUILT | NOT YET (Python run here; page rendered and JS syntax checked; Java not compiled) |
-| 40 | **Offline wake word.** Settings > Background listening test now has a card "Offline wake word": tap Download model (about 40 MB, Vosk small English model from alphacephei.com over https, only after your tap), then "Use offline engine". The background listener then runs the Vosk engine ON THE PHONE (no Google speech service) and only looks for the word Jarvis (jarvis, jar vis, jarvish, jervis); nothing is saved, shown or sent. On a hit: Jarvis on screen = the mic opens (this ends the background listener, one listener at a time); app closed or screen off = a notification "Jarvis heard you, Tap to talk" (Android does not let an app open itself from the background). Counts still show in the test card. Same safety: finger tap to start, notification with Stop, 8 h limit, Stop everything ends it, never while locked. Delete model frees the space. New file `WakeEngine.java`; `build.gradle` gets two libraries (vosk-android 0.3.47 and jna 5.13.0) and only arm64 and armv7 code; app version 1.2. No checksum is checked for the model download (the Vosk project publishes none we could verify here). Hindi words are not understood; only the English-sounding word Jarvis | BUILT | NOT YET (Java not compiled; library and model download not run; first GitHub build is the compile test and may need one fix) |
-| 49a | **Clipboard button** (Home > Smart shortcuts > Clipboard): reads what you copied only when you tap, shows it in chat with the same buttons as Share (Summarize, Explain simply, Hindi me batao, Reply draft, Remember). A password, OTP, PIN or card-number-looking text is refused and never shown. Nothing is read in the background | BUILT | NOT YET (page JS syntax checked; Java not compiled) |
-| 50 | System card in Settings: phone RAM, storage, battery, heat, Jarvis server memory and CPU, uptime, internet. Server tests pass; page JS syntax checked only | BUILT | NOT YET |
-Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): Hey Jarvis works only while the app is open; mic in Chrome and in the app use different engines; the real actor's voice cannot be copied, only approached with the free voices; Android Files app may show empty ghost entries for zips that Termux already moved to `~/.jarvis_done`.
 
-## 7. What to do next
-0. **What to type on the pairing screen:** open the Termux app, find the last line `PAIRING CODE: 123456` and type those 6 numbers. The code works for 10 minutes. Old or missing? Tap "Show code in Termux" and look again.
-   **Pairing keeps coming back because every GitHub build used a new random signing key, so Android refused the update and you had to uninstall (that wipes the pairing). Part 36 fixes it with one fixed key. Do this ONCE: uninstall the old Jarvis app, install the new APK, pair one last time. After that, updates install over the app and the pairing stays.**
-   Termux closing by itself: Android kills it to save battery. Settings > Apps > Termux > Battery > No restriction; keep the Termux notification (wake lock) visible; install the Termux:Boot app for restarts.
-1. Download the zip, wait for "pushed" in the app header, run **Build APK** on GitHub, install it. If the build fails, send `build-log`.
-2. Test Parts 27, 28 and 29 with the list in section 11.8, plus the old cheat sheet. Report what fails with a screenshot.
-3. Parts 30 to 39, 41 to 47, 50, 51, 52, 54, 55 and 56 are BUILT. Download the zip, wait for "pushed", run **Build APK**, install, then test with section 11.8. All required Parts are built; test them with section 11.8. Dual voice: Parts 51, 52 and 53 are built (Sarvam added, Tony hidden), see section 11.6b. Section 11 is the full plan. Batches A to G in section 10 are merged into it.
-
-## 8. Cheat sheet (type or say)
+## R3. Cheat sheet (type or say)
 **Languages (Part 62, 63):** say or type the app name in any script: `ઓપન યુટ્યુબ`, `ஓபன் யூடியூப்`, `ఓపెన్ యూట్యూబ్`, `यूट्यूब उघडा`, `open Zomato`. Steps in a row work too (`ઓપન યુટ્યુબ અને ઓપન ક્રોમ`). Choose the same language in "Speak:" for the mic. Ask `battery kitni hai` or `charging status` for a local answer.
 
 **Notes (Part 72):** `note karo ki ...`, `meri notes`, `notes me bijli dhundo`, `delete note 3`.
@@ -391,7 +305,7 @@ Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): He
 | phone kho gaya / lost phone | Lost-phone steps with buttons for Google Find Hub and Sanchar Saathi |
 | (any app) Share > Jarvis | Shared text or link opens in Jarvis chat with buttons; nothing is sent until you tap one |
 
-## 9. Security and privacy
+## R4. Security and privacy
 - Server listens on 127.0.0.1 only. Only the page from that address may call it (Host and Origin are checked). Pairing code: 10 minutes, one use, locks after 5 wrong tries.
 - Token is stored as a hash on the server. Keys are stored in `backend/keys.json` (owner-only file, never in Git, never sent back to the browser).
 - Passwords, OTPs and PINs are never saved. Calls, contacts and screen text are never saved. Chat history is saved on the phone only; "clear history" deletes it.
@@ -401,32 +315,128 @@ Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): He
 - The Android app only opens the Jarvis address, has no file access, and is excluded from cloud backup. Accessibility is used only to read text when you ask.
 - Zips: only put zips you trust in Downloads. A zip can replace any file in the repo, including scripts.
 
-## 10. Future roadmap (NOT started, not part of the MVP)
-> Update 15 Nov 2026: the batches A to G below are now Parts 27 to 49 in section 11 (map in 11.7). Section 11 is the plan to follow.
-Rules for all future work: (1) finish and TEST one batch on the phone before starting the next; (2) every feature is one handler in the existing chat chain in `backend/app.py` plus, if it needs Android, one method in the existing `JarvisApp` bridge: no new server, no second database, no second scheduler; (3) every feature that reads private data is opt-in, shows up in the privacy dashboard, and never saves what it reads unless stated; (4) sensitive text (OTP, passwords, card numbers) is filtered with the same filter as memory (`memory.SECRET`, extended); (5) nothing here uses OpenJarvis code today (it was never installed); if one of its ideas is reused later, check its license first and credit it in a NOTICE file.
+## R5. OLD STATUS TABLE (16 Nov 2026): Parts 1 to 39, 41 to 47, 50, 51, 52, 54, 55 and 56 are built
+Everything below is built and pushed. "Phone test" says only what Hussain has already seen working on his phone. Anything not marked YES still needs one quick try (a bug found there = one small fix zip, not unfinished work).
+| Part | What | Status | Phone test |
+|---|---|---|---|
+| 1-5 | Server, pairing, chat, history, mic (Chrome), keys, 5 AI providers | DONE | YES |
+| 6-9 | Voice: neural voices, sliders, Hindi style, memory | DONE | YES (voice plays; matching the movie voice is still being tuned) |
+| 10-11 | Reminders, money ledger, auto-update `run.sh`, auto-start | DONE | YES (update and push seen in Termux) |
+| 12-14 | Privacy bar, web read and search, morning briefing, duplicate-zip protection | DONE | YES for duplicate-zip protection, NOT YET for the rest |
+| 15 | New professional look (dark/light, gold accent, simple English) | DONE | YES |
+| 16-17 | Android app shell, GitHub APK build, build log | DONE | YES (build is green, app opens) |
+| 18 | Reminder notifications with the app closed | DONE | NOT YET |
+| 19 | Calls and contacts (app only, not saved) | DONE | NOT YET |
+| 20 | People notes | DONE | NOT YET |
+| 21 | Location, only when asked | DONE | NOT YET |
+| 22 | Camera: describe one photo | DONE | NOT YET |
+| 23 | Screen reader (app only, not saved) | DONE | NOT YET |
+| 24 | Phone check "why is my phone slow" | DONE | NOT YET |
+| 25 | Mic inside the app, "Hey Jarvis" while the app is open | DONE | NOT YET |
+| 26 | Security check, polish, "clear history" | DONE | NOT YET |
+| - | Update status line in the app header (`~/.jarvis_last`) | DONE | YES |
+| - | Voice presets: Khattar, Rolex, Jarvis studio (Hindi), Jarvis studio (British English), Normal | DONE | Hussain will pick the closest to the movie Jarvis |
+| 27 | Security: WebView permission checks, http only for 127.0.0.1, permissions asked when first used | BUILT | NOT YET (Java not compiled yet) |
+| 28 | Real Stop kept in Java (`Privacy.java`), saved across restarts, restart only by a finger tap | BUILT | NOT YET |
+| 29 | Privacy dashboard in Settings (allowed vs running, last used, activity log), server-offline banner | BUILT | NOT YET |
+| 30 | Command layer: "WhatsApp kholo" (Hindi, English, Hinglish) becomes one action from a fixed list. Master switch "Phone control" OFF by default, only a finger tap turns it on, Stop turns it off. Limited AI fallback, checked by the server | BUILT | NOT YET (server tests pass; Java not compiled) |
+| 31 | App launch: Java lists apps with a launcher icon, matches by name (Hindi names, small spelling mistakes), asks with buttons when two fit, never opens an app that is not on the phone | BUILT | NOT YET (Java not compiled) |
+| 32 | Better screen reading: lines are tagged button, field, switch, scroll area; typed text in fields is never read; OTP, PIN, CVV, card, Aadhaar, PAN, bank account and password values are hidden before the AI sees them; honest message when an app shows nothing | BUILT | NOT YET (redaction tested in Python; Java not compiled) |
+| 33 | Risk and confirm rules: send, pay, buy, delete, install, account need a preview and Hussain's own tap on Yes (script clicks ignored, 60 s timeout); typing a password, OTP, PIN or card number is always refused. No action can send or change anything yet; Part 34 plugs into this gate | BUILT | NOT YET |
+| 34 | Safe screen actions: press a button by name, scroll, type in a text box, back, home, which app is open. Each step finds the control again on the live screen, never types in password/OTP/PIN/card boxes, checks after the step and says if nothing changed. Send, pay, delete type buttons need your Yes (and a real finger tap checked in Java). Swipe only as a confirmed fallback when nothing can scroll. Jarvis can now also answer "how far is the app" from this README | BUILT | NOT YET (server tests pass; Java not compiled) |
+| 35 | Lock phone: "phone lock kar do" uses Android's own lock action (Android 9 or newer), then Java checks the real lock state and Jarvis says honestly if it could not confirm. There is no unlock command | BUILT | NOT YET (Java not compiled) |
+| 36 | App lock with Android's own prompt (fingerprint, face, PIN; closes the app if cancelled; 1 minute grace; the bridge refuses while locked). WhatsApp-style time under every message and a date line (Today, Yesterday). Jarvis now knows the time and how long you were away. Mic waits 4 to 5 seconds of quiet before it ends your sentence. "Kitna kaam ho gaya" now answers progress. **Pairing fix:** one fixed signing key, so an update installs over the old app and keeps your pairing | BUILT | NOT YET (Java not compiled; install once with uninstall first, see section 7) |
+| 37 | Settings help: "wifi settings kholo", "bluetooth", "location", "sound", "brightness" (opens Display page), "battery", "permissions", "notifications" open fixed Android pages. "torch on/off" switches the flashlight. "volume badhao/kam karo" changes the music volume and says what Android really did. Wi-Fi, Bluetooth, location and brightness are NEVER switched by Jarvis (Android does not allow it): Jarvis opens the page and says so. Needs Phone control ON | BUILT | NOT YET (Java not compiled) |
+| 38 DONE | Quick Settings tile \"Jarvis\" (swipe down, edit tiles, add it) and an icon shortcut (long-press the Jarvis icon, \"Listen\"). One tap opens Jarvis and starts the mic. Never works while Jarvis is stopped or locked | BUILT | NOT YET (Java not compiled) |
+| 39 | Background mic TEST (Settings > "Background listening test"): Start test, a notification with Stop stays visible, ends by itself after 8 h. It only COUNTS how often it heard "Jarvis", how often with the screen off and with the app closed. It keeps no words, sends nothing to the page or server, does no phone action. Starts only after your finger tap, never while Jarvis is stopped or locked. Stop everything ends it. Opening the mic in the app ends it (one listener at a time). The card also shows phone brand, Android version, battery limit and says if Android killed it | BUILT | NOT YET (Java not compiled; needs one day on the phone) |
+| 56 | Home tab: a Chat / Home switch under the header. Home shows the orb (gold = ready, pulsing = listening, red = stopped), greeting and date, today's reminders and money entries due today or late, quick buttons (Talk, Briefing, Reminders, Ledger, Settings, Stop everything) and the phone and server numbers. New server route `/today` | BUILT | NOT YET (page syntax checked only) |
+| 41 | Task engine (server): "Chrome kholo aur neeche scroll karo phir back jao" is split into up to 6 steps from the fixed action list (open app, back, home, scroll, click, torch, volume, settings page, which app is open, lock only as the last step). No AI is used to plan. Table `tasks` with the 10 states. Restart rule: when the server starts, RUNNING and VERIFYING tasks become FAILED with a note (also after 10 minutes of no news). Steps that need your Yes (send, pay, delete) or that type text or touch passwords are NEVER put in a task: Jarvis says so and does nothing | BUILT | NOT YET (server syntax checked only) |
+| 42 | Task runner (app): runs the steps in Java one at a time with Jarvis in the background. Before every step it checks Stop, Phone control, app lock and Cancel. After every step it checks the step really did something (a click or scroll that changed nothing counts as failed). It stops at the first failed step. Notification with a Cancel button while it runs. Result (steps with tick or cross, and why it stopped) comes back to the chat when you return. The server then sets COMPLETED, PARTIAL, FAILED or CANCELLED from what the app really reported. Stop everything ends it at once | BUILT | NOT YET (Java not compiled) |
+| 55 | Conversation mode (app only): button "Conversation" starts it. After each answer the phone mic opens by itself (0.5 s pause so it does not hear Jarvis). Ends after 2 silent rounds, on "bas" or "stop", after 20 turns, on Stop everything, or if the app goes to the background. Phone speech service may beep | BUILT | NOT YET (page and Java not run) |
+| 54 | Smart memory: when you state a personal fact ("mere bhatije ka naam Arman hai") Jarvis answers and shows "Should I remember this?" Yes / No. Only your finger tap on Yes saves it (normal "yaad rakho" path, so passwords and OTPs are still refused). Questions are never offered | BUILT | NOT YET (server tests pass; page JS syntax checked only) |
+| 43 | Phone checklist: section 11.8 is now one table, one row per Part (what to do, what you should see). Docs only, no code, no test file | BUILT | NOT YET (nothing to run) |
+| 51 | Voice engine (server): new `voiceengine.py`. Two voices, TONY (conversation) and JARVIS (information, task result, reminder, briefing, alert). Six intents, a policy table, JARVIS when unsure. `/tts` without `voice` now takes `intent` or `profile` and sends the header `X-Voice` (who spoke). New routes `GET /voice` and `POST /voice/set`; settings live in `voice.json` (survives restart, gitignored). Old `/tts` with `voice` still works (classic). Hindi has only one male Edge voice (Madhur), so in Hindi the two differ by depth and speed; in English they are different voices (Tony: Prabhat, JARVIS: Ryan) | BUILT | NOT YET (Python syntax checked only) |
+| 52 | Voice settings (page): Settings > "Voice personality" with a Tony card and a JARVIS card (Depth, Speed, Test, Use always), Auto routing switch, a switch for the classic voice, and a badge that shows the voice that really spoke (Tony, JARVIS, classic, or phone voice if the online voice failed). Changing a setting stops the voice that is speaking. Reminders, briefing, task results and photo answers now send an intent | BUILT | NOT YET (page JS syntax checked only) |
+| 44 | Repeat reminders and birthdays (server): say "roz subah 9 baje chai yaad dilana", "har hafte", "har mahine", "har saal" (or daily, every week, monthly, yearly) and the reminder repeats; one new column `rep` in `reminders` (old rows untouched). "Faisal ka birthday 15 Nov" saves a yearly reminder at 09:00 and a note in People; "birthdays" lists them; "my reminders" now only lists (before it could create a new reminder by mistake). Phone calendar (app): "my calendar", "aaj ke events", "events tomorrow", "events this week" read title, time and place for up to 14 days through the new `CalendarInfo.java`; permission READ_CALENDAR asked when first used; a Calendar row in the privacy dashboard; never saved, not sent to the AI | BUILT | NOT YET (Python logic run here; Java not compiled; page JS syntax checked only) |
+| 45 | Richer briefing: "briefing" now also shows today's phone calendar events (app only, only when you type or say briefing, never at the automatic morning briefing so no surprise permission prompt). Suggestions: up to 3 a day in total, three fixed rules (late ledger entries, a birthday in the next 3 days, reminders tomorrow), no AI. The automatic morning briefing stays silent in quiet hours (default 22:00 to 07:00). Switch by chat: `suggestions off/on`, `money|birthday|tomorrow suggestions off/on`, `quiet hours 22 to 7`, `briefing settings`. Settings live in `brief.json` (gitignored, survives restart). **Also in this zip:** battery bar is green when full and red only when low (20 percent or less; amber 40 or less); Settings > Privacy card now explains how to turn on "Jarvis screen reader" when Android greys it out (Restricted settings: Jarvis app info > 3 dots > Allow restricted settings) | BUILT | NOT YET (Python logic run here; page JS syntax checked only) |
+| 46 | Routines: a routine is a name for a task sentence. `routine banao subah: Chrome kholo aur neeche scroll karo` saves it (2 to 6 steps, checked when saved: no send, pay, delete, typing; lock only last). Run it with `routine subah` (or `run routine subah`, `subah routine chalao`). `my routines` lists, `routine delete subah` removes; max 10; same name replaces. Running plans the sentence again through the task engine, so the Phone control switch, app-only rule, Stop, app lock and per-step checks apply every time and the run shows in task history. New table `routines` (name and sentence only). Home tab has a Routines button. No time trigger yet (use a reminder to remember it) | BUILT | NOT YET (Python logic run here; page JS syntax checked only; steps run by the Part 42 Java runner, not compiled) |
+| 47 | Backup: Settings > Backup card. Type a passphrase (8+ characters), tap Make backup: memory, people, pending reminders (with repeat), open ledger entries and routines go into ONE file `Jarvis_backup_DATE.jbk` in Downloads, locked with OpenSSL AES-256 (pbkdf2, 200000 rounds), no home-made encryption. Chat history only if you tick the box. API keys, pairing, tasks and paid/old items are never in it. Restore: type the passphrase, tap Restore on a file, see a preview (how many NEW rows per kind), then tap Yes. It only ADDS what is new, never overwrites or deletes; password/OTP/PIN words are skipped; People and Memory keep their limits. Works on a new phone after pairing. Wrong passphrase or a damaged file is refused (a SHA-256 check inside the file catches damage, it is not protection against someone who knows your passphrase). Delete everything: say `delete everything`, Jarvis explains, then only the exact capital-letter phrase DELETE ALL MY JARVIS DATA wipes memory, people, reminders, ledger, routines, tasks and chat (keys and pairing stay). The passphrase is never typed in chat, never saved, never logged. Needs once: `pkg install openssl-tool` | BUILT | NOT YET (Python logic run here with real OpenSSL; page JS syntax checked only) |
+| 48 | **App lock fix:** the fingerprint prompt came back on every open because App lock was ON in Settings and asked again after 1 minute. Now it is switched OFF once on update, and if you turn it on again it waits 5 minutes. **Share to Jarvis:** in any app tap Share > Jarvis (text or a link); Jarvis shows it in chat with buttons Summarize, Explain simply, Hindi me batao, Reply draft, Remember. Nothing goes to the AI until you tap a button. **Handoff:** say `handoff` and Jarvis writes a short summary of the last chat lines (passwords, OTPs and private phone answers left out) with Copy and Share buttons, to paste in Claude or ChatGPT. **Lost phone:** say `phone kho gaya`: 5 steps (Google Find Hub, block SIM, Google password and sign-out, bank and UPI, FIR then Sanchar Saathi CEIR block) with buttons that open Find Hub and Sanchar Saathi. Jarvis cannot find, lock or erase the phone itself. **New Home dashboard** (from your two reference pictures): neon blue look, moving sound bars, a ring orb you tap to talk, greeting bubble, AI tools (Summarize, Translate, Write, Explain type the start of a sentence for you; Plan my day = briefing; Handoff), today's schedule, battery ring, reminders and money counts, smart shortcuts, phone and server numbers. The app now opens on Home. Weather, devices and trending news are NOT shown because Jarvis has no real data for them yet | BUILT | NOT YET (Python run here; page rendered and JS syntax checked; Java not compiled) |
+| 40 | **Offline wake word.** Settings > Background listening test now has a card "Offline wake word": tap Download model (about 40 MB, Vosk small English model from alphacephei.com over https, only after your tap), then "Use offline engine". The background listener then runs the Vosk engine ON THE PHONE (no Google speech service) and only looks for the word Jarvis (jarvis, jar vis, jarvish, jervis); nothing is saved, shown or sent. On a hit: Jarvis on screen = the mic opens (this ends the background listener, one listener at a time); app closed or screen off = a notification "Jarvis heard you, Tap to talk" (Android does not let an app open itself from the background). Counts still show in the test card. Same safety: finger tap to start, notification with Stop, 8 h limit, Stop everything ends it, never while locked. Delete model frees the space. New file `WakeEngine.java`; `build.gradle` gets two libraries (vosk-android 0.3.47 and jna 5.13.0) and only arm64 and armv7 code; app version 1.2. No checksum is checked for the model download (the Vosk project publishes none we could verify here). Hindi words are not understood; only the English-sounding word Jarvis | BUILT | NOT YET (Java not compiled; library and model download not run; first GitHub build is the compile test and may need one fix) |
+| 49a | **Clipboard button** (Home > Smart shortcuts > Clipboard): reads what you copied only when you tap, shows it in chat with the same buttons as Share (Summarize, Explain simply, Hindi me batao, Reply draft, Remember). A password, OTP, PIN or card-number-looking text is refused and never shown. Nothing is read in the background | BUILT | NOT YET (page JS syntax checked; Java not compiled) |
+| 50 | System card in Settings: phone RAM, storage, battery, heat, Jarvis server memory and CPU, uptime, internet. Server tests pass; page JS syntax checked only | BUILT | NOT YET |
+Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): Hey Jarvis works only while the app is open; mic in Chrome and in the app use different engines; the real actor's voice cannot be copied, only approached with the free voices; Android Files app may show empty ghost entries for zips that Termux already moved to `~/.jarvis_done`.
 
-**Shared services we already have, to be reused:** SQLite database and `messages` history; chat chain in `app.py`; `remind.py` (time parsing, due check, notifications through `NotifyService`); `people.py`; `memory.py` and its secret filter; `brief.py`; `phone.py` rules; the `JarvisApp` bridge pattern (`PhoneInfo`, `ContactsInfo`, `ScreenService`, `Ears`); privacy bar and "stop listening"; zip update and push pipeline.
+## R6. BUILD LOG (what each Part did, with real lines)
 
-| # | Wish | Decision | How (reuse) | Batch |
-|---|---|---|---|---|
-| 7 | Privacy and permission dashboard | Yes, FIRST: every later feature adds a permission | Settings card: one row per feature (mic, location, screen reader, notification access, accounts/keys) with ON/OFF and a button to Android settings; small log of sensitive reads (time and feature only, never content) | A |
-| 9 | PC online/offline, safe reconnect | Reshaped: there is no PC part today. Build only server health and auto-reconnect in the app. PC monitoring only if a PC component is ever added | Existing `/status` plus header; app retries and shows "server offline" | A |
-| 3 | Calendar, birthdays, recurring events | Yes, by extending, not by a new calendar | Add a repeat field to reminders (daily, weekly, monthly, yearly); "birthday" notes in people become yearly reminders; read the phone calendar with a bridge method (read permission, only when asked or in briefing) | B |
-| 2 | Richer daily briefing | Yes, extend `brief.py` | Add calendar events and pending tasks (a task is a reminder without a time); dues and totals already there | C |
-| 12 | Proactive suggestions, never intrusive | Yes, but small and capped | A few fixed rules (payment due tomorrow, birthday, low storage from phone check); each can be switched off; max 3 per day; quiet hours; shown in the app, optional notification; no AI needed | C |
-| 5 | Multi-step routines, automation | Yes, as saved lists of EXISTING commands | A routine = a name plus commands run through the same chat chain (for example "good morning" = briefing + phone check). Only read-only or safe commands; anything that deletes, sends or pays is never allowed in a routine. Time triggers use reminders | D |
-| 8 | Task history, failure report, recovery | Yes, small | One `jobs` table for long actions (web read, photo, routine): status, error, retry button; on server start show "restarted, missed reminders: N" (reminders already survive restarts) | D |
-| 6 | Encrypted backup, export, restore, delete | Yes | Export memory, people, reminders and ledger (chat history optional) into one file encrypted with a passphrase; restore with a preview and merge; "delete everything" with a typed confirmation. Pick the encryption tool at build time (`openssl` from Termux is the likely choice); never write our own encryption | E |
-| 1 | Notification intelligence and daily summaries | Maybe, high risk, opt-in, after A to E | Android notification access (special permission) only for apps the user picks; skip OTP and password text; keep only app name, time and a short title for a few days; summary made on request from that short list; the text is never stored in full | F |
-| 10 | Clipboard assistance | Maybe, small | Only when the user taps a button (Android blocks background reads anyway); filter sensitive text; never monitor | F |
-| 4 | Authorized Claude, ChatGPT, browser help | Reshaped: official ways only | (a) "Share to Jarvis" from the Android share menu (the user sends text or a link on purpose); (b) a "handoff summary" the user can paste into any chat app. No reading of logged-in sessions, cookies or private accounts, and no controlling other people's accounts | G |
-| 11 | Lost-phone help | Guidance only | A card with steps and a link to Google's Find Hub and the SIM block steps. No remote control of the phone through Jarvis: that would need the server reachable from the internet, which is a bigger risk than the benefit | G |
+**Part 82: files and real lines.** `backup.py` 5, `remind.py` 31, `brief.py` 32, `phone.py` 68, `tasks.py` 15, `app.py` 6, `index.html` 31, `PaymentGuard.java` 48, `MainActivity.java` 15, `.gitignore` 1 (about 250 lines of code), README 60. The estimate was about 295. Tests: the full test suite was NOT RUN (Hussain's rule); only a Python syntax check, a JavaScript syntax check, a parse-only check of the Java and a small run of the new Python code were done.
 
-**Batch size estimates (code only, each under 350 lines):** A about 250 lines, 2-3 files. B about 250, 1-2 files. C about 200, 1 file. D about 300, 2 files. E about 200, 1 file. F about 350, 3 files (optional). G about 180, 2 files. Total about 1,700 lines, about 12 files, spread over 7 tested batches.
+**Part 83: files and real lines.** `lists.py` 93 (new), `habits.py` 122 (new), `tasks.py` 47, `brief.py` 19, `app.py` 10, `backup.py` 3, `index.html` 3 (about 297 lines of code; `screen.py` was not touched, the screen reader already existed). The estimate for these five ideas was about 245. Tests: the full test suite was NOT RUN (Hussain's rule). Done: Python compile of every backend file, a JavaScript syntax check of the page, a small run of each new function (lists, habits, day report time, battery guardian, backup and restore of the new tables, no clash with the older commands and no normal sentence taken by mistake). Not done: any phone test.
 
-**Not planned:** reading private accounts or sessions of other services; remote phone control; WhatsApp or SMS sending without a confirm tap; payments.
+**Part 84: files and real lines.** `spend.py` 109 (new), `replyideas.py` 26 (new), `brief.py` 10, `app.py` 7, `index.html` 8, `backup.py` 2 (about 162 lines of code; the estimate for ideas 3, 7 and 8 was about 130; the expense logger got its own file instead of growing `ledger.py`). Tests: the full test suite was NOT RUN (Hussain's rule). Done: Python compile of every backend file, a JavaScript syntax check of the page, a small run of the expense logger (logging, totals, undo, 12 ordinary sentences NOT taken), of the reply-ideas text (a secret in a notification is refused), and of backup and restore of the spending table. Not done: any phone test, and the real AI answer for reply ideas.
 
-## 11. MASTER PLAN: real phone control (Parts 27, 28 and 29 are built, not phone tested. The rest is plan only)
+### R6a. Parts 60 to 72 (each Part: files, lines, benefit, status)
+
+| Part | What it does | Files | Est. lines | Real lines | Benefit for Hussain | Status |
+|---|---|---|---|---|---|---|
+| 62 | Open ANY app on the phone by saying its name, in any script. The name is matched with the phone's real app list (exact, spelling, same consonants). Chat shows "Looking for the app...", then a tick or a cross. | `actions.py`, `lang.py`*, `Apps.java`, `index.html` | ~120 | about 60 | Every installed app opens, and he sees what happened | BUILT, not phone tested, Java not compiled |
+| 63 | Any Indian language: Hindi, Marathi, Gujarati, Tamil, Telugu, Kannada, Malayalam, Bengali, Punjabi, Odia, Urdu (commands) and English. Open app, torch, volume, settings pages and multi-step all work. Open-app answers come in the language spoken. Chat answers in that language. Voice for Tamil, Telugu, Gujarati, Kannada, Malayalam, Bengali, Marathi, Urdu. Speak language list in the app. | `lang.py`*, `actions.py`, `tasks.py`, `app.py`, `tts.py`, `index.html` | ~180 | about 85 | Speak in his own language and get work done | BUILT, not phone tested |
+| 64 | "Ammi ko call karo" (any language) calls the contact by name. Two matches: asks which. Screen shows "Calling Ammi...". | `CallByName.java`*, `MainActivity.java`, manifest, `actions.py`, `tasks.py`, `index.html` | ~110 | about 199 (`CallByName.java` 105 new, `actions.py` 61, `index.html` 22, `MainActivity` 6, `tasks.py` 3, manifest 2) | No speed dial needed | BUILT, not phone tested, Java not compiled |
+| 65 | Phone health in Roman Hindi or English: "phone me kya problem hai", "bluetooth connected hai kya", "internet chal raha hai kya", "storage kitna bacha", "battery health". Says what is wrong and how to fix it (low battery, hot or failing battery, airplane mode, no internet, Wi-Fi without internet, full storage or memory, restart needed). | `PhoneInfo.java`, `phone.py`, `index.html`, manifest | ~100 | about 147 (`phone.py` 96, `PhoneInfo.java` 46, `index.html` 4, manifest 1) | One question tells him what is wrong with the phone | BUILT, not phone tested, Java not compiled |
+| 66 | Alarm and timer by voice in Roman Hindi or English: `subah 6 baje alarm laga`, `alarm 18:30`, `saade 6 baje alarm`, `raat 1 baje alarm`, `5 minute ka timer`, `aadha ghanta ka timer`, `alarm band karo` (opens the alarm list: Android lets no app delete alarms). A bare "6 baje" with no AM or PM becomes whichever comes next on the phone's clock. Uses Android's own Clock app. | `QuickSet.java`*, `MainActivity.java`, manifest (SET_ALARM, a normal permission), `actions.py`, `index.html`, `tasks.py` | ~60 | about 150 (`actions.py` about 105, `QuickSet.java` about 40, `index.html` 4, `MainActivity` 6, manifest 1) | Alarm and timer without touching the phone | BUILT, Python tested, Java not compiled, not phone tested |
+| 60 | Search inside an app, no typing: `YouTube par Arijit ke gaane search karo`, `play Kesariya on YouTube`, `Maps par petrol pump search karo`, `Chrome par weather in Mumbai search karo`; also Google, Play Store, Amazon, Flipkart, Spotify. Hindi script works too. Java builds the web address from its own fixed list (the page never sends a link); if the app is not installed the same search opens in the browser. `YouTube kholo` alone still just opens the app. | `actions.py`, `QuickSet.java`*, `MainActivity.java`, `index.html`, `tasks.py` | ~110 | about 114 (`actions.py` about 58, `QuickSet.java` about 46, `tasks.py` 3, `index.html` 1, tests 12) | "YouTube par Shah Rukh ke gaane chalao" works | BUILT, Python tested, Java not compiled, not phone tested |
+| 61 | Smart interrupt: while Jarvis speaks, the phone mic listens; the moment you start talking Jarvis stops and answers what you said. Button `Interrupt: on/off` next to Conversation (OFF by default). Works only with earphones connected (wired, USB or Bluetooth; checked each time Jarvis speaks), because the mic would hear Jarvis' own voice from the speaker. Words that match Jarvis' own sentence are ignored (echo filter). `ruko` / `stop` only stops him. Stop everything and Privacy mode switch it off. | `index.html`, `Ears.java`, `MainActivity.java` | ~160 | about 68 (`index.html` 33, `Ears.java` 29, `MainActivity` 6) | He can speak in the middle of an answer | BUILT, not phone tested, Java not compiled. Risk: some phones lower or pause Jarvis' voice when the speech service starts |
+| 67 | Weather on Home from a free weather service | `app.py`, `index.html` | ~80 | - | - | DROPPED by Hussain (17 Nov 2026): not wanted |
+| 68 | Music control by voice: `gaana pause karo`, `next song`, `agla gaana`, `pichla gaana`, `music band karo`, `gaana badlo`, a lone `pause` or `resume`. Sends the same media keys as earphone buttons to whatever player is active (Spotify, YouTube Music, YouTube...). Says honestly if nothing was playing. Volume words go to Part 37; `play Kesariya on YouTube` stays a search (Part 60). | `actions.py`, `QuickSet.java`, `index.html`, `tasks.py` | ~50 | about 62 (`actions.py` 40, `QuickSet.java` 19, `index.html` 3) | Pause or skip a song without touching the phone | BUILT, Python tested, Java not compiled, not phone tested |
+| 69 | WhatsApp message by contact name: `Ammi ko WhatsApp pe hello bhejo`, `Ammi ko whatsapp karo`, `send hello to Ammi on WhatsApp`, `Ammi ko whatsapp par bol do ki main late hu`, Hindi script works. Java finds the number in the phone's contacts (same finder as Part 64: sure match opens at once, several or close spelling show buttons). It only OPENS the chat with the text filled in; WhatsApp's send button is YOUR tap, Jarvis never sends. Needs Phone control ON and the Contacts permission. Uses `wa.me` (WhatsApp, then WhatsApp Business, then browser). | `actions.py`, `CallByName.java`, `index.html` | ~90 | about 95 (`actions.py` 56, `CallByName.java` 14, `index.html` 3, tests 6) | Message a person by name, hands free until send | BUILT, Python tested, Java not compiled, not phone tested |
+| 71 | Dual voice FIX (from the 17 Nov audit): Conversation now speaks as TONY; information, tasks, reminders, briefings, alerts and any unclear intent speak as JARVIS. Tony is shown again in Settings. Both are there from the first install, auto routing ON, saved in `voice.json` across restarts. On Sarvam each personality has its OWN speaker (Tony: aditya, JARVIS: rahul, changeable), so they really sound different. The badge and Settings say honestly when Edge Hindi uses ONE male voice (Madhur) for both, so only depth and speed differ. A speaker chosen before this Part is kept for JARVIS. | `voiceengine.py`, `app.py` (`/tts`), `index.html` | ~60 | about 55 | Two personalities that match what you asked for | BUILT, Python tested (routing, persistence), not phone tested, nobody has LISTENED to the voices yet |
+| 72 | Voice notes and recall: `note karo ki kal bijli ka bill bharna hai`, `note: ...`, `take a note ...`, `नोट करो कि ...`; `meri notes`, `notes me bijli dhundo`, `bijli wala note`, `delete note 3`. Saved only on your own words, kept in a new small `notes` table in the SAME database (no second database), included in backup and restore and wiped by `delete everything`. Never sent to the AI. Passwords, OTPs, PINs, CVVs and card numbers are refused. Max 300 notes of 500 characters. The note text also sits in chat history like any message; `clear history` removes that copy. | `notes.py`*, `app.py`, `backup.py`, `test_app.py` | ~60 | about 75 (`notes.py` 70, `backup.py` 4, `app.py` 3) | Say a thought, find it later | BUILT, Python tested, not phone tested |
+
+`*` = new file. Estimates are rough; real numbers are filled in after each Part.
+
+**Total left: 0 required Parts.** Part 67 (weather) is dropped. The only open work is Build APK, the phone test (section 11.8) and the optional ideas in the list below.
+
+### R6b. Parts 73 to 84: what was built and what was left out on purpose
+| Item | Decision |
+|---|---|
+| Dual voice, Conversation = Tony | BUILT (Part 71) |
+| Voice notes and recall | BUILT (Part 72) |
+| Fuzzy/misheard command words (alarm, timer, music) | BUILT (Part 73), Python tests pass, phone not tested |
+| Pause ScreenService while a payment app is open | BUILT (Part 73): auto OFF only (disableSelf), Android never lets an app turn accessibility back ON by itself, so a notification takes you straight to the Settings toggle. Default package list in `PaymentGuard.java`, editable later from Settings |
+| Screen wakes (like the power button) when "Jarvis" is heard with the screen off | BUILT (Part 73): same as pressing power, the lock screen still shows and still needs your own fingerprint/PIN/swipe |
+| Phone unlock by voice / bypassing the lock screen | REFUSED, will not be built in any form (always-listening + spoken secret = the exact pattern banking trojans use; a stolen or overheard phrase would open the phone to anyone) |
+| Settings page redesign | BUILT (Part 74): all 10 old flat sections grouped into 5 collapsible cards (Voice & Personality, Privacy & Security, Your Data, Notifications, Advanced). 🔊 voice panel is now a bottom sheet with its own ✕ close button instead of a tall inline row. No element id changed, so no backend/JS wiring broke; JS syntax check pass |
+| Daily Life Manager: Home card and briefing show today's reminders, ledger, birthdays (next 7 days) and latest notes in one place | BUILT (Part 75): `/today` now also returns `birthdays` and `notes`; one shared helper `remind.birthdays()`; briefing lists birthdays (3 days) and the 2 latest notes (only when you ask, never in the automatic one). Python only, no APK needed, not phone tested |
+| Routine at a fixed time | BUILT (Part 76): `routine subah roz 7 baje` (also `routine subah 7:30`, `routine gym shaam 6 baje`, `routine subah time hatao`). Time is the phone's clock, 24-hour; the reply repeats it so a wrong AM/PM can be fixed. No second scheduler: the page's existing 10-second `/due` check also asks `tasks.due_routines`. When the time comes the chat shows a message with a **Run** button (one tap, Jarvis never starts the phone steps by itself); once a day; silent if the page was closed for more than 3 hours. `my routines` shows the time; Home card shows timed routines (tap to run). Python + page only, no APK needed, not phone tested |
+| Smart Follow-up | BUILT (Part 77): 3 to 48 hours after a ONE-TIME reminder was told, the chat asks once 'ho gaya?' with buttons Haan / Nahi abhi. Spam rules: one question per day, one per reminder, never for repeating reminders or birthdays, silent from 22:00 to 07:00. Nahi = the same reminder once more after 2 hours (or 09:00 next morning), no further follow-up on it. New column `ask` on `reminders` (nothing deleted). Python + page only, no APK needed, not phone tested |
+| Privacy Activity Timeline | BUILT (Part 78): Settings > Privacy now shows a timeline grouped by day (Today / Yesterday / date), a 'Today: Mic 5x, Apps 3x' summary, and 40 latest lines. Java keeps the last 200 uses (was 30). New events logged, name and time only: Stop everything, Phone control ON/OFF, Paused for a payment app (app name NOT saved). Needs a new APK (`Privacy.java`, `ScreenService.java`); Java not compiled, not phone tested |
+| Missed-reminders summary (Claude's idea) | BUILT (Part 78): if 3 or more reminders are waiting when the page opens (you were away), they come as ONE chat message and ONE short voice line, not a pile of voices. 1 or 2 reminders speak one by one as before |
+| Deep Phone Performance Doctor | BUILT (Part 79): say `phone doctor`, `deep phone check`, `phone performance` or `full phone check`. Normal phone check plus a Deep check block: battery voltage, charge cycles (only Android 14+ if the phone reports it), charge now in mAh, RAM in GB, days since restart, brightness, screen timeout, with advice (long timeout, high brightness, old battery). Anything Android does not give is said as UNAVAILABLE, nothing is made up: CPU load, per-app battery/RAM/storage, heavy-app names (Jarvis does not ask for Usage Access). Needs a new APK (`PhoneInfo.java`); Java not compiled, not phone tested |
+| Phone problems in the briefing | BUILT (Part 80): `briefing` (and the automatic morning one) adds a 'Phone:' block with up to 2 real problems (low battery, full storage, heat...) from the same rules as Phone Doctor; nothing is added when the phone is fine. Python + page, no APK |
+| Weekly summary | BUILT (Part 80): say `weekly summary` or `is hafte ka summary`: last 7 days in numbers (reminders told, phone tasks/routines completed and failed, notes saved, open ledger entries and late ones, birthdays in the next 7 days). Read from existing tables, nothing new saved |
+| Routine on weekdays or weekends | BUILT (Part 80): `routine subah roz 7 baje sirf weekdays` (Mon to Fri) or `... weekend` (Sat, Sun). Without the word it is every day. New column `days` on `routines`. `my routines` shows it |
+| Duplicate folder cleanup | BUILT (Part 80): `scripts/sync.sh` now deletes the old stale copy `Jarvis-main/Jarvis-main/` (only if it holds its own `backend` and `README.md`) before each push, so GitHub loses it too and no old zip can bring it back. One-time command for right now: see the chat |
+| Backup keeps routine time and days | BUILT (Part 82): `backup.py` now saves and restores the routine time (HH:MM) and days (every day, weekdays, weekend). Old backups still restore (they get no time). A bad time in a file becomes 'no time', never an error. Python only, no APK |
+| Reminder snooze | BUILT (Part 82): every reminder in chat has a `⏰ 10 min` button; or say `snooze`, `snooze 20 min`, `10 min baad phir yaad dilao`, `थोड़ी देर बाद फिर याद दिलाओ` (the reminder told in the last 6 hours). The same text comes again, once, and gets no 'ho gaya?' question. New route `/snooze`. Python + page, no APK |
+| Day summary at night | BUILT (Part 82): say `aaj ka summary`, `day summary`, `evening summary` or `आज का सारांश`: reminders told, phone tasks and routines done, notes saved, open ledger, tomorrow's reminders and birthdays. Numbers only from existing tables, nothing new saved. Python only, no APK |
+| Hindi-script words | BUILT (Part 82): `रूटीन बनाओ`, `रूटीन सुबह रोज़ 7 बजे सिर्फ़ वीकडेज़`, `रूटीन सुबह समय हटाओ`, `रूटीन हटाओ ...`, `... रूटीन चलाओ`, the day words (`सुबह शाम रात दोपहर`) and weekday words. Letters like ज़ and फ़ work typed either way (NFC). Python only, no APK |
+| Phone Doctor storage trend | BUILT (Part 82): once a day (when you say `briefing` or a phone check in the app, or the morning briefing runs) Jarvis keeps TWO numbers, free and total storage, in `backend/phone_trend.json` (40 days, not in git). Say `storage trend` or `phone trend`: how much less or more free storage than up to 7 days ago, and if it keeps falling, in about how many days it is full. `phone doctor` shows the change and warns when it would be full in under 30 days. Needs 2 days of numbers. Chrome page numbers are never used (they are Termux's disk). Python only, no APK |
+| Payment apps list in Settings | BUILT (Part 82): Settings > Privacy & Security > Payment apps. The built-in apps cannot be removed. You add your own bank or UPI app from the phone's app list (up to 20) and can remove only your own. Add and remove need a real finger tap (same 3 second rule). Only package names are kept. Timeline shows 'Payment app list changed'. Needs a new APK (`PaymentGuard.java`, `MainActivity.java`); Java not compiled here (parse check only), not phone tested |
+| Shopping and packing lists by voice | BUILT (Part 83): `list me doodh bread add karo` (spaces or commas between items; use commas for two-word items like `brown bread, doodh`), `list dikhao`, `list se doodh hatao` (or the number), `list saaf karo`. A word before list makes another list: `packing list me charger add karo`. Max 100 items, 40 characters each. Passwords, OTPs, PINs and card numbers are refused. In Backup and Restore. Home tile Shopping list. Python + page, no APK |
+| Habit and streak tracker | BUILT (Part 83): first `habit banao gym` (max 10), then `aaj gym gaya`, `medicine le li` or `gym done` marks today once. `my habits` shows streaks, `habit report` the last 7 days, `gym streak` one habit, `habit hatao gym` removes it. Only habits you made are marked, so normal chat is never taken. The briefing lists the habits not done yet and the day summary shows done today. In Backup and Restore. Home tile Habits. Python + page, no APK |
+| Explain this screen in one tap | BUILT (Part 83): Home tile Explain screen, or say `explain this screen`, `screen samjhao`, `is screen pe kya hai`, `स्क्रीन समझाओ`. The old flow stays: switch to the app, Jarvis reads it after a few seconds, secrets are hidden first, nothing is saved. Page only, no APK |
+| Battery guardian | BUILT (Part 83): in the briefing, battery 16 to 19 percent and not charging gives one calm suggestion (charger, or battery saver and the words `battery settings kholo`). At 15 or less the older Phone Doctor line shows instead. It only suggests, nothing is switched. Python only, no APK |
+| Day report at a fixed time | BUILT (Part 83): `day report 9 baje` (a bare 9 means evening, 21:00; say `subah` or `am` for morning), `day report` shows the time, `day report off` stops it. Once a day at that time (up to 3 hours late) the page shows a Show day report button; the summary appears only after your tap and never by itself. Python + page, no APK |
+| Quick expense logger | BUILT (Part 84): `200 coffee`, `kharcha 50 auto`, `50 rupaye auto mein diye`, `spent 300 on petrol`. Category from a short word list (food, travel, bills, health, shopping, other). `kharcha` shows today, 7 days, this month and the 7-day split; `kharcha hatao` removes the last entry (or `#number`). The bare form `200 coffee` needs an amount of 10 or more and is not taken for time or counting words (`10 baje`, `5 minute`). Briefing, day summary and weekly summary show the total. Not the owe/get ledger. In Backup and Restore. Home tile Spending. Python + page, no APK |
+| Clipboard: Save as note, Add to list | BUILT (Part 84): after Home > Clipboard (or any text shared to Jarvis) two more buttons: Save as note (runs `note karo`) and Add to list (one item, up to 40 characters, runs `list me ... add karo`). Secrets are refused as before. Page only, no APK |
+| Reply ideas for a notification | BUILT (Part 84): Home > Notifications > Reply ideas, pick one of the last 5. The AI writes 3 short options, you tap Copy and send it yourself; Jarvis sends nothing. The notification text goes only in its own field, secrets are cleaned first, it is treated as data, and the chat history keeps only a placeholder. Needs the AI to be reachable. Python + page, no APK |
+| Smart App Search, Voice interruption | Already built (Parts 60, 61): only phone testing is left |
+| Scheduled routines at a time | BUILT (Part 76), see above: one-tap Run button, no auto-run |
+| Smart follow-ups, Privacy activity timeline | BUILT (Parts 77 and 78), see the rows above |
+| PC companion | NOT built: a security design must be agreed first, phone-first stays |
+| Weather on Home | DROPPED by Hussain |
+
+## R7. MASTER PLAN (old section 11; the sub-headings keep their 11.x numbers): real phone control (Parts 27, 28 and 29 are built, not phone tested. The rest is plan only)
 Audit date: 15 Nov 2026. Written from the real repo files, not from old README claims.
 
 ### 11.1 Goal in simple words
@@ -541,10 +551,20 @@ Phone brand and Android version are NOT known yet (decision D4).
 | Repo today | - | - | about 2,000 lines, about 30 files |
 | Repo after required Parts | - | - | about 4,800 lines, about 42 files |
 | Repo after everything | - | - | about 5,400 lines, about 46 files |
+| 85 | Java: note after a call, reminders by place | CallNote.java*, PlaceWatch.java*, MainActivity, manifest, index.html, app.py | ~200 | Without | Notes from calls and place reminders |
+| 86 | Home: next best move card, Now Next Later strip, honest Mission view | lens.py*, progress.py, app.py, index.html | ~260 | With | One card tells what matters now |
+| 87 | Memory Atlas and search everywhere | search.py*, memory.py, people.py, notes.py, app.py, index.html | ~180 | With | Find anything Jarvis knows |
+| 88 | Source labels and Red Team | web.py, redteam.py*, app.py, index.html | ~105 | With | Honest research answers and a second opinion |
+| 89 | Decision Debt and text Time Capsule | decisions.py*, capsule.py*, brief.py, backup.py, app.py, index.html | ~175 | With | Postponed decisions and messages to the future |
+| 90 | Mood check-in and last talked | mood.py*, touch.py*, brief.py, backup.py, app.py | ~170 | With | Care and people, only what he says |
+| 91 | Habit Contract and timed modes | habits.py, modes.py, app.py, index.html | ~150 | With | Discipline without real money |
+| 92 | Context Ghost, Recovery card, Life Timeline | ghost.py*, events.py*, app.py, index.html | ~260 | With | Optional, later |
+| 93 | Java: Anti-Doomscroll, app map, Memory Palace | UsageWatch.java*, PlaceWatch.java, MainActivity, manifest, index.html | ~210 | Without | Optional, after Part 85 |
 Estimates are rough (plus or minus 25 percent). Real numbers go into this table after each Part.
 
 
-**Build order (next first):** all required Parts are built. Next: build the APK and test on the phone (section 11.8), including 49b and Part 53 with a Sarvam key. Optional left: Weather on Home, search inside an app. Ideas not planned yet: weather on Home (needs location and a free weather service), a portrait image for the Home orb.
+**Build order (next first):** 85, 86, 87, 88, 89, 90, 91. Optional: 92, 93.
+First of all comes Build APK and the phone tests of Table A (section 7). Weather is dropped.
 
 ### 11.6b Dual voice personality plan (added 15 Nov 2026; Parts 51, 52 and 53 built 16 Nov 2026; Tony hidden, provider changed to Sarvam)
 Goal: two default voices that switch by themselves. Default from the first start: Tony and JARVIS with Auto routing ON (Hussain asked for this on 16 Nov 2026); the classic voice is only used if he switches it on in Settings. TONY = conversation (confident, witty, Hinglish). JARVIS = information, tasks, reminders, briefings, alerts (calm, deep, precise). No cloning of Rajesh Khattar or Atul Kapoor. Original or licensed voices only.
@@ -553,18 +573,6 @@ Goal: two default voices that switch by themselves. Default from the first start
 **Rules for Parts 51 to 53:** reuse `tts.py` and `/tts`; no second server, no new database table, no new Android permission; keys only in `keys.json`; JARVIS is the fallback when intent is unclear; the voice that speaks is the voice that is shown; if a provider fails, fall back to Edge, then to the browser voice, and show which one spoke.
 **Provider choice:** step 1 (Part 51 and 52) uses Edge only: Tony = Madhur, normal pitch, a little faster; JARVIS = Madhur, lower and slower. Free, but the two will sound related. Step 2 (Part 53, built): Sarvam Bulbul v3 instead of Google (Hussain's choice). Endpoint `POST https://api.sarvam.ai/text-to-speech`, header `api-subscription-key`, reply is JSON with base64 wav in `audios`. Needs internet and his own key; pricing and free credit not checked, look at his Sarvam account. Not yet tested with a real key or for Hinglish.
 **Cost and internet:** Edge is free and needs internet. Google is pay as you go (a 200 character reply is about 0.006 USD at list price). Offline fallback is the browser voice, not Tony or JARVIS.
-
-### 11.7 Order and map of old batches
-Why this order: Parts 27 to 29 come first because every later power needs a safe base and a real Stop. 30 before 31 and 37 because they use the command layer. 32 and 33 before 34 because clicking needs safe reading and confirm rules first. 35 and 36 before background voice. 41 and 42 only after single actions work. Real phone tests between groups.
-| Old name | Now |
-|---|---|
-| Batch A (privacy dashboard, server health) | Parts 28, 29 |
-| Batch B (recurring, birthdays) | Part 44 |
-| Batch C (briefing, suggestions) | Part 45 |
-| Batch D (routines, task history) | Parts 41, 42 and 46 |
-| Batch E (backup) | Part 47 |
-| Batch F (notifications, clipboard) | Part 49 (optional) |
-| Batch G (share, handoff, lost phone) | Part 48 |
 
 ### 11.8 Phone checklist (Part 43). Try each row once on the phone. A bug = one small fix zip.
 | Part | Do this | You should see |
@@ -657,4 +665,3 @@ What changes for Hussain: the first mic tap asks for the microphone; the first "
 Fixes in the same zip: (1) the Settings system card used a helper (`el`) that only existed inside another function, so it would have stayed empty; it is global now. (2) Durations over 60 minutes now show as hours and minutes everywhere (page and `clock.py`, for example "1 h 15 min", never "75 minutes").
 
 How the dashboard works (Part 29): open Settings (gear), the first card is "Privacy and permissions". Each row shows three separate things: permission (Allowed or Not allowed, from Android), running now (from Java, not from the page), and last used. A permission being allowed never means a feature is running. Screen reader shows "Accessibility ON" only when the Jarvis accessibility service is really connected. "Reminder service ON" means the background service is really up. The activity log keeps only the feature name and time (max 30 lines, one entry per feature per minute) and never any content. "Open settings" buttons open one fixed Android page each. If the server stops, a red banner appears after about 10 seconds and Jarvis retries every 5 seconds; it clears by itself when the server is back. Chrome shows only the server line, because Android permissions exist only in the app.
-
