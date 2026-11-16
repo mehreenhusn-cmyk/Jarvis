@@ -59,8 +59,7 @@ def suggest(c, dev, n, hindi, s, auto):
         if late:
             out.append(say(f"{len(late)} हिसाब की तारीख़ निकल चुकी है। 'show ledger' देखिए।", f"{len(late)} ledger entries are past their date. Say 'show ledger'."))
     if s["rules"]["birthday"]:
-        for t, d in c.execute("SELECT text, due FROM reminders WHERE device=? AND rep='yearly' AND text LIKE '🎂%' AND due>=? AND due<? ORDER BY due", (dev, start + 86400, start + 4 * 86400)):
-            out.append(f"{t} - {remind.show(d)[:6]}")
+        out += [f"{t} - {on}" for k, t, on in remind.birthdays(c, dev, n, 4) if k >= 1]  # Part 75: same helper as Home, no duplicate SQL
     if s["rules"]["tomorrow"]:
         k = c.execute("SELECT count(*) FROM reminders WHERE device=? AND sent=0 AND due>=? AND due<?", (dev, start + 86400, start + 2 * 86400)).fetchone()[0]
         if k:
@@ -96,7 +95,9 @@ def build(c, dev, now, hindi, auto=False, cal=None):
     near = [x for x in L if x[4] and x[4] <= soon]
     ev = events(cal, hindi)
     sug = suggest(c, dev, n, hindi, load(), auto)
-    if not rem and not near and not ev and not sug and auto:
+    bd = [(t, k, on) for k, t, on in remind.birthdays(c, dev, n, 3)]  # Part 75: janamdin aaj se 3 din tak
+    nt = [] if auto else [r[0][:80] for r in c.execute("SELECT text FROM notes WHERE device=? ORDER BY id DESC LIMIT 2", (dev,))]  # latest notes: sirf jab aap khud briefing maangein
+    if not rem and not near and not ev and not sug and not any(k == 0 for _, k, _ in bd) and auto:
         return ""
     say = (lambda hi, ro: hi if hindi else ro)
     out = [say("सुप्रभात सर।", "Suprabhat sir.") + " " + time.strftime("%d %b", time.gmtime(n))]
@@ -112,7 +113,13 @@ def build(c, dev, now, hindi, auto=False, cal=None):
     if L:
         dn, ln = ledger.totals(L)
         out.append(f"{say('कुल देना', 'You owe')}: {ledger.money(dn)} | {say('कुल लेना', 'You get')}: {ledger.money(ln)}")
-    if not rem and not near and not ev:
+    if bd:
+        out.append(say("जन्मदिन:", "Birthdays:"))
+        out += [f"- {t} - " + (say("आज", "today") if k == 0 else on) for t, k, on in bd]
+    if nt:
+        out.append(say("ताज़ा नोट्स:", "Latest notes:"))
+        out += [f"- {x}" for x in nt]
+    if not rem and not near and not ev and not bd:
         out.append(say("आज कुछ ज़रूरी बाकी नहीं है।", "Nothing important is pending today."))
     if sug:
         out.append(say("सुझाव:", "Suggestions:"))

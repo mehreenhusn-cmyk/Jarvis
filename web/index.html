@@ -681,10 +681,12 @@ let tj=null,homeT=0;
 for(let i=0;i<30;i++){const x=document.createElement('i');x.style.animationDelay=(i%7)*0.12+'s';x.style.height=(5+Math.abs(Math.sin(i/2.2))*17)+'px';$('wave').appendChild(x);}
 function todayCard(){const b=$('ht');b.textContent='';
   if(!tj){b.textContent='Server offline: nothing to show.';$('hn1').textContent=$('hn2').textContent='-';return;}
-  const r=tj.reminders||[],l=tj.ledger||[];$('hn1').textContent=r.length;$('hn2').textContent=l.length;
-  if(!r.length&&!l.length){b.textContent='Nothing planned for today. Say: remind me tomorrow 9 am to ...';return;}
+  const r=tj.reminders||[],l=tj.ledger||[],bd=tj.birthdays||[],nt=tj.notes||[];$('hn1').textContent=r.length;$('hn2').textContent=l.length;
+  if(!r.length&&!l.length&&!bd.length&&!nt.length){b.textContent='Nothing planned for today. Say: remind me tomorrow 9 am to ...';return;}
   r.forEach(x=>{const d=el('div','tr');d.append(el('em','',(x.done?'✓ ':'')+x.at),el('span','',x.text));b.appendChild(d);});
-  l.forEach(x=>{const d=el('div','tr'+(x.late?' bad':''));d.append(el('em','','💰'),el('span','',x.text+(x.late?' (late)':' (due today)')));b.appendChild(d);});}
+  l.forEach(x=>{const d=el('div','tr'+(x.late?' bad':''));d.append(el('em','','💰'),el('span','',x.text+(x.late?' (late)':' (due today)')));b.appendChild(d);});
+  bd.forEach(x=>{const d=el('div','tr');d.append(el('em','','🎂'),el('span','',x.text.replace(/^🎂\s*/,'')+(x.in==0?' - today':x.in==1?' - tomorrow':' - '+x.on)));b.appendChild(d);});
+  nt.forEach(x=>{const d=el('div','tr');d.append(el('em','','📝'),el('span','',x.text));b.appendChild(d);});}
 async function homeLoad(force){
   if($('home').hidden)return;
   const live=appListening||wakeOn||convOn||!!rec;

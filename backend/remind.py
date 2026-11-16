@@ -81,6 +81,20 @@ def today(c, dev, now):
     return [{"id": i, "text": t, "at": time.strftime("%H:%M", time.gmtime(d)), "done": int(s)} for i, t, d, s in r]
 
 
+def birthdays(c, dev, n, days=7):
+    """Part 75: agle 'days' din ke janamdin (aaj bhi), [(kitne din baad, text, '15 Nov')]. Subah 9 baje ke baad bhi aaj wala dikhta hai (din-mahina se nikalte hain)."""
+    start, y, out = n - n % 86400, time.gmtime(n).tm_year, []
+    for t, d in c.execute("SELECT text, due FROM reminders WHERE device=? AND rep='yearly' AND text LIKE '🎂%'", (dev,)):
+        g = time.gmtime(d)
+        for yy in (y, y + 1):
+            ts = calendar.timegm((yy, g.tm_mon, min(g.tm_mday, calendar.monthrange(yy, g.tm_mon)[1]), 0, 0, 0))
+            if ts >= start:
+                break
+        if (ts - start) // 86400 < days:
+            out.append(((ts - start) // 86400, t, time.strftime("%d %b", time.gmtime(ts))))
+    return sorted(out)
+
+
 def pdate(txt):
     """'15 Nov', 'Nov 15', '15/11' se (din, mahina). Samajh na aaye to None."""
     m = re.fullmatch(DATE, txt.strip().rstrip("."), re.I)

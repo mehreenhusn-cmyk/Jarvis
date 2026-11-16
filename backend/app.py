@@ -315,7 +315,14 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/today":  # Part 56: Home tab. Aaj ke reminders aur jin hisab ki tareekh aaj ya pehle ki hai
             now = str(data.get("now", ""))
             led = [{"id": i, "text": ledger.line(i, w, a, d, du), "late": du < now[:10]} for i, w, a, d, du in ledger.rows(db(), dev) if du and du <= now[:10]]
-            return self.send(200, {"reminders": remind.today(db(), dev, now), "ledger": led})
+            try:
+                n = remind.tm(now)
+            except ValueError:
+                n = None
+            c = db()
+            bd = [{"in": k, "text": t, "on": on} for k, t, on in remind.birthdays(c, dev, n, 7)] if n else []  # Part 75: Daily Life Manager = reminders + ledger + birthdays + notes
+            nts = [{"id": i, "text": x[:120]} for i, x in c.execute("SELECT id, text FROM notes WHERE device=? ORDER BY id DESC LIMIT 3", (dev,))]
+            return self.send(200, {"reminders": remind.today(c, dev, now), "ledger": led, "birthdays": bd, "notes": nts})
         if self.path == "/brief":  # page din mein ek baar apne aap maangta hai
             return self.send(200, {"text": brief.build(db(), dev, str(data.get("now", "")), data.get("style") == "hindi", bool(data.get("auto")))})
         if self.path == "/ledger/paid":
