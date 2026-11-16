@@ -60,6 +60,7 @@
 | Pause ScreenService while a payment app is open | BUILT (Part 73): auto OFF only (disableSelf), Android never lets an app turn accessibility back ON by itself, so a notification takes you straight to the Settings toggle. Default package list in `PaymentGuard.java`, editable later from Settings |
 | Screen wakes (like the power button) when "Jarvis" is heard with the screen off | BUILT (Part 73): same as pressing power, the lock screen still shows and still needs your own fingerprint/PIN/swipe |
 | Phone unlock by voice / bypassing the lock screen | REFUSED, will not be built in any form (always-listening + spoken secret = the exact pattern banking trojans use; a stolen or overheard phrase would open the phone to anyone) |
+| Settings page redesign | BUILT (Part 74): all 10 old flat sections grouped into 5 collapsible cards (Voice & Personality, Privacy & Security, Your Data, Notifications, Advanced). 🔊 voice panel is now a bottom sheet with its own ✕ close button instead of a tall inline row. No element id changed, so no backend/JS wiring broke; JS syntax check pass |
 | Smart App Search, Voice interruption | Already built (Parts 60, 61): only phone testing is left |
 | Scheduled routines at a time | NOT built yet: it needs one careful change to the existing reminder scheduler (no second scheduler), so it waits for your OK on the design |
 | Smart follow-ups, Privacy activity timeline | NOT built yet: small, but they touch notifications and privacy screens, so they wait until the phone test round is done |
