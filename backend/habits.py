@@ -14,10 +14,13 @@ REPORT = re.compile(r"^\s*(?:habit\s+report|habits?\s+(?:ka\s+)?(?:report|summar
 STREAK = re.compile(r"^\s*" + N + r"\s+streak\s*$", re.I)
 DONE = re.compile(r"^\s*(?:(?:aaj|today|आज)\s+)?(?:habit\s+)?" + N + r"\s+(?:gaya|gayi|gaye|kar\s+liya|kar\s+li|kar\s+le|le\s+li|le\s+liya|kiya|ho\s+gaya|ho\s+gayi|done|complete|completed|did\s+it|गया|गई|कर\s+लिया|ले\s+ली|ले\s+लिया|किया)\s*$", re.I)
 MAX_HABITS = 10
+CONTRACT = re.compile(r"^\s*contract\s+" + N + r"\s+(\d{1,3})\s+(?:din|days?)\s+penalty\s+(\d{1,6})\s*$", re.I)
+CDROP = re.compile(r"^\s*contract\s+(?:hatao|delete|remove)\s+" + N + r"\s*$", re.I)
 
 
 def init(c):
     c.execute("CREATE TABLE IF NOT EXISTS habits(id INTEGER PRIMARY KEY, device INT, name TEXT, day TEXT DEFAULT '')")
+    c.execute("CREATE TABLE IF NOT EXISTS contracts(id INTEGER PRIMARY KEY, device INT, name TEXT, start TEXT, days INT, penalty INT)")  # Part 99
 
 
 def _names(c, dev):
@@ -50,6 +53,21 @@ def _find(names, text):
     return next((n for n in names if n == t), None)
 
 
+def _pot(c, dev, name, today, hindi):
+    """Part 99: the penalty pot is only a NUMBER (no real money moves). A day counts once it has closed (before today) without a check-in, inside the contract days."""
+    r = c.execute("SELECT start, days, penalty FROM contracts WHERE device=? AND name=?", (dev, name)).fetchone()
+    if not r or not today:
+        return ""
+    start, days, pen = datetime.date.fromisoformat(r[0]), r[1], r[2]
+    t, ds = datetime.date.fromisoformat(today), _days(c, dev, name)
+    closed = [start + datetime.timedelta(days=i) for i in range(days) if start + datetime.timedelta(days=i) < t]
+    miss = sum(1 for d in closed if d.isoformat() not in ds)
+    over = t >= start + datetime.timedelta(days=days)
+    k = min((t - start).days + 1, days)
+    return (f"  ↳ contract: {'खत्म' if over else f'दिन {k}/{days}'}, पेनल्टी पॉट ₹{miss * pen} (असली पैसा नहीं जाता)" if hindi else
+            f"  ↳ contract: {'over' if over else f'day {k}/{days}'}, penalty pot ₹{miss * pen} (a number only, no real money moves)")
+
+
 def summary(c, dev, now, hindi):
     """Lines for the briefing: only the habits NOT marked yet today, with their streak. [] when there is nothing to say."""
     today, out = _today(now), []
@@ -74,6 +92,22 @@ def handle(c, dev, msg, hindi, now):
         return None
     say = lambda hi, en: hi if hindi else en
     names, today = _names(c, dev), _today(now)
+    g = CONTRACT.match(m)
+    if g:
+        n, d, p = _find(names, g.group(1)), int(g.group(2)), int(g.group(3))
+        if not n:
+            return say("सर, पहले आदत बनाइए: habit banao gym", "Sir, make the habit first: habit banao gym")
+        if not today or not 1 <= d <= 90 or not 1 <= p <= 100000:
+            return say("सर, 1 से 90 दिन और पेनल्टी 1 से 100000 रखिए।", "Sir, use 1 to 90 days and a penalty of 1 to 100000.")
+        c.execute("DELETE FROM contracts WHERE device=? AND name=?", (dev, n))
+        c.execute("INSERT INTO contracts(device, name, start, days, penalty) VALUES(?,?,?,?,?)", (dev, n, today, d, p))
+        c.commit()
+        return say(f"ठीक है, \"{n}\" का कॉन्ट्रैक्ट {d} दिन, हर छूटे दिन ₹{p}। पॉट सिर्फ़ एक नंबर है, असली पैसा नहीं जाता।", f"Okay, contract for \"{n}\": {d} days, ₹{p} for each missed day. The pot is only a number; no real money moves.")
+    g = CDROP.match(m)
+    if g and _find(names, g.group(1)):
+        c.execute("DELETE FROM contracts WHERE device=? AND name=?", (dev, _find(names, g.group(1))))
+        c.commit()
+        return say("ठीक है, कॉन्ट्रैक्ट हटा दिया।", "Okay, contract removed.")
     g = MAKE.match(m)
     if g:
         n = g.group(1).strip().lower()
@@ -92,6 +126,7 @@ def handle(c, dev, msg, hindi, now):
         if not n:
             return say("सर, ये आदत नहीं मिली। \"my habits\" बोलिए।", "Sir, I did not find that habit. Say \"my habits\".")
         c.execute("DELETE FROM habits WHERE device=? AND name=?", (dev, n))
+        c.execute("DELETE FROM contracts WHERE device=? AND name=?", (dev, n))
         c.commit()
         return say(f"ठीक है सर, \"{n}\" और उसका रिकॉर्ड हटा दिया।", f"Okay sir, \"{n}\" and its record are removed.")
     if LIST.match(m):
@@ -100,7 +135,7 @@ def handle(c, dev, msg, hindi, now):
         if not today:
             return None
         return say("सर, आपकी आदतें:\n", "Sir, your habits:\n") + "\n".join(
-            f"- {n}: {streak(_days(c, dev, n), today)} " + say("दिन लगातार", "day streak") + (" ✅" if today in _days(c, dev, n) else "") for n in names)
+            f"- {n}: {streak(_days(c, dev, n), today)} " + say("दिन लगातार", "day streak") + (" ✅" if today in _days(c, dev, n) else "") + ("\n" + _pot(c, dev, n, today, hindi) if _pot(c, dev, n, today, hindi) else "") for n in names)
     if REPORT.match(m):
         if not names or not today:
             return say("सर, अभी कोई आदत नहीं है।", "Sir, no habits yet.") if not names else None

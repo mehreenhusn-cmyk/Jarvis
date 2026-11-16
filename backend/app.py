@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, assist, autostart, backup, brief, calls, clock, debate, decisions, guest, handoff, habits, ledger, lens, lists, memory, modes, mood, notes, people, phone, place, progress, redteam, remind, replyideas, screen, search, see, spend, sysinfo, tasks, tts, voiceengine, web, whatsnew
+import actions, assist, autostart, backup, brief, calls, clock, debate, decisions, guest, handoff, habits, ledger, lens, lists, memory, modes, mood, notes, people, phone, place, progress, redteam, remind, replyideas, screen, search, see, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -56,6 +56,7 @@ def db():
     spend.init(c)  # Part 84: quick expense logger
     decisions.init(c)  # Parts 93 + 94
     mood.init(c)  # Part 96
+    touch.init(c)  # Part 95
     tasks.init(c)  # Part 41: tracked multi-step tasks
     return c
 
@@ -494,6 +495,8 @@ class H(BaseHTTPRequestHandler):
                 mem = decisions.handle(c, dev, msg, style == "hindi", now)
             if mem is None:  # Part 96: "mood 3", "mood history", "mood care on" (only when you say it)
                 mem = mood.handle(c, dev, msg, style == "hindi", now)
+            if mem is None:  # Part 95: "ammi track karo", "ammi se baat hui" (only people you pick)
+                mem = touch.handle(c, dev, msg, style == "hindi", now)
             if mem is None:  # Part 92: "debate stop" ends it; "debate ruthless: ..." switches it on and the AI answers below
                 mem = debate.command(dev, msg, style == "hindi")
             if mem is None:  # Part 83: "day report 9 baje" (the time at which the page offers a one-tap day summary)
