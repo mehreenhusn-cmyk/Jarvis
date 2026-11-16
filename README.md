@@ -33,7 +33,7 @@
 
 **How to use this table.** Parts are plain numbers in one sequence. No letters, no groups. A new idea gets the NEXT number at the bottom (now 123). When a Part is built, change its Status and fill in the real lines. A range like `1 to 5` means the old notes did not split them. `*` = new file. `-` = not recorded in the old notes (see R5, R6, R7).
 
-**Honest count (17 Nov 2026).** Code is written for Parts 1 to 90 and Part 117 (about 7,100 lines; Part 67 was dropped, Part 81 has no record). Phone tested: Parts 1 to 17 only (12 to 14 partly). Table A (section 7): 0 of 27 tried. Java has never been fully compiled: GitHub Build APK runs #17 to #21 were green (Parts 48, 49, 64, 65 compile). Not compiled yet: `QuickSet` (alarm, timer, search, media), the WhatsApp part of `CallByName`, `Ears` interrupt, `PaymentGuard`, the deep phone check, the `Privacy` timeline.
+**Honest count (17 Nov 2026).** Code is written for Parts 1 to 90, Part 117 and Part 118 (about 7,100 lines; Part 67 was dropped, Part 81 has no record). Phone tested: Parts 1 to 17 only (12 to 14 partly). Table A (section 7): 0 of 29 tried. Java has never been fully compiled: GitHub Build APK runs #17 to #21 were green (Parts 48, 49, 64, 65 compile). Not compiled yet: `QuickSet` (alarm, timer, search, media), the WhatsApp part of `CallByName`, `Ears` interrupt, `PaymentGuard`, the deep phone check, the `Privacy` timeline.
 
 | Part | What it does | Files | Lines | New APK? | Status |
 |---|---|---|---|---|---|
@@ -143,18 +143,22 @@
 | 115 | **Anti-Doomscroll** (Java): one calm line after N minutes in the same app (you set N). Needs Usage Access. Never blocks anything | `UsageWatch.java*`, `MainActivity.java`, manifest, `index.html` | ~110 | Yes | Planned |
 | 116 | **App habit map** (Java): `YouTube ke baad usually Instagram`, a count kept on the phone and shown as a note | `UsageWatch.java`, `index.html` | ~40 | Yes | Planned |
 | 117 | **What's new answers**: `last update`, `kya kya add hua`, `last 5 updates`. Jarvis answers from the zip names in `~/.jarvis_done` (name, time, files inside the zip) plus that Part's row in this README (files, lines, what it does). Fixes the chat saying `I cannot access GitHub`. It only knows what this phone received and pushed, not other commits on GitHub | `whatsnew.py`*, `app.py` | 81 | No | Built, not phone tested |
-| 118 | **Assist mode: guest session core**. `guest session shuru` and `End & erase`. While on: nothing is saved (no memory, people, notes, habits, expenses, mood, chat history), the guest chat lives in RAM only, a badge shows `Guest: temporary / Memory saved: No`. The list of stores to guard is `memory.STORES` (Part 88). Aadhaar-like 12 digit numbers, phone numbers and card numbers are masked BEFORE the text goes to the AI. The badge says the text still goes to the AI provider | `guest.py`*, `app.py`, `index.html` | ~150 | No | Planned |
+| 118 | **Assist mode: guest session core**. `guest session shuru` and `End & erase`. While on: nothing is saved (no memory, people, notes, habits, expenses, mood, chat history), the guest chat lives in RAM only, a badge shows `Guest: temporary / Memory saved: No`. The list of stores to guard is `memory.STORES` (Part 88). Aadhaar-like 12 digit numbers, phone numbers and card numbers are masked BEFORE the text goes to the AI. The badge says the text still goes to the AI provider | `guest.py`*, `app.py`, `index.html` | 56 + 18 + 13 = 87 | No | Built, not phone tested |
 | 119 | **Assist tools** (inside a guest session or for you): **Photo or screenshot helper**: send a form, bill, medicine strip or message as a photo or screenshot; Jarvis translates it, explains it in simple words and answers your follow-up questions about it (reuses `see.py`; photo not saved). Plus Translate, Explain simply, Find reliable info (uses the Part 90 source label), Make a plan, Big-text read-aloud for elders. No emergency guide (Hussain, 17 Nov). Medicine and forms: reads what is printed and says `doctor ya pharmacist se confirm karo`. Reply help already exists in Part 84 | `assist.py`*, `see.py`, `app.py`, `index.html` | ~150 | No | Planned |
 | 120 | **Lens rail** on Home: chips Project, Phone, Life filter the Next best move card and the strip. World and Sports chips wait until a news source exists | `lens.py`, `index.html` | ~60 | No | Planned |
 | 121 | **Glass skin**: the premium glass look (orb, glass cards, gradient buttons) for Home and Assist only, dark only, with a `Reduce effects` switch. CSS from Hussain, about 330 lines. Only after Table A passes | `index.html` | ~380 | No | Planned |
 | 122 | **Bottom bar**: tabs appear as their Parts are built (Home, Talk, Assist, Timeline, Memory, Settings). Needs Parts 88, 109 and 118. Only after Table A passes | `index.html` | ~90 | No | Planned |
+| 123 | **Mic keeps going** (fix round, 17 Nov screenshots). `speech error 2` is a phone network error and `I did not hear anything` is silence; today both end Conversation mode. Fix: network errors 1 and 2 retry up to 3 times with a pause, silent rounds 2 to 4, and the stop message says why | `Ears.java`, `index.html` | ~40 | Yes | Planned |
+| 124 | **One default voice**: Sarvam `Shubh` for Hindi and English; the voice list in Settings shows only Shubh. Edge stays as a hidden backup, so when the Sarvam key or credit ends Jarvis still speaks (the Edge error `NoAudioReceived` is fixed by `pip install -U edge-tts` in Termux) | `voiceengine.py`, `app.py`, `index.html` | ~50 | No | Planned |
+| 125 | **Call by name, dictation tolerant**: `call ammi at anyhow last mein 5895` fails because the word `last` blocks the call rule and the sentence goes to the AI, which then says `main call nahi kar sakta`. Fix: take the name right after the call word, ignore filler and digits, ask which contact if two match | `actions.py` | ~40 | No | Planned |
+| 126 | **Better context and word match**: the AI gets only the last 10 messages and is not told what Jarvis can do, so it says `I cannot open your watch list` or `I cannot call`. Fix: last 20 turns, a short fixed list of what Jarvis CAN do, and follow-up words (`usko`, `wahi`) kept with the last topic | `app.py` | ~60 | No | Planned |
 
 ## 3. WHAT HUSSAIN DOES NOW
 
 1. GitHub > Actions > **Build APK** > Run. If it goes red, send a screenshot of the error. That is fixed before anything else.
 2. Install the APK on the phone.
-3. Try the 27 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
-4. Then say **"ok 91"** (or 2 or 3 Part numbers together) (or any Part number from section 2). Claude builds one Part at a time.
+3. Try the 29 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
+4. Then say **"ok 119"** (or 2 or 3 Part numbers together) (or any Part number from section 2). Claude builds one Part at a time.
 
 Why this order: Parts 18 to 90 and Part 117 are built and none is phone tested. A new feature on top of an untested base only makes bugs harder to find. Parts 112 to 116 (Java) wait longest, because Java is not even compiled yet. This README-only update needs no new APK.
 
@@ -239,6 +243,8 @@ Nothing below is phone tested yet. Build APK first for the Java rows. Write PASS
 | 25 | Settings > Your Data (Memory Atlas): look at the counts, add a note with `note karo test`, reopen the panel, press Remove on that note | The counts list 12 kinds of data with how to remove each; the test note appears under Notes and disappears after Remove; counts match what you know you saved | No | not tested |
 | 26 | Save a note with `note karo Bombay trip`, then say `sab jagah dhundo Bombay`; also tap Home > Search all | The answer lists the note under Notes and any memory, person, list item or reminder with that word; a word you never saved says `nowhere`; nothing is sent to the AI | No | not tested |
 | 27 | Type `search: Bombay population` (needs internet) | The answer ends with `Sources: ...` and a bracket line saying how many sites were seen. One site gives `One site only`. No word `agree` | No | not tested |
+| 28 | Home > Guest session (or type `guest session start`), ask a question with a made-up phone number in it, then tap End & erase, then `my notes` and `sab jagah dhundo` that question's word | The gold badge `Guest: temporary, Memory saved: No` shows; the guest chat disappears on End & erase; reopening the page shows none of it; nothing appears in notes, memories or chat history | No | not tested |
+| 29 | Settings > Voice (the speaker button) while the mic is listening, and look at the Home Honest progress card | The voice panel says `Mic ON` while listening and `Mic off` after; the Honest progress card keeps its counts | No | not tested |
 
 ## 8. RULES FOR EVERY CLAUDE (always follow)
 1. Each part is under 350 lines of code. New files only when really needed. Update this README after every part.
@@ -642,7 +648,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 115 | Anti-Doomscroll (Java): one calm line after N minutes in the same app (you set N). Needs Usage Access. Never b | UsageWatch.java*, MainActivity.java, manifest, index.html | ~110 | Without | Planned, see section 2 |
 | 116 | App habit map (Java): YouTube ke baad usually Instagram, a count kept on the phone and shown as a note | UsageWatch.java, index.html | ~40 | Without | Planned, see section 2 |
 | 117 DONE | What's new answers: last update, kya kya add hua, from zip names and this README | whatsnew.py*, app.py | 81 | With | Chat can say what was last added and how it helps |
-| 118 | Assist mode guest session: nothing saved, End & erase, numbers masked | guest.py*, app.py, index.html | ~150 | With | Help another person without keeping their data |
+| 118 DONE | Assist mode guest session: nothing saved, End & erase, numbers masked. Also fixes a Part 87 bug: two page elements had the id `ms`, so the mic status text overwrote the Honest progress card | guest.py*, app.py, index.html | 87 | With | Help another person without keeping their data |
 | 119 | Assist tools: photo/screenshot helper, Translate, Explain simply, Reliable info, Plan, Big text | assist.py*, see.py, app.py, index.html | ~150 | With | Family, elders and students get quick help |
 | 120 | Lens rail on Home: Project, Phone, Life chips | lens.py, index.html | ~60 | With | Filter the Home card by topic |
 | 121 | Glass skin: premium look for Home and Assist, Reduce effects switch | index.html | ~380 | With | Look only, after Table A |
