@@ -70,3 +70,19 @@ def suggest(msg):
     if "?" in m or len(m) > 120 or len(m) < 8 or not OWN.match(m) or not FACT.search(m) or QUESTION.search(m) or SECRET.search(m) or SAVE.match(m):
         return None
     return m
+
+
+# Part 88 (Memory Atlas): every table that holds personal data, in ONE list, so the Atlas, search (Part 89) and the guest guard (Part 118) use the same names.
+# (table, name, extra filter, how to remove)
+STORES = [("memories", "Memories", "", "Remove button"), ("people", "People notes", "", "Remove button"), ("notes", "Notes", "", "Remove button"),
+          ("messages", "Chat history", "", "say: clear history"), ("listitems", "List items", "", "say: list se doodh hatao"),
+          ("habits", "Habits", " AND day=''", "delete everything"), ("spend", "Expenses", "", "say: kharcha hatao"),
+          ("ledger", "Money ledger", "", "delete everything"), ("reminders", "Reminders", "", "delete everything"),
+          ("routines", "Routines", "", "delete everything"), ("tasks", "Task history", "", "delete everything"), ("dayreport", "Day report time", "", "delete everything")]
+
+
+def atlas(c, dev):
+    """Counts of everything Jarvis keeps for this device, and the notes (newest 50). Reads only; nothing is saved or sent anywhere."""
+    st = [{"name": n, "count": c.execute(f"SELECT count(*) FROM {t} WHERE device=?{w}", (dev,)).fetchone()[0], "how": h} for t, n, w, h in STORES]
+    nt = [{"id": i, "text": t} for i, t in c.execute("SELECT id, text FROM notes WHERE device=? ORDER BY id DESC LIMIT 50", (dev,))]
+    return {"stores": st, "notes": nt}

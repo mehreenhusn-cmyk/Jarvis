@@ -103,7 +103,7 @@ body.hm #vstat{background:rgba(7,11,26,.92);color:#97a6cc;border-color:rgba(96,1
 <div id="set" hidden>
 <details class="grp" open><summary>🎙️ Voice &amp; Personality</summary><div class="card" id="vcard"></div></details>
 <details class="grp"><summary>🔒 Privacy &amp; Security</summary><div class="card" id="dash"></div><h5>Payment apps</h5><div class="card" id="pay"></div><h5>Backup</h5><div class="card" id="bk"></div><h5>Background listening test</h5><div class="card" id="bgt"></div></details>
-<details class="grp"><summary>🗂️ Your Data</summary><h5>People</h5><div class="card" id="pl"></div><h5>Memory</h5><div class="card" id="ml"></div><h5>Money ledger</h5><div class="card" id="ll"></div></details>
+<details class="grp"><summary>🗂️ Your Data (Memory Atlas)</summary><h5>What Jarvis keeps (counts)</h5><div class="card" id="al"></div><h5>People</h5><div class="card" id="pl"></div><h5>Memory</h5><div class="card" id="ml"></div><h5>Notes</h5><div class="card" id="nl"></div><h5>Money ledger</h5><div class="card" id="ll"></div></details>
 <details class="grp"><summary>🔔 Notifications</summary><div class="card" id="nsc"></div></details>
 <details class="grp"><summary>⚙️ Advanced</summary><h5>System</h5><div class="card" id="sys"></div><h5>API key</h5><div class="card"><p style="margin-top:0;color:var(--mut)">Paste a key. Jarvis finds the company and checks it.</p>
 <input id="key" placeholder="Paste key here" autocomplete="off"><p><button id="kp">Paste from clipboard</button> <button id="kc" class="g">Check</button></p><p id="kr"></p><div id="kl"></div></div></details>
@@ -376,6 +376,11 @@ async function mem(){
   a.forEach(m=>{const r=document.createElement('div');r.className='kr';const l=document.createElement('span');l.textContent='#'+m.id+' '+m.text;
     const b=document.createElement('button');b.textContent='Remove';b.onclick=async()=>{await api('/memory/delete',{id:m.id});mem();};r.append(l,b);L.appendChild(r);});
 }
+// Part 88: Memory Atlas. Counts of everything Jarvis keeps and your notes with Remove. Reading only; nothing new is saved.
+async function atl(){const {d}=await api('/atlas');const L=$('al'),N=$('nl');L.textContent='';N.textContent='';
+  (d.stores||[]).forEach(s=>{L.appendChild(el('div','kr',s.name+': '+s.count+'  ('+s.how+')'));});
+  const a=d.notes||[];if(!a.length)N.textContent='No notes yet. Say: note karo ...';
+  a.forEach(n=>{const r=el('div','kr');r.appendChild(el('span','','#'+n.id+' '+n.text));const b=el('button','g','Remove');b.type='button';b.onclick=async()=>{await api('/note/delete',{id:n.id});atl();};r.appendChild(b);N.appendChild(r);});}
 async function ppl(){
   const {d}=await api('/people');const L=$('pl');L.textContent='';const a=d.people||[];
   if(!a.length){L.textContent='No people yet. Type in chat: note about Faisal: old friend';return;}
@@ -715,7 +720,7 @@ async function brief(){
 // Part 48: Home dashboard (neon look from the reference pictures). Everything shown here is real data from the server or the phone; nothing is made up.
 function go(v){view=v;const t=!!token;document.body.classList.toggle('hm',v=='home'||v=='chat');$('chat').hidden=!t||v!='chat';$('set').hidden=!t||v!='set';$('home').hidden=!t||v!='home';$('tabs').hidden=!t;
   $('tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
-  if(t&&v=='home')homeLoad(true);if(t&&v=='set'){nsCard(true);keys();mem();led();ppl();dash();sysCard();bgt();voiceLoad();bkLoad();}}
+  if(t&&v=='home')homeLoad(true);if(t&&v=='set'){nsCard(true);keys();mem();led();ppl();atl();dash();sysCard();bgt();voiceLoad();bkLoad();}}
 $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>go(b.dataset.v));
 const greet=()=>{const h=new Date().getHours();return h<5?'Good night, sir':h<12?'Good morning, sir':h<17?'Good afternoon, sir':'Good evening, sir';};
 let tj=null,homeT=0;

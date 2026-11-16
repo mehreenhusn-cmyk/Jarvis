@@ -248,6 +248,8 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, {"people": people.all_people(db(), dev)})
         if self.path == "/memory":
             return self.send(200, {"memories": [{"id": i, "text": t} for i, t in memory.rows(db(), dev)]})
+        if self.path == "/atlas":  # Part 88: everything Jarvis keeps (counts) and the notes; reading only
+            return self.send(200, memory.atlas(db(), dev))
         self.send(404, {"error": "not found"})
 
     def do_POST(self):
@@ -361,6 +363,11 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/people/delete":
             c = db()
             return self.send(200, {"ok": bool(people.delete(c, dev, str(data.get("name", ""))))})
+        if self.path == "/note/delete":  # Part 88: the Remove button in the Atlas
+            c = db()
+            c.execute("DELETE FROM notes WHERE id=? AND device=?", (int(data.get("id") or 0), dev))
+            c.commit()
+            return self.send(200, {"ok": True})
         if self.path == "/memory/delete":
             c = db()
             c.execute("DELETE FROM memories WHERE id=? AND device=?", (int(data.get("id") or 0), dev))
