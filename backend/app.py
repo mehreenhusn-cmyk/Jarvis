@@ -501,7 +501,7 @@ class H(BaseHTTPRequestHandler):
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
             if srcs:  # the list of sites comes from the real search result, not from the AI
-                reply += ("\n\nस्रोत: " if style == "hindi" else "\n\nSources: ") + ", ".join(srcs)
+                reply += ("\n\nस्रोत: " if style == "hindi" else "\n\nSources: ") + ", ".join(srcs) + "\n" + web.label(srcs, style == "hindi")  # Part 90
             c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", "(answer about your screen was shown, not saved)" if screen.used(data.get("screen")) else "(reply ideas were shown, not saved)" if replyideas.used(data.get("notif")) else reply, time.time()))
             c.commit()
             sug = None if screen.used(data.get("screen")) or replyideas.used(data.get("notif")) else memory.suggest(msg)  # Part 54: only an offer, nothing is saved here

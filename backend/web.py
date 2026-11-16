@@ -119,6 +119,16 @@ def lookup(msg, now="", research=False):
             f"Search time: {now or 'unknown'}\n{head}\n{body}\n[{RULES}]"), seen[:4]
 
 
+def label(srcs, hindi=False):
+    """Part 90: one honest line under research answers, counted from the real list of sites. Seeing a site is NOT proof that it agrees, so it never says 'agree'."""
+    n = len(srcs)
+    if not n:
+        return ""
+    if n == 1:
+        return "(एक ही साइट: एक रिपोर्ट, पक्की नहीं)" if hindi else "(One site only: one report, not confirmed.)"
+    return f"({n} साइट देखीं; पहली पूरी पढ़ी, बाकी छोटे टुकड़े)" if hindi else f"({n} sites seen; the first was read in full, the others only as short snippets.)"
+
+
 def context(msg):
     """Old name, kept: only the text."""
     return lookup(msg)[0]
