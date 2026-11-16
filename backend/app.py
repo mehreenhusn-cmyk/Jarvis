@@ -299,7 +299,8 @@ class H(BaseHTTPRequestHandler):
             store(str(data.get("provider", "")), "")
             return self.send(200, {"ok": True})
         if self.path == "/due":  # page har 10 sec poochta hai: kisi reminder ka time hua?
-            return self.send(200, {"due": remind.due(db(), dev, str(data.get("now", "")))})
+            now = str(data.get("now", ""))
+            return self.send(200, {"due": remind.due(db(), dev, now), "routines": tasks.due_routines(db(), dev, now), "follow": remind.followup(db(), dev, now)})  # Part 76: routine ka time hua to page ek-tap button dikhata hai
         if self.path == "/task/update":  # Part 41/42: the page tells how a task is going (RUNNING, WAITING_FOR_PERMISSION, ...)
             try:
                 ok = tasks.update(db(), dev, int(data.get("id") or 0), str(data.get("state", "")), data.get("cur") if isinstance(data.get("cur"), int) else None, data.get("note", ""))
@@ -322,7 +323,13 @@ class H(BaseHTTPRequestHandler):
             c = db()
             bd = [{"in": k, "text": t, "on": on} for k, t, on in remind.birthdays(c, dev, n, 7)] if n else []  # Part 75: Daily Life Manager = reminders + ledger + birthdays + notes
             nts = [{"id": i, "text": x[:120]} for i, x in c.execute("SELECT id, text FROM notes WHERE device=? ORDER BY id DESC LIMIT 3", (dev,))]
-            return self.send(200, {"reminders": remind.today(c, dev, now), "ledger": led, "birthdays": bd, "notes": nts})
+            return self.send(200, {"reminders": remind.today(c, dev, now), "ledger": led, "birthdays": bd, "notes": nts, "routines": tasks.scheduled(c, dev)})
+        if self.path == "/followup/answer":  # Part 77: 'ho gaya?' ka jawab. Haan = band, Nahi = 2 ghante baad ek baar phir
+            try:
+                ok = remind.follow_answer(db(), dev, int(data.get("id") or 0), data.get("yes") is True, str(data.get("now", "")))
+            except ValueError:
+                ok = False
+            return self.send(200, {"ok": ok})
         if self.path == "/brief":  # page din mein ek baar apne aap maangta hai
             return self.send(200, {"text": brief.build(db(), dev, str(data.get("now", "")), data.get("style") == "hindi", bool(data.get("auto")))})
         if self.path == "/ledger/paid":

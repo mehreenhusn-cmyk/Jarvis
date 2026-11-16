@@ -24,6 +24,8 @@ def init(c):
     c.execute("CREATE TABLE IF NOT EXISTS reminders(id INTEGER PRIMARY KEY, device INT, text TEXT, due REAL, sent INT DEFAULT 0)")
     if "rep" not in [r[1] for r in c.execute("PRAGMA table_info(reminders)")]:  # Part 44: purani table mein ek naya column, kuch hatta nahi
         c.execute("ALTER TABLE reminders ADD COLUMN rep TEXT DEFAULT ''")
+    if "ask" not in [r[1] for r in c.execute("PRAGMA table_info(reminders)")]:  # Part 77: follow-up poocha gaya ya nahi (din ka number; 0 = kabhi nahi)
+        c.execute("ALTER TABLE reminders ADD COLUMN ask INT DEFAULT 0")
 
 
 def tm(s):
@@ -93,6 +95,37 @@ def birthdays(c, dev, n, days=7):
         if (ts - start) // 86400 < days:
             out.append(((ts - start) // 86400, t, time.strftime("%d %b", time.gmtime(ts))))
     return sorted(out)
+
+
+def followup(c, dev, now):
+    """Part 77: spam-free follow-up. Ek baar wala reminder bata diya gaya ho aur 3 se 48 ghante guzar gaye hon, to ek baar poochta hai 'ho gaya?'.
+    Din mein sirf EK sawal, har reminder par sirf EK baar, repeat/janamdin par kabhi nahi, raat 22:00 se subah 07:00 tak chup."""
+    try:
+        n = tm(now)
+    except ValueError:
+        return None
+    day = n // 86400
+    if not 7 <= time.gmtime(n).tm_hour < 22 or c.execute("SELECT 1 FROM reminders WHERE device=? AND ask=?", (dev, day)).fetchone():
+        return None
+    r = c.execute("SELECT id, text FROM reminders WHERE device=? AND sent=1 AND rep='' AND ask=0 AND text NOT LIKE '🎂%' AND due<=? AND due>=? ORDER BY due DESC LIMIT 1", (dev, n - 3 * 3600, n - 48 * 3600)).fetchone()
+    if not r:
+        return None
+    c.execute("UPDATE reminders SET ask=? WHERE id=?", (day, r[0]))
+    c.commit()
+    return {"id": r[0], "text": r[1]}
+
+
+def follow_answer(c, dev, i, yes, now):
+    """'Haan' = bas band. 'Nahi' = 2 ghante baad ek baar phir yaad dilata hai (raat ho to agli subah 9 baje); us nayi copy par follow-up nahi."""
+    row = c.execute("SELECT text FROM reminders WHERE id=? AND device=?", (i, dev)).fetchone()
+    if yes or not row:
+        return bool(row)
+    n = tm(now) + 2 * 3600
+    if not 7 <= time.gmtime(n).tm_hour < 22:
+        n = n - n % 86400 + (86400 if time.gmtime(n).tm_hour >= 22 else 0) + 9 * 3600
+    c.execute("INSERT INTO reminders(device, text, due, ask) VALUES(?,?,?,?)", (dev, row[0], n, n // 86400))
+    c.commit()
+    return True
 
 
 def pdate(txt):
