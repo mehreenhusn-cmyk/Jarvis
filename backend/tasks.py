@@ -4,7 +4,7 @@ which checks Stop, the phone-control switch and the app lock before every step a
 A step that needs your Yes (send, pay, delete, ...) or that types text is never put in a task: those stay one-by-one, with your own tap.
 Part 46: a ROUTINE is a name for a task sentence you saved ("routine banao subah: Chrome kholo aur neeche scroll karo"). Running it plans the sentence again
 through make(), so every rule above (switch, app only, Stop, no send/pay/delete/typing, lock only last) is checked again on every run."""
-import json, re, time
+import json, re, time, unicodedata
 
 import actions
 import lang
@@ -130,19 +130,21 @@ def recent(c, dev, n=5):
     return [{"id": i, "title": t, "state": s, "done": k, "total": len(json.loads(st)), "note": nt, "ts": int(ts or 0)} for i, t, s, k, st, nt, ts in rows]
 
 
-RSAVE = re.compile(r"^\s*(?:routine banao|save routine|new routine|routine save karo)\s+(.{1,30}?)\s*[:\-]\s*(.+)$", re.I | re.S)
-RLIST = re.compile(r"^\s*(?:my\s+)?routines?(?:\s+list)?\s*\??\s*$", re.I)
-RDEL = re.compile(r"^\s*(?:routine\s+(?:delete|hatao|remove)|(?:delete|remove)\s+routine)\s+(.{1,30}?)\s*$", re.I)
-RRUN = (re.compile(r"^\s*(?:run routine|start routine|routine chalao|routine run)\s+(.{1,30}?)\s*$", re.I), re.compile(r"^\s*(.{1,30}?)\s+routine\s+(?:chalao|run|start)\s*$", re.I))
-RPLAIN = re.compile(r"^\s*routine\s+(.{1,30}?)\s*$", re.I)
+R = r"(?:routine|रूटीन)"  # Part 82: the word routine in Roman or Hindi script
+RSAVE = re.compile(r"^\s*(?:routine banao|save routine|new routine|routine save karo|रूटीन बनाओ)\s+(.{1,30}?)\s*[:\-]\s*(.+)$", re.I | re.S)
+RLIST = re.compile(r"^\s*(?:my\s+)?(?:routines?|रूटीन)(?:\s+list)?\s*\??\s*$", re.I)
+RDEL = re.compile(r"^\s*(?:" + R + r"\s+(?:delete|hatao|remove|हटाओ)|(?:delete|remove)\s+routine)\s+(.{1,30}?)\s*$", re.I)
+RRUN = (re.compile(r"^\s*(?:run routine|start routine|routine chalao|routine run|रूटीन चलाओ)\s+(.{1,30}?)\s*$", re.I), re.compile(r"^\s*(.{1,30}?)\s+" + R + r"\s+(?:chalao|run|start|चलाओ)\s*$", re.I))
+RPLAIN = re.compile(r"^\s*" + R + r"\s+(.{1,30}?)\s*$", re.I)
 
 
-RTIME = re.compile(r"^\s*(?:schedule\s+)?routine\s+(.{1,30}?)(?:\s+(?:roz|rozana|daily|every\s*day|har\s*din|at))?(?:\s+(subah|savere|dopahar|shaam|raat))?\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm|baje|bje|बजे)?\s*(subah|savere|dopahar|shaam|raat)?(?:\s+(?:sirf\s+|only\s+)?(weekdays?|weekends?|hafte\s+ke\s+din))?\s*$", re.I)
-RTOFF = re.compile(r"^\s*routine\s+(.{1,30}?)\s+(?:time\s+(?:hatao|band|off|remove)|no\s+time|unschedule)\s*$", re.I)
+PART = r"subah|savere|dopahar|shaam|raat|सुबह|सवेरे|दोपहर|शाम|रात"
+RTIME = re.compile(r"^\s*(?:schedule\s+)?" + R + r"\s+(.{1,30}?)(?:\s+(?:roz|rozana|daily|every\s*day|har\s*din|at|रोज़|रोज|रोजाना|हर\s*दिन))?(?:\s+(" + PART + r"))?\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm|baje|bje|बजे)?\s*(" + PART + r")?(?:\s+(?:sirf\s+|only\s+|सिर्फ़\s+|सिर्फ\s+)?(weekdays?|weekends?|hafte\s+ke\s+din|वीकडे\S*|वीकेंड|सप्ताहांत|हफ़्ते\s+के\s+दिन|हफ्ते\s+के\s+दिन))?\s*$", re.I)  # Part 82: Hindi-script words too
+RTOFF = re.compile(r"^\s*" + R + r"\s+(.{1,30}?)\s+(?:(?:time|समय|टाइम)\s+(?:hatao|band|off|remove|हटाओ)|no\s+time|unschedule)\s*$", re.I)
 
 
 def _hour(h, w):
-    w = (w or "").lower()
+    w = {"सुबह": "subah", "सवेरे": "savere", "दोपहर": "dopahar", "शाम": "shaam", "रात": "raat"}.get((w or "").lower(), (w or "").lower())  # Part 82
     if w in ("pm", "shaam"):
         return h + 12 if h < 12 else h
     if w == "dopahar":
@@ -176,6 +178,7 @@ def scheduled(c, dev):
 def routine(c, dev, msg, hindi, control, in_app):
     """Part 46. None = not a routine command. Else (reply, action): the action is the same task action the app already runs."""
     say = lambda hi, en: hi if hindi else en
+    msg = unicodedata.normalize("NFC", msg)  # Part 82: ज़ and फ़ typed as one letter or as letter + dot are read the same
     m = RSAVE.match(msg)
     if m:
         name, phrase = m.group(1).strip().lower(), m.group(2).strip()[:220]
@@ -211,7 +214,7 @@ def routine(c, dev, msg, hindi, control, in_app):
         name, h, mi = m.group(1).strip().lower(), _hour(int(m.group(3)), m.group(2) or m.group(5) or m.group(6)), int(m.group(4) or 0)
         if h > 23 or mi > 59:
             return say("सर, समय समझ नहीं आया। जैसे: routine subah roz 7 baje", "Sir, I could not read that time. Example: routine subah roz 7 baje"), None
-        dy = "wk" if re.match(r"weekday|hafte", m.group(7) or "", re.I) else "we" if m.group(7) else ""
+        dy = "wk" if re.match(r"weekday|hafte|वीकडे|हफ", m.group(7) or "", re.I) else "we" if m.group(7) else ""
         k = c.execute("UPDATE routines SET at=?, days=?, last='' WHERE device=? AND name=?", (f"{h:02d}:{mi:02d}", dy, dev, name)).rowcount
         c.commit()
         if not k:

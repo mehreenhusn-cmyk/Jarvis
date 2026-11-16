@@ -1,17 +1,72 @@
 """Jarvis phone check (Part 24, 65): "why is my phone slow", "phone me kya problem hai", "bluetooth connected hai kya", "internet chal raha hai kya".
 Reads numbers only (memory, storage, battery, heat, network, Bluetooth audio device name). No apps, no files, no messages. Nothing is saved."""
-import os, re, shutil
+import calendar, json, os, re, shutil, time
 
 ASK = re.compile(r"phone (?:is )?(?:slow|hang|lag)|why is my phone|phone health|phone check|slow phone|फ़ोन धीमा|फोन धीमा|phone slow"
                  r"|\b(?:phone|mobile)\b(?!.{0,12}\b(?:number|nambar)\b).{0,20}\b(?:problem|dikkat|issue|kharab|slow|hang|lag(?:ging)?|garam|gram|hot|heat(?:ing)?|health|check|theek|thik|wrong)\b"
                  r"|what'?s wrong with my (?:phone|mobile)|battery (?:health|kharab|jaldi|drain)|फोन में क्या|फोन गर्म", re.I)  # Part 65: Roman Hindi and English
 DEEP = re.compile(r"phone doctor|deep (?:phone )?check|full phone check|phone performance|performance doctor|poori phone (?:ki )?jaanch|फोन डॉक्टर", re.I)  # Part 79
+TREND = re.compile(r"storage trend|storage (?:kitna|kitni) (?:ghata|ghati|kam hua|kam hui)|storage kahan gaya|phone trend|trend of (?:my )?storage|स्टोरेज (?:ट्रेंड|कितना घटा)", re.I)  # Part 82
+FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "phone_trend.json")  # {"2026-11-17": [free_bytes, total_bytes]}, last 40 days, numbers only
 BT = re.compile(r"bluetooth|ब्लूटूथ|\bbt\b|earbuds?|airpods?|headphones?|हेडफोन", re.I)
 NET = re.compile(r"wi-?fi|वाईफाई|internet|इंटरनेट|\bnet\b|network|mobile data|net data", re.I)
 STORE = re.compile(r"storage|स्टोरेज|memory|मेमोरी|\bram\b|space", re.I)
 STAT = re.compile(r"connected|connect (?:hai|hua|ho)|chal (?:raha|rha|rahi)|chalu hai|(?:on|off|band) hai|kis se|kisse|kaun ?sa|konsa|status|working|slow|kitna|kitni|bacha|कनेक्ट|चल रहा|चालू है|कौन|कितना|बचा", re.I)
 HOWQ = re.compile(r"\b(?:how|kaise|kyun|kyu|why|what is|python|code|install|setup|tutorial|difference|meaning)\b|कैसे|क्यों", re.I)  # advice and coding questions stay normal chat
 CMD = re.compile(r"\b(?:open|kholo|khol|turn|switch|on kar\w*|off kar\w*|band kar\w*|chalu kar\w*|enable|disable|connect kar\w*|jodo|laga\w*)\b|ओपन|खोलो|ऑन|ऑफ|बंद कर|चालू कर", re.I)  # "bluetooth on karo" is a settings command (actions.py), not a question
+
+
+def _days():
+    try:
+        d = json.load(open(FILE, encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return {k: v for k, v in d.items() if isinstance(d, dict) and re.fullmatch(r"\d{4}-\d\d-\d\d", str(k)) and isinstance(v, list) and len(v) == 2 and all(isinstance(x, int) for x in v)}
+
+
+def note(i):
+    """Part 82: once a day (the last number of the day wins) keep the phone's free storage, ONLY when the numbers come from the Android app (Chrome would give Termux's disk, a different thing). Two numbers per day, nothing else."""
+    if not isinstance(i, dict) or not isinstance(i.get("disk_free"), (int, float)) or not isinstance(i.get("disk_total"), (int, float)) or i["disk_total"] <= 0:
+        return
+    d = _days()
+    d[time.strftime("%Y-%m-%d")] = [int(i["disk_free"]), int(i["disk_total"])]
+    d = dict(sorted(d.items())[-40:])
+    try:
+        with open(FILE + ".tmp", "w", encoding="utf-8") as f:
+            json.dump(d, f)
+        os.replace(FILE + ".tmp", FILE)
+    except OSError:
+        pass  # a trend is nice to have; never break a chat for it
+
+
+def _trend(d):
+    """(gb_change, days_between, free_gb_now, days_until_full or None) from the saved days, or None if there are fewer than 2 days. Compares today with the oldest day within the last 7 (else the oldest saved)."""
+    ds = sorted(d)
+    if len(ds) < 2:
+        return None
+    day = lambda k: calendar.timegm(time.strptime(k, "%Y-%m-%d")) // 86400
+    last = ds[-1]
+    ref = next((k for k in ds[:-1] if day(last) - day(k) <= 7), ds[0])
+    span = max(1, day(last) - day(ref))
+    ch = (d[last][0] - d[ref][0]) / 1e9
+    full = d[last][0] / 1e9 / (-ch / span) if ch < -0.05 * span else None
+    return ch, span, d[last][0] / 1e9, full
+
+
+def trend_text(hindi):
+    say = lambda hi, en: hi if hindi else en
+    d = _days()
+    t = _trend(d)
+    if not t:
+        return say(f"सर, ट्रेंड के लिए कम से कम 2 दिन के नंबर चाहिए। अभी {len(d)} दिन का है। रोज़ briefing या phone doctor बोलिए (Jarvis ऐप में)।",
+                   f"Sir, a trend needs numbers from at least 2 days. I have {len(d)} so far. Say briefing or phone doctor once a day (in the Jarvis app).")
+    ch, span, now_gb, full = t
+    s = (say(f"सर, खाली स्टोरेज अभी {now_gb:.1f} GB है, {span} दिन पहले से {abs(ch):.1f} GB कम।", f"Sir, free storage is {now_gb:.1f} GB now, {abs(ch):.1f} GB less than {span} day(s) ago.") if ch < -0.05
+         else say(f"सर, खाली स्टोरेज अभी {now_gb:.1f} GB है, {span} दिन पहले से {ch:.1f} GB ज़्यादा।", f"Sir, free storage is {now_gb:.1f} GB now, {ch:.1f} GB more than {span} day(s) ago.") if ch > 0.05
+         else say(f"सर, खाली स्टोरेज अभी {now_gb:.1f} GB है, {span} दिन में लगभग वही।", f"Sir, free storage is {now_gb:.1f} GB now, about the same as {span} day(s) ago."))
+    if full is not None and full < 365:
+        s += say(f" इसी रफ़्तार से लगभग {full:.0f} दिन में भर जाएगा।", f" At this speed it will be full in about {full:.0f} days.")
+    return s + say("\n(सिर्फ़ उन दिनों के नंबर जब आपने ऐप में briefing या phone check बोला।)", "\n(Only the days when you said briefing or phone check in the app.)")
 
 
 def local_info():
@@ -105,6 +160,8 @@ def topic(msg):
     m = msg.strip()
     if len(m) > 90:
         return ""
+    if TREND.search(m):
+        return "trend"
     if DEEP.search(m):
         return "deep"
     short = STAT.search(m) and not CMD.search(m) and not HOWQ.search(m)
@@ -119,10 +176,13 @@ def topic(msg):
 
 def handle(msg, info, hindi):
     """Reply if the message asks about phone health, Bluetooth, internet or storage, else None."""
+    note(info)  # Part 82
     t = topic(msg)
     if not t:
         return None
     say = lambda hi, en: hi if hindi else en
+    if t == "trend":
+        return trend_text(hindi)
     i = info if isinstance(info, dict) else local_info()
     src = "" if isinstance(info, dict) else say("\n(Chrome में सिर्फ़ मेमोरी और स्टोरेज देखे गए। पूरी जाँच के लिए Jarvis ऐप चलाइए।)", "\n(Chrome mode: only memory and storage are checked. Use the Jarvis app for battery, Bluetooth and internet.)")
     if not i:
@@ -179,6 +239,9 @@ def deep_info(i, hindi):
         L.append(f"{say('ब्राइटनेस', 'Brightness')} {i['bright_pct']}%" + (f" ({say('ऑटो', 'auto')})" if i.get("auto_bright") else ""))
     if i.get("screen_timeout_s"):
         L.append(f"{say('स्क्रीन टाइमआउट', 'Screen timeout')} {i['screen_timeout_s']} s")
+    t = _trend(_days())  # Part 82: only when 2 or more days are saved
+    if t:
+        L.append(f"{say('खाली स्टोरेज बदलाव', 'Free storage change')} {t[0]:+.1f} GB / {t[1]} {say('दिन', 'd')}")
     return say("गहरी जाँच:\n", "Deep check:\n") + "\n".join(f"- {x}" for x in L)
 
 
@@ -192,6 +255,10 @@ def deep(i, hindi):
         out.append((say(f"ब्राइटनेस {i['bright_pct']}% पर है।", f"Brightness is at {i['bright_pct']}%."), say("ऑटो ब्राइटनेस चालू कीजिए।", "Turn on auto brightness.")))
     if i.get("cycles", 0) >= 800:
         out.append((say(f"बैटरी के {i['cycles']} चार्ज साइकल हो चुके हैं।", f"The battery has done {i['cycles']} charge cycles."), say("बैटरी पुरानी हो गई है, बदलवाने का सोचिए।", "It is ageing; think about replacing it.")))
+    t = _trend(_days())  # Part 82: a real number, a real warning
+    if t and t[3] is not None and t[3] < 30:
+        out.append((say(f"खाली स्टोरेज रोज़ लगभग {abs(t[0]) / t[1]:.1f} GB घट रहा है, लगभग {t[3]:.0f} दिन में भर जाएगा।", f"Free storage is falling about {abs(t[0]) / t[1]:.1f} GB a day, so it may be full in about {t[3]:.0f} days."),
+                    say("बड़े वीडियो, डाउनलोड और पुरानी फ़ाइलें हटाइए।", "Delete big videos, downloads and old files.")))
     return out
 
 

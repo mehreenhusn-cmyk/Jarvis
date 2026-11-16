@@ -13,6 +13,7 @@ SET_ALL = re.compile(r"^\s*(?:suggestions?|sujhav)\s+" + ONOFF + r"\s*$", re.I)
 SET_ONE = re.compile(r"^\s*(money|birthday|tomorrow)\s+suggestions?\s+" + ONOFF + r"\s*$", re.I)
 SET_Q = re.compile(r"^\s*quiet hours?\s+(\d{1,2})\s*(?:to|-|se)\s*(\d{1,2})\s*$", re.I)
 WEEK = re.compile(r"^\s*(?:weekly summary|week(?:ly)? report|(?:is )?hafte ka (?:summary|hisab)|साप्ताहिक सारांश)\s*$", re.I)  # Part 80
+DAYS = re.compile(r"^\s*(?:aaj ka summary|day summary|today(?:'s)? summary|evening summary|raat ka summary|din ka summary|आज का सारांश|दिन का सारांश|रात का सारांश)\s*$", re.I)  # Part 82
 SHOW = re.compile(r"^\s*(?:briefing|suggestions?)\s+settings?\s*$", re.I)
 
 
@@ -89,6 +90,7 @@ def build(c, dev, now, hindi, auto=False, cal=None, ph=None):
         n = remind.tm(now)
     except ValueError:
         return ""
+    phone.note(ph)  # Part 82: one storage number a day for the Phone Doctor trend
     end = n - n % 86400 + 86400
     rem = c.execute("SELECT text, due FROM reminders WHERE device=? AND sent=0 AND due<? ORDER BY due", (dev, end)).fetchall()
     L = ledger.rows(c, dev)
@@ -156,6 +158,34 @@ def weekly(c, dev, now, hindi):
     return "\n".join(out)
 
 
+def daily(c, dev, now, hindi):
+    """Part 82: the day in numbers, for the evening. Same tables as the briefing; nothing new is saved. One-time reminders only (a repeating one moves to its next day when it is told)."""
+    try:
+        n = remind.tm(now)
+    except ValueError:
+        return ""
+    say = (lambda hi, ro: hi if hindi else ro)
+    start = n - n % 86400
+    real = time.time() - (n - start)  # the phone's midnight, on the server clock
+    told = c.execute("SELECT count(*) FROM reminders WHERE device=? AND sent=1 AND rep='' AND text NOT LIKE '🎂%' AND due>=? AND due<=?", (dev, start, n)).fetchone()[0]
+    left = c.execute("SELECT count(*) FROM reminders WHERE device=? AND sent=0 AND due>? AND due<?", (dev, n, start + 86400)).fetchone()[0]
+    tom = c.execute("SELECT count(*) FROM reminders WHERE device=? AND sent=0 AND due>=? AND due<?", (dev, start + 86400, start + 2 * 86400)).fetchone()[0]
+    nts = c.execute("SELECT count(*) FROM notes WHERE device=? AND ts>=?", (dev, real)).fetchone()[0]
+    tk = dict(c.execute("SELECT state, count(*) FROM tasks WHERE device=? AND ts>=? GROUP BY state", (dev, real)).fetchall())
+    L = ledger.rows(c, dev)
+    late = len([x for x in L if x[4] and x[4] < time.strftime("%Y-%m-%d", time.gmtime(n))])
+    out = [say("आज का सारांश:", "Today in numbers:"),
+           f"- {say('रिमाइंडर बताए गए', 'Reminders told')}: {told}" + (f" ({say('आज और बाकी', 'still to come today')}: {left})" if left else ""),
+           f"- {say('फ़ोन टास्क/रूटीन पूरे', 'Phone tasks/routines completed')}: {tk.get('COMPLETED', 0)} ({say('अधूरे/फ़ेल', 'partial/failed')}: {tk.get('PARTIAL', 0) + tk.get('FAILED', 0)})",
+           f"- {say('नोट्स सेव', 'Notes saved')}: {nts}",
+           f"- {say('खुला हिसाब', 'Open ledger entries')}: {len(L)} ({say('तारीख़ निकली', 'past date')}: {late})",
+           f"- {say('कल के रिमाइंडर', 'Reminders tomorrow')}: {tom}"]
+    bd = [t.replace("🎂 ", "") for k, t, _ in remind.birthdays(c, dev, n, 2) if k == 1]
+    if bd:
+        out.append(f"- {say('कल जन्मदिन', 'Birthday tomorrow')}: " + ", ".join(bd))
+    return "\n".join(out)
+
+
 def settings(msg, hindi):
     """'suggestions off', 'birthday suggestions off', 'quiet hours 22 to 7', 'briefing settings'. Na samjhe to None."""
     s = load()
@@ -188,4 +218,6 @@ def handle(c, dev, msg, hindi, now, cal=None, ph=None):
         return r
     if WEEK.match(msg):
         return weekly(c, dev, now, hindi) or None
+    if DAYS.match(msg):  # Part 82
+        return daily(c, dev, now, hindi) or None
     return build(c, dev, now, hindi, False, cal, ph) if TRIG.search(msg) and len(msg) < 50 else None

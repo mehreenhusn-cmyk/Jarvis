@@ -302,6 +302,21 @@ public class MainActivity extends Activity {
                 if (!on) NotifySummary.clear();
                 return "{\"ok\":true}";
             }
+            // Part 82: payment app list. Adding or removing needs a real finger tap (same 3 s rule as the other Settings changes).
+            @JavascriptInterface public String payInfo() { if (AppLock.locked()) return "{\"locked\":true}"; return PaymentGuard.json(getSharedPreferences("j", 0)); }
+            @JavascriptInterface public String payAdd(String pkg) {
+                if (AppLock.locked() || System.currentTimeMillis() - touch > 3000) return "{\"ok\":false,\"err\":\"tap\"}";
+                if (pkg == null || pkg.equals(getPackageName())) return "{\"ok\":false,\"err\":\"bad\"}";
+                boolean ok = PaymentGuard.add(getSharedPreferences("j", 0), pkg.trim());
+                if (ok) Privacy.event(MainActivity.this, "pay_edit");
+                return "{\"ok\":" + ok + "}";
+            }
+            @JavascriptInterface public String payRemove(String pkg) {
+                if (AppLock.locked() || pkg == null || System.currentTimeMillis() - touch > 3000) return "{\"ok\":false,\"err\":\"tap\"}";
+                boolean ok = PaymentGuard.remove(getSharedPreferences("j", 0), pkg.trim());
+                if (ok) Privacy.event(MainActivity.this, "pay_edit");
+                return "{\"ok\":" + ok + "}";
+            }
             @JavascriptInterface public String nsAppList() { if (AppLock.locked()) return "[]"; return Apps.list(MainActivity.this).toString(); }
             @JavascriptInterface public String nsChoose(String json) {
                 if (AppLock.locked() || json == null || System.currentTimeMillis() - touch > 3000) return "{\"ok\":false,\"err\":\"tap\"}";

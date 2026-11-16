@@ -100,7 +100,7 @@ body.hm #vstat{background:rgba(7,11,26,.92);color:#97a6cc;border-color:rgba(96,1
 <h4>Phone and server</h4><div class="card" id="hs"></div><div class="hb" id="hq"></div></div>
 <div id="set" hidden>
 <details class="grp" open><summary>🎙️ Voice &amp; Personality</summary><div class="card" id="vcard"></div></details>
-<details class="grp"><summary>🔒 Privacy &amp; Security</summary><div class="card" id="dash"></div><h5>Backup</h5><div class="card" id="bk"></div><h5>Background listening test</h5><div class="card" id="bgt"></div></details>
+<details class="grp"><summary>🔒 Privacy &amp; Security</summary><div class="card" id="dash"></div><h5>Payment apps</h5><div class="card" id="pay"></div><h5>Backup</h5><div class="card" id="bk"></div><h5>Background listening test</h5><div class="card" id="bgt"></div></details>
 <details class="grp"><summary>🗂️ Your Data</summary><h5>People</h5><div class="card" id="pl"></div><h5>Memory</h5><div class="card" id="ml"></div><h5>Money ledger</h5><div class="card" id="ll"></div></details>
 <details class="grp"><summary>🔔 Notifications</summary><div class="card" id="nsc"></div></details>
 <details class="grp"><summary>⚙️ Advanced</summary><h5>System</h5><div class="card" id="sys"></div><h5>API key</h5><div class="card"><p style="margin-top:0;color:var(--mut)">Paste a key. Jarvis finds the company and checks it.</p>
@@ -141,10 +141,13 @@ function show(){if(!token&&!ncAuto){ncAuto=true;api('/newcode',{}).catch(()=>{})
   $('pair').hidden=!!token;go(view);}
 let boot='';
 const nowS=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16).replace('T',' ');
+async function snz(id,w){  // Part 82: the same reminder again after 10 minutes (no extra question later)
+  try{const {s,d}=await api('/snooze',{id,mins:10,now:nowS()});w.textContent=s==200&&d.ok?'⏰ Okay, I will remind you again at '+d.at+'.':'Could not snooze this one.';}catch(e){w.textContent='Could not snooze this one.';}
+}
 async function checkDue(){
   try{const {s,d}=await api('/due',{now:nowS()});
     if(s==200){const q=d.due||[];if(q.length>2){const t='⏰ '+q.length+' reminders were waiting:\n'+q.map(r=>'- '+r.text).join('\n');add('bot',t);speak(q.length+' reminders were waiting. Check the chat.',true,'REMINDER');if(navigator.vibrate)navigator.vibrate([300,150,300]);}  // Part 78: if you were away, many reminders become ONE message and ONE voice, not a pile
-      else q.forEach(r=>{const t='⏰ Reminder: '+r.text;add('bot',t);speak(t,true,'REMINDER');if(navigator.vibrate)navigator.vibrate([300,150,300]);});}
+      else q.forEach(r=>{const t='⏰ Reminder: '+r.text;const w=add('bot',t);speak(t,true,'REMINDER');if(r.id)btns(w,[['⏰ 10 min',()=>snz(r.id,w)]]);if(navigator.vibrate)navigator.vibrate([300,150,300]);});}
     if(s==200&&d.follow){const f=d.follow,w=add('bot','✅ Reminder "'+f.text+'" - ho gaya?');const ans=y=>{api('/followup/answer',{id:f.id,yes:y,now:nowS()}).catch(()=>{});w.textContent=y?'👍 Okay, done.':'⏰ Okay, I will remind you again in 2 hours.';};btns(w,[['Haan, ho gaya',()=>ans(true)],['Nahi abhi',()=>ans(false)]]);}
     if(s==200)(d.routines||[]).forEach(r=>{const t='🔁 Routine "'+r.name+'" time ('+r.at+'). Tap Run to start it.';const w=add('bot',t);speak(t,true,'REMINDER');btns(w,[['▶ Run '+r.name,()=>ask('routine '+r.name)]]);});
   }catch(e){}
@@ -597,7 +600,7 @@ function dash(){
     if(id=='screen'&&p==0){r.appendChild(el('small','','If \"Jarvis screen reader\" is grey and cannot be turned on: Android blocks apps installed outside Play Store. Tap the button below, then the 3 dots at the top right, then \"Allow restricted settings\". Then turn the switch on.'));const g2=el('button','g','Open Jarvis app info');g2.onclick=()=>JarvisApp.openSettings('');r.appendChild(g2);}
     box.appendChild(r);});
   box.appendChild(el('small','','Activity timeline (feature and time only, nothing private is saved):'));
-  const NM=Object.assign({stop:'Stop everything pressed',ctl_on:'Phone control turned ON',ctl_off:'Phone control turned OFF',pay:'Paused for a payment app'},nm),hm=t=>new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),dk=t=>new Date(t).toDateString(),lg=(d.log||[]).slice(-60).reverse();
+  const NM=Object.assign({stop:'Stop everything pressed',ctl_on:'Phone control turned ON',ctl_off:'Phone control turned OFF',pay:'Paused for a payment app',pay_edit:'Payment app list changed'},nm),hm=t=>new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),dk=t=>new Date(t).toDateString(),lg=(d.log||[]).slice(-60).reverse();
   if(!lg.length){box.appendChild(el('div','','Nothing yet.'));return;}
   const cnt={};lg.filter(x=>dk(x[1])==dk(Date.now())).forEach(x=>cnt[x[0]]=(cnt[x[0]]||0)+1);
   const sm=Object.keys(cnt).map(k=>(NM[k]||k)+' '+cnt[k]+'x').join(', ');if(sm)box.appendChild(el('p','ok','Today: '+sm));
@@ -608,6 +611,31 @@ function dash(){
 }
 window.onLock=()=>setTimeout(dash,300);
 setInterval(()=>{if(!$('set').hidden){dash();bgt();}},3000);
+// Part 82: payment apps (Settings > Privacy & Security). Built-in apps stay; you add more or remove your own. Needs a finger tap.
+let payPick=false,payLast='',payNames=null;
+const payLabel=p=>{if(!payNames){payNames={};try{JSON.parse(JarvisApp.nsAppList()||'[]').forEach(a=>{payNames[a.p]=a.l});}catch(e){}}return payNames[p]?payNames[p]+' ('+p+')':p;};
+function payCard(force){
+  const box=$('pay');if(!box||(payPick&&!force)||box.closest('[hidden]'))return;
+  let i=null;try{i=window.JarvisApp&&JarvisApp.payInfo?JSON.parse(JarvisApp.payInfo()):null}catch(e){}
+  if(!i||i.locked){box.textContent=i&&i.locked?'Jarvis is locked.':'The payment app list works only in the Jarvis Android app.';payLast='';return;}
+  const sig=JSON.stringify(i);if(!force&&sig==payLast)return;payLast=sig;
+  const rows=[],note=el('p','','While one of these apps is on screen, Jarvis switches its screen reader OFF so your bank app does not complain. '+(i.def||[]).length+' common apps are built in and cannot be removed. Add your own bank or UPI app below. Jarvis keeps only the package names, never what you do inside them.');note.style.cssText='margin-top:0;color:var(--mut);font-size:13px';rows.push(note);
+  (i.extra||[]).forEach(p=>{const r=el('div','dr');r.appendChild(el('b','',payLabel(p)));const x=el('button','g','Remove');x.type='button';x.onclick=()=>{let o={};try{o=JSON.parse(JarvisApp.payRemove(p))}catch(e){}if(!o.ok)add('err','Not removed. Tap the button with your finger.');payCard(true);};r.appendChild(x);rows.push(r);});
+  if(!(i.extra||[]).length)rows.push(el('p','','You have not added any app yet.'));
+  const ab=el('button','','Add an app ('+(i.extra||[]).length+' of 20)');ab.type='button';ab.onclick=payChoose;rows.push(ab);
+  box.replaceChildren(...rows);
+}
+function payChoose(){
+  const box=$('pay');let L=[];try{L=JSON.parse(JarvisApp.nsAppList()||'[]')}catch(e){}
+  if(!L.length){add('err','Could not read the app list.');return;}
+  payPick=true;box.textContent='';const q=el('input');q.placeholder='Search apps';q.style.marginBottom='8px';
+  const list=el('div');list.style.cssText='max-height:300px;overflow:auto';
+  const draw=()=>{list.textContent='';L.filter(a=>a.l.toLowerCase().includes(q.value.toLowerCase())).slice(0,60).forEach(a=>{const b=el('button','g',a.l);b.type='button';b.style.cssText='display:block;width:100%;text-align:left;margin:2px 0';b.onclick=()=>{let o={};try{o=JSON.parse(JarvisApp.payAdd(a.p))}catch(e){}payPick=false;if(!o.ok)add('err','Not added. Tap the app name with your finger. The limit is 20 apps.');payCard(true);};list.appendChild(b);});};
+  q.oninput=draw;draw();
+  const no=el('button','g','Cancel');no.type='button';no.onclick=()=>{payPick=false;payCard(true);};
+  box.append(q,list,no);
+}
+setInterval(()=>payCard(false),3000);
 // Part 50: system card. In the app, phone numbers come from Android (JarvisApp.phoneInfo); in Chrome, from the Termux server (/stats).
 const GB=b=>(b/1073741824).toFixed(1)+' GB',MB=b=>Math.round(b/1048576)+' MB';
 async function sysCard(box){

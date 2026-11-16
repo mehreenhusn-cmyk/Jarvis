@@ -12,7 +12,7 @@ MAGIC = "JARVISBK1"
 # table: (columns saved, columns that make a row "the same", extra WHERE)
 T = {"memories": ("text", "text", ""), "notes": ("text,ts", "text", ""), "people": ("name,note", "name,note", ""),
      "reminders": ("text,due,rep", "text,due,rep", "AND sent=0"), "ledger": ("who,amount,dir,due,note,paid", "who,amount,dir,due,note,paid", "AND paid=0"),
-     "routines": ("name,phrase", "name", ""), "messages": ("role,content,ts", "role,content,ts", "")}
+     "routines": ("name,phrase,at,days", "name", ""), "messages": ("role,content,ts", "role,content,ts", "")}
 NAME = re.compile(r"^Jarvis_backup_[0-9A-Za-z_\-]{1,40}\.jbk$")
 PHRASE = "DELETE ALL MY JARVIS DATA"
 ASK = re.compile(r"^\s*(?:delete|erase|wipe)\s+(?:everything|all my (?:jarvis )?data)\s*$", re.I)
@@ -109,8 +109,12 @@ def _new_rows(c, dev, t, rows):
     have = {tuple(r) for r in c.execute(f"SELECT {key} FROM {t} WHERE device=?", (dev,))}
     out = []
     for r in rows if isinstance(rows, list) else []:
+        if t == "routines" and isinstance(r, list) and len(r) == 2:
+            r = r + ["", ""]  # Part 82: backups made before this Part have no time or days
         if not isinstance(r, list) or len(r) != len(names):
             continue
+        if t == "routines":  # Part 82: the routine's time (HH:MM) and days (wk, we or empty) come back too; anything odd becomes "every day, no time"
+            r = r[:2] + [r[2] if isinstance(r[2], str) and re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", r[2]) else "", r[3] if r[3] in ("wk", "we") else ""]
         if any(isinstance(x, str) and memory.SECRET.search(x) for x in r):
             continue
         k = tuple(r[i] for i in idx)

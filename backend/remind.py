@@ -1,7 +1,7 @@
 """Jarvis reminders (Part 10): "Faisal ko 5000 dene hain 15 Nov ko yaad dilana". Tareekh AI se samajhta hai (ek chhota sawal).
 Part 44: repeat ("roz", "har hafte", "har mahine", "har saal") aur birthday ("Faisal ka birthday 15 Nov", har saal subah 9 baje).
 Time hamesha phone ke browser ka hai (server ka timezone nahi dekhte). Page khula ho tabhi reminder aata hai."""
-import calendar, json, re, time
+import calendar, json, re, time, unicodedata
 
 import people
 
@@ -17,6 +17,8 @@ MON = {m: i for i, m in enumerate("jan feb mar apr may jun jul aug sep oct nov d
 DATE = r"(\d{1,2})\s*(?:st|nd|rd|th)?\s*(?:of\s+)?([A-Za-z]{3,9})|([A-Za-z]{3,9})\s+(\d{1,2})(?:st|nd|rd|th)?|(\d{1,2})\s*[/-]\s*(\d{1,2})"
 BD1 = re.compile(r"^\s*birthday\s*(?:of|for|:|-)?\s*(.{1,40}?)\s*(?:is\s+on|on|:|-)\s*(.{3,20}?)\s*$", re.I)
 BD2 = re.compile(r"^\s*(.{1,40}?)(?:'s|\s+ka|\s+ki)?\s+(?:birthday|bday|janamdin|janmdin)\s*(?:is\s+on|hai|on|:|-)?\s*(.{3,20}?)(?:\s+(?:ko\s+)?hai)?\s*$", re.I)
+SNZ1 = re.compile(r"^\s*(?:snooze|स्नूज़|स्नूज)(?:\s+(\d{1,3})\s*(?:min(?:ute)?s?|मिनट))?\s*$", re.I)  # Part 82: "snooze" or "snooze 20 min"
+SNZ2 = re.compile(r"^\s*(?:(\d{1,3})\s*(?:min(?:ute)?s?|मिनट)|thodi der|थोड़ी देर)\s+(?:baad|बाद)\s+(?:phir\s+|फिर\s+)?(?:yaad\s*dila\w*|याद\s*दिला\S*)\s*$", re.I)  # "10 min baad phir yaad dilao"
 BDL = re.compile(r"^\s*(?:my\s+)?birthdays?\s*(?:dikhao|list|batao|kab)?\s*\??\s*$", re.I)
 
 
@@ -128,6 +130,21 @@ def follow_answer(c, dev, i, yes, now):
     return True
 
 
+def snooze(c, dev, i, mins, now):
+    """Part 82: the same reminder once more after `mins` minutes (1 to 180, else 10). Works for one-time and repeating ones. The new copy never gets a 'ho gaya?' question (ask=1). Returns the new time or None."""
+    row = c.execute("SELECT text FROM reminders WHERE id=? AND device=?", (i, dev)).fetchone()
+    try:
+        n = tm(now)
+    except ValueError:
+        return None
+    if not row:
+        return None
+    n += (mins if 1 <= mins <= 180 else 10) * 60
+    c.execute("INSERT INTO reminders(device, text, due, ask) VALUES(?,?,?,1)", (dev, row[0], n))
+    c.commit()
+    return n
+
+
 def pdate(txt):
     """'15 Nov', 'Nov 15', '15/11' se (din, mahina). Samajh na aaye to None."""
     m = re.fullmatch(DATE, txt.strip().rstrip("."), re.I)
@@ -159,6 +176,19 @@ def birthday(c, dev, name, dm, hindi, n):
 def handle(c, dev, msg, hindi, ask, now):
     def say(hi, ro):
         return hi if hindi else ro
+    nf = unicodedata.normalize("NFC", msg)  # Part 82: same letter, either way of typing it
+    m = SNZ1.match(nf) or SNZ2.match(nf)
+    if m:  # Part 82: the reminder told in the last 6 hours (the page's 10 min button works for every reminder, this word only for one-time ones)
+        try:
+            n0 = tm(now)
+        except ValueError:
+            return say("सर, फ़ोन का समय नहीं मिला, पेज रीफ़्रेश कीजिए।", "Sir, I could not get the phone time. Please refresh the page.")
+        r = c.execute("SELECT id, text FROM reminders WHERE device=? AND sent=1 AND text NOT LIKE '🎂%' AND due<=? AND due>=? ORDER BY due DESC LIMIT 1", (dev, n0, n0 - 6 * 3600)).fetchone()
+        if not r:
+            return say("सर, पिछले 6 घंटे में कोई रिमाइंडर नहीं आया। आने वाले रिमाइंडर पर \"10 min\" बटन दबाइए।", "Sir, no reminder came in the last 6 hours. Use the 10 min button on a reminder when it comes.")
+        mins = int(m.group(1) or 10)
+        t2 = snooze(c, dev, r[0], mins, now)
+        return say(f"ठीक है सर, {time.strftime('%H:%M', time.gmtime(t2))} पर फिर याद दिलाऊँगा: {r[1]}", f"Okay sir, I will remind you again at {time.strftime('%H:%M', time.gmtime(t2))}: {r[1]}")
     m = DEL.match(msg)
     if m:
         k = c.execute("DELETE FROM reminders WHERE id=? AND device=?", (int(m.group(1)), dev)).rowcount
