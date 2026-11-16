@@ -18,7 +18,7 @@
 |---|---|---|---|---|
 | Phase 1: base, phone control, voices, memory, Home, notifications, research | 1 to 59 (with 49a, 49b, 53b) | all built | 0 | about 5,000 |
 | Phase 2: any app, any language, calls, phone health, alarm, search in app, interrupt, weather (dropped), music control, WhatsApp by name | 60 to 69 | 60, 61, 62, 63, 64, 65, 66, 68, 69, 71, 72 | 67 (dropped by Hussain, 17 Nov 2026) | built about 1,250, left 0 required |
-| Phase 3: Daily Life, safety and phone doctor (Parts 73 to 83) | 73 to 83 | all built (Parts 73 to 83) | 0 required | about 1,400 |
+| Phase 3: Daily Life, safety and phone doctor (Parts 73 to 84) | 73 to 84 | all built (Parts 73 to 84) | 0 required | about 1,560 |
 
 **Overall: 11 of 12 Phase 2 Parts built (60 to 66, 68, 69, 71, 72); the 10th (Part 67, weather) was dropped by Hussain, so no Part is left to code. Parts 60 and 66 and the missing `backend/lang.py` fix came in the 17 Nov 2026 zip. Phase 1 is complete in code, but only Parts 1 to 26 were tested on a phone. The most important next step is Build APK plus the phone checklist (section 11.8), because Java has never been compiled.**
 
@@ -44,18 +44,21 @@
 | 15 | With battery at 16 to 19 percent and not charging, say `briefing` | A 'Phone:' line with a calm suggestion (at 15 or less the Phone Doctor line shows instead) | No | not tested |
 | 16 | `day report 9 baje`, wait for that time with the page open | A message with a Show day report button; the summary shows only after your tap | No | not tested |
 | 17 | Home > Explain screen, then switch to another app | Jarvis waits a few seconds, reads that app and explains it in simple words | No (needs the screen reader from Part 23 switched ON) | not tested |
+| 18 | `200 coffee`, `kharcha 50 auto`, `kharcha`, `kharcha hatao` | Each entry is noted with a category; `kharcha` shows today, 7 days, this month; `hatao` removes the last one. `10 baje alarm` is NOT taken as spending | No | not tested |
+| 19 | Copy a text, Home > Clipboard, tap Save as note, then copy a short word and tap Add to list | `meri notes` shows the note; `list dikhao` shows the item | No | not tested |
+| 20 | Notification summary ON, Home > Notifications > Reply ideas > pick one | 3 short options with Copy buttons; nothing is sent; the chat history shows a placeholder, not the notification text | No (notification access from the older Part) | not tested |
 
 **Table B: ideas not built yet (benefit, files, lines, APK)**
 | # | Idea | Benefit for Hussain | Files | Est. lines | New APK? | Status |
 |---|---|---|---|---|---|---|
 | 1 | Shopping or packing list by voice (`list me doodh add karo`, `list dikhao`) | Never forget small things; no typing | `lists.py`*, `app.py`, `backup.py`, `index.html` | ~85 | No | BUILT (Part 83), not phone tested |
 | 2 | Habit and streak tracker (`aaj gym gaya`, `medicine le li`, weekly report) | Builds habits; stays on the phone, never sent to the AI | `habits.py`*, `app.py`, `brief.py` | ~80 | No | BUILT (Part 83), not phone tested |
-| 3 | Quick expense logger (`200 coffee`, `50 auto`) with week total | Money awareness without the owe/get ledger | `ledger.py`, `brief.py` | ~70 | No | PLANNED: Part 84 (Python + page, no APK) |
+| 3 | Quick expense logger (`200 coffee`, `50 auto`) with week total | Money awareness without the owe/get ledger | `spend.py`*, `brief.py`, `app.py`, `backup.py` | ~70 | No | BUILT (Part 84), not phone tested |
 | 4 | `explain this screen` as one command | One tap instead of three steps | `index.html`, `screen.py` | ~20 | No | BUILT (Part 83), not phone tested |
 | 5 | Battery guardian suggestion (below 20 percent, not charging) | A calm early warning in the briefing and as a suggestion | `brief.py` | ~30 | No | BUILT (Part 83), not phone tested |
 | 6 | Evening day summary at a fixed time (one tap, like routines) | Day report without asking | `tasks.py`, `index.html` | ~30 | No | BUILT (Part 83), not phone tested |
-| 7 | Clipboard buttons: Save as note, Add to list | Copy once, keep it | `index.html` | ~20 | No | PLANNED: Part 84 (Python + page, no APK) |
-| 8 | Suggest 2 or 3 short replies to a notification (nothing is sent) | Faster replies; you tap Send yourself | `index.html`, `app.py` | ~40 | No | PLANNED: Part 84 (Python + page, no APK) |
+| 7 | Clipboard buttons: Save as note, Add to list | Copy once, keep it | `index.html` | ~20 | No | BUILT (Part 84), not phone tested |
+| 8 | Suggest 2 or 3 short replies to a notification (nothing is sent) | Faster replies; you tap Send yourself | `replyideas.py`*, `index.html`, `app.py` | ~40 | No | BUILT (Part 84), not phone tested |
 | 9 | Call follow-up after a call ends (`kuch yaad rakhna hai?`) | Notes from calls | Java + `index.html` | ~80 | Yes | PLANNED: Part 85 (Java, needs a phone-state permission, after phone test) |
 | 10 | Routine auto-run without a tap | Fully hands-free routines | `tasks.py`, `index.html` | ~40 | No | NOT PLANNED: the one-tap Run is the safety design |
 | 11 | Location reminders (`jab ghar pahunchu`) | Reminders by place | Java (geofence) | ~120 | Yes | PLANNED: Part 85 (Java, last; needs background location, battery and privacy design first) |
@@ -72,17 +75,33 @@
 | Car mode | DROPPED |
 | Duplicate folder `Jarvis-main/Jarvis-main/` | DONE (Part 80) |
 
-**Where we stopped (17 Nov 2026):** Parts 1 to 83 are in this repo. Part 83 (shopping lists, habit tracker, explain screen tile, battery guardian, daily day report) is built, Python and page only, NOT phone tested. Part 82 (`PaymentGuard.java`, `MainActivity.java`) still has Java that was never compiled. Hussain picked ideas 1, 2, 4, 5 and 6 for Part 83; ideas 3, 7 and 8 were left for Part 84.
+**Where we stopped (17 Nov 2026):** Parts 1 to 84 are in this repo. Part 83 (lists, habits, explain screen tile, battery guardian, day report) and Part 84 (expense logger, clipboard buttons, reply ideas) are built, Python and page only, NOT phone tested. Part 82's Java (`PaymentGuard.java`, `MainActivity.java`) was never compiled. Table B ideas 1 to 8 are all built now.
 
 **Next Parts (name, files, estimated lines, benefit):**
-- **Part 84 = Python + page, NO new APK, about 130 lines.** Expense logger `200 coffee` (B 3: `ledger.py`, `brief.py`, ~70), clipboard buttons Save as note and Add to list (B 7: `index.html`, ~20), reply suggestions with nothing sent (B 8: `index.html`, `app.py`, ~40). Waits for Hussain's ok.
-- **Part 85 = Java, NEW APK, about 200 lines.** Call follow-up note (B 9, ~80) and location reminders (B 11, ~120). Starts only after Build APK and the phone test of Parts 78, 79, 82 and 83.
-- **Before any of this (Hussain's job):** run Build APK, install it, and try Table A (17 tests). If the build fails, send the error screenshot; that is fixed first.
+- **Part 85 = Java, NEW APK, about 200 lines.** Call follow-up note (B 9, ~80) and location reminders (B 11, ~120). Starts only after Build APK and the phone test of Parts 78, 79, 82, 83 and 84.
+- **Parts 86 to 88 = the frontend ideas worth taking (Table D below), Python + page, no APK, about 530 lines in all.** Only after the phone test, so that we know which Home cards Hussain really uses.
+- **Before any of this (Hussain's job):** run Build APK, install it, and try Table A (20 tests). If the build fails, send the error screenshot; that is fixed first.
 - Rule for every Part: no full test suite (Hussain's rule); only a syntax check and a small run; everything else is written as NOT RUN.
+
+**Table D: the 'Ultra-Premium Frontend Concept' (Jarvis Continuum), what to take (17 Nov 2026).** The concept's own advice is right: build and phone-test first, no big redesign before that. Rules stay: only real data from Jarvis's own tables, no fake percentages, no auto-run.
+| # | Idea in the concept | Verdict | Files | Est. lines | Part |
+|---|---|---|---|---|---|
+| D1 | Context Lens: ONE card 'your next best move' with Do, Why, Later and the source (Reminder, Routine, Ledger, Habit, Phone). Picked by fixed rules, no AI | TAKE | `lens.py`*, `app.py`, `index.html` | ~130 | 86 |
+| D2 | Now / Next / Later strip under the lens (same data as D1) | TAKE | `lens.py`, `index.html` | ~60 | 86 |
+| D3 | Honest Mission view: Code built, Phone tested, Verified as three separate counts read from the Table A results | TAKE | `progress.py`, `index.html` | ~70 | 86 |
+| D4 | Memory Atlas: memories, people and notes grouped, with delete; shown on a page, nothing new saved | TAKE (after D1 to D3) | `memory.py`, `people.py`, `app.py`, `index.html` | ~110 | 87 |
+| D5 | One Life Timeline (reminder done, routine run, note saved, expense noted) with filters | LATER: needs a small events table and a few hooks | `events.py`*, `app.py`, `index.html` | ~145 | 87 |
+| D6 | Source labels in research answers: 'One report' or 'N sources agree', counted from the real search result (no AI confidence number) | TAKE, small | `web.py`, `index.html` | ~45 | 88 |
+| D7 | Recovery card: 'while you were away: 3 reminders, 1 phone issue' with Review and Dismiss (extends Part 78) | LATER | `index.html`, `app.py` | ~45 | 88 |
+| D8 | Focus contract ('protect my next 45 minutes') | LATER: quiet mode exists; add a timer only if Hussain wants it | `modes.py`, `index.html` | ~40 | not planned yet |
+| D9 | Five-tab bottom bar, new colours, orb motion, splitting `index.html` into many files | NOT NOW: a cosmetic rewrite of an 870-line page that is not phone tested yet is the biggest regression risk; the concept itself says to split only after UX is validated | | | |
+| D10 | Evidence drawer, trust meter, fake hologram HUD, weather and stock cards | SKIP: needs data Jarvis does not have, or is decoration (Table C spirit) | | | |
 
 **Part 82: files and real lines.** `backup.py` 5, `remind.py` 31, `brief.py` 32, `phone.py` 68, `tasks.py` 15, `app.py` 6, `index.html` 31, `PaymentGuard.java` 48, `MainActivity.java` 15, `.gitignore` 1 (about 250 lines of code), README 60. The estimate was about 295. Tests: the full test suite was NOT RUN (Hussain's rule); only a Python syntax check, a JavaScript syntax check, a parse-only check of the Java and a small run of the new Python code were done.
 
 **Part 83 (this round): files and real lines.** `lists.py` 93 (new), `habits.py` 122 (new), `tasks.py` 47, `brief.py` 19, `app.py` 10, `backup.py` 3, `index.html` 3 (about 297 lines of code; `screen.py` was not touched, the screen reader already existed). The estimate for these five ideas was about 245. Tests: the full test suite was NOT RUN (Hussain's rule). Done: Python compile of every backend file, a JavaScript syntax check of the page, a small run of each new function (lists, habits, day report time, battery guardian, backup and restore of the new tables, no clash with the older commands and no normal sentence taken by mistake). Not done: any phone test.
+
+**Part 84 (this round): files and real lines.** `spend.py` 109 (new), `replyideas.py` 26 (new), `brief.py` 10, `app.py` 7, `index.html` 8, `backup.py` 2 (about 162 lines of code; the estimate for ideas 3, 7 and 8 was about 130; the expense logger got its own file instead of growing `ledger.py`). Tests: the full test suite was NOT RUN (Hussain's rule). Done: Python compile of every backend file, a JavaScript syntax check of the page, a small run of the expense logger (logging, totals, undo, 12 ordinary sentences NOT taken), of the reply-ideas text (a secret in a notification is refused), and of backup and restore of the spending table. Not done: any phone test, and the real AI answer for reply ideas.
 
 
 ### Phase 2 plan (each Part: files, lines, benefit, status)
@@ -146,6 +165,9 @@
 | Explain this screen in one tap | BUILT (Part 83): Home tile Explain screen, or say `explain this screen`, `screen samjhao`, `is screen pe kya hai`, `स्क्रीन समझाओ`. The old flow stays: switch to the app, Jarvis reads it after a few seconds, secrets are hidden first, nothing is saved. Page only, no APK |
 | Battery guardian | BUILT (Part 83): in the briefing, battery 16 to 19 percent and not charging gives one calm suggestion (charger, or battery saver and the words `battery settings kholo`). At 15 or less the older Phone Doctor line shows instead. It only suggests, nothing is switched. Python only, no APK |
 | Day report at a fixed time | BUILT (Part 83): `day report 9 baje` (a bare 9 means evening, 21:00; say `subah` or `am` for morning), `day report` shows the time, `day report off` stops it. Once a day at that time (up to 3 hours late) the page shows a Show day report button; the summary appears only after your tap and never by itself. Python + page, no APK |
+| Quick expense logger | BUILT (Part 84): `200 coffee`, `kharcha 50 auto`, `50 rupaye auto mein diye`, `spent 300 on petrol`. Category from a short word list (food, travel, bills, health, shopping, other). `kharcha` shows today, 7 days, this month and the 7-day split; `kharcha hatao` removes the last entry (or `#number`). The bare form `200 coffee` needs an amount of 10 or more and is not taken for time or counting words (`10 baje`, `5 minute`). Briefing, day summary and weekly summary show the total. Not the owe/get ledger. In Backup and Restore. Home tile Spending. Python + page, no APK |
+| Clipboard: Save as note, Add to list | BUILT (Part 84): after Home > Clipboard (or any text shared to Jarvis) two more buttons: Save as note (runs `note karo`) and Add to list (one item, up to 40 characters, runs `list me ... add karo`). Secrets are refused as before. Page only, no APK |
+| Reply ideas for a notification | BUILT (Part 84): Home > Notifications > Reply ideas, pick one of the last 5. The AI writes 3 short options, you tap Copy and send it yourself; Jarvis sends nothing. The notification text goes only in its own field, secrets are cleaned first, it is treated as data, and the chat history keeps only a placeholder. Needs the AI to be reachable. Python + page, no APK |
 | Smart App Search, Voice interruption | Already built (Parts 60, 61): only phone testing is left |
 | Scheduled routines at a time | BUILT (Part 76), see above: one-tap Run button, no auto-run |
 | Smart follow-ups, Privacy activity timeline | BUILT (Parts 77 and 78), see the rows above |
@@ -320,6 +342,8 @@ Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): He
 **Notes (Part 72):** `note karo ki ...`, `meri notes`, `notes me bijli dhundo`, `delete note 3`.
 
 **Lists, habits, day report (Part 83):** `list me doodh bread add karo`, `list dikhao`, `list se doodh hatao`, `list saaf karo`, `packing list me charger add karo`. `habit banao gym`, `aaj gym gaya`, `my habits`, `habit report`, `gym streak`, `habit hatao gym`. `day report 9 baje`, `day report off`. `explain this screen`.
+
+**Spending (Part 84):** `200 coffee`, `kharcha 50 auto`, `50 rupaye auto mein diye`, `kharcha`, `kharcha hatao`. Clipboard tile: Save as note, Add to list. Notifications tile: Reply ideas.
 
 **Two voices (Part 71):** Settings, Voice personality: Tony (conversation) and JARVIS (information, tasks, reminders, briefings, alerts). With Sarvam each has its own speaker. Listen to both before you decide.
 

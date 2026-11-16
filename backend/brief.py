@@ -3,7 +3,7 @@ Part 45: phone calendar ke events (sirf jab aap khud 'briefing' likhein), sujhav
 apne aap nahi, har type alag band ho sakta hai. Settings brief.json mein (restart ke baad bhi rehti hain)."""
 import json, os, re, time
 
-import habits, ledger, phone, remind
+import habits, ledger, phone, remind, spend
 
 TRIG = re.compile(r"briefing|brief karo|aaj ka plan|aaj kya hai|my plan today|good morning jarvis|ब्रीफिंग|सुप्रभात", re.I)
 FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brief.json")
@@ -129,6 +129,9 @@ def build(c, dev, now, hindi, auto=False, cal=None, ph=None):
     if L:
         dn, ln = ledger.totals(L)
         out.append(f"{say('कुल देना', 'You owe')}: {ledger.money(dn)} | {say('कुल लेना', 'You get')}: {ledger.money(ln)}")
+    sw, st = spend.week_total(c, dev, now)  # Part 84: what you spent (only when you noted something in the last 7 days)
+    if sw:
+        out.append(f"{say('खर्चा', 'Spent')}: {say('आज', 'today')} {ledger.money(st)} | {say('7 दिन', '7 days')} {ledger.money(sw)}")
     if bd:
         out.append(say("जन्मदिन:", "Birthdays:"))
         out += [f"- {t} - " + (say("आज", "today") if k == 0 else on) for t, k, on in bd]
@@ -163,11 +166,14 @@ def weekly(c, dev, now, hindi):
     L = ledger.rows(c, dev)
     late = len([x for x in L if x[4] and x[4] < time.strftime("%Y-%m-%d", time.gmtime(n))])
     bd = remind.birthdays(c, dev, n, 7)
+    sw = spend.week_total(c, dev, now)[0]  # Part 84
     out = [say("पिछले 7 दिन:", "Last 7 days:"),
            f"- {say('रिमाइंडर बताए गए', 'Reminders told')}: {rem}",
            f"- {say('फ़ोन टास्क/रूटीन पूरे', 'Phone tasks/routines completed')}: {tk.get('COMPLETED', 0)} ({say('अधूरे/फ़ेल', 'partial/failed')}: {tk.get('PARTIAL', 0) + tk.get('FAILED', 0)})",
            f"- {say('नोट्स सेव', 'Notes saved')}: {nts}",
            f"- {say('खुला हिसाब', 'Open ledger entries')}: {len(L)} ({say('तारीख़ निकली', 'past date')}: {late})"]
+    if sw:
+        out.append(f"- {say('खर्चा (7 दिन)', 'Spent (7 days)')}: {ledger.money(sw)}")
     if bd:
         out.append(f"- {say('आने वाले जन्मदिन (7 दिन)', 'Birthdays in the next 7 days')}: " + ", ".join(f"{t.replace('🎂 ', '')} ({on})" for _, t, on in bd))
     return "\n".join(out)
@@ -198,6 +204,9 @@ def daily(c, dev, now, hindi):
     hd, hn = habits.done_count(c, dev, now)  # Part 83
     if hn:
         out.append(f"- {say('आदतें आज पूरी', 'Habits done today')}: {hd}/{hn}")
+    sw, st = spend.week_total(c, dev, now)  # Part 84
+    if sw:
+        out.append(f"- {say('खर्चा आज', 'Spent today')}: {ledger.money(st)} ({say('7 दिन', '7 days')}: {ledger.money(sw)})")
     bd = [t.replace("🎂 ", "") for k, t, _ in remind.birthdays(c, dev, n, 2) if k == 1]
     if bd:
         out.append(f"- {say('कल जन्मदिन', 'Birthday tomorrow')}: " + ", ".join(bd))

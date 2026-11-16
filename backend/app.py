@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, autostart, backup, brief, calls, clock, handoff, habits, ledger, lists, memory, modes, notes, people, phone, place, progress, remind, screen, see, sysinfo, tasks, tts, voiceengine, web
+import actions, autostart, backup, brief, calls, clock, handoff, habits, ledger, lists, memory, modes, notes, people, phone, place, progress, remind, replyideas, screen, see, spend, sysinfo, tasks, tts, voiceengine, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -53,6 +53,7 @@ def db():
     ledger.init(c)
     lists.init(c)  # Part 83: shopping and packing lists
     habits.init(c)  # Part 83: habit and streak tracker
+    spend.init(c)  # Part 84: quick expense logger
     tasks.init(c)  # Part 41: tracked multi-step tasks
     return c
 
@@ -447,6 +448,8 @@ class H(BaseHTTPRequestHandler):
                 mem = lists.handle(c, dev, msg, style == "hindi")
             if mem is None:  # Part 83: "habit banao gym", "aaj gym gaya", "my habits" (only habits you made)
                 mem = habits.handle(c, dev, msg, style == "hindi", now)
+            if mem is None:  # Part 84: "200 coffee", "kharcha" (what you spent; not the owe/get ledger)
+                mem = spend.handle(c, dev, msg, style == "hindi", now)
             if mem is None:  # Part 83: "day report 9 baje" (the time at which the page offers a one-tap day summary)
                 mem = tasks.report(c, dev, msg, style == "hindi")
             if mem is None:  # Part 47: "backup", "delete everything" (typed phrase). Never takes a passphrase
@@ -483,14 +486,14 @@ class H(BaseHTTPRequestHandler):
             tctx = clock.context([(r, t) for r, _, t in reversed(rows)], prev_ts)
             wtxt, srcs = web.lookup(msg, now, mode == "research" and len(msg) >= 8 and not screen.used(data.get("screen")))  # Part 57: in Research mode every question is searched
             try:
-                reply, via = ask([{"role": r, "content": t} for r, t, _ in reversed(rows)], style, tctx + memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + wtxt + MOOD + modes.extra(mode))
+                reply, via = ask([{"role": r, "content": t} for r, t, _ in reversed(rows)], style, tctx + memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + replyideas.context(data.get("notif")) + wtxt + MOOD + modes.extra(mode))
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
             if srcs:  # the list of sites comes from the real search result, not from the AI
                 reply += ("\n\nस्रोत: " if style == "hindi" else "\n\nSources: ") + ", ".join(srcs)
-            c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", "(answer about your screen was shown, not saved)" if screen.used(data.get("screen")) else reply, time.time()))
+            c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", "(answer about your screen was shown, not saved)" if screen.used(data.get("screen")) else "(reply ideas were shown, not saved)" if replyideas.used(data.get("notif")) else reply, time.time()))
             c.commit()
-            sug = None if screen.used(data.get("screen")) else memory.suggest(msg)  # Part 54: only an offer, nothing is saved here
+            sug = None if screen.used(data.get("screen")) or replyideas.used(data.get("notif")) else memory.suggest(msg)  # Part 54: only an offer, nothing is saved here
             return self.send(200, dict({"reply": reply, "via": via}, **({"remember": sug} if sug else {})))
         self.send(404, {"error": "not found"})
 
