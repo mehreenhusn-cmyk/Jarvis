@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, autostart, backup, brief, calls, clock, handoff, habits, ledger, lens, lists, memory, modes, notes, people, phone, place, progress, remind, replyideas, screen, see, spend, sysinfo, tasks, tts, voiceengine, web, whatsnew
+import actions, autostart, backup, brief, calls, clock, handoff, habits, ledger, lens, lists, memory, modes, notes, people, phone, place, progress, remind, replyideas, screen, search, see, spend, sysinfo, tasks, tts, voiceengine, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -449,6 +449,8 @@ class H(BaseHTTPRequestHandler):
                 return self.send(200, {"reply": hit[0], "via": "memory", "mode": hit[1]})
             mem = memory.handle(c, dev, msg, style == "hindi")  # yaad rakho / bhool jao / kya yaad hai
             now = str(data.get("now", ""))
+            if mem is None:  # Part 89: "sab jagah dhundo Bombay" (same words in notes, memories, people, lists, reminders; reads only, no AI)
+                mem = search.handle(c, dev, msg, style == "hindi")
             if mem is None:  # Part 72: "note karo ...", "meri notes", "notes me bijli dhundo" (saved only on your words, never sent to the AI)
                 mem = notes.handle(c, dev, msg, style == "hindi")
             if mem is None:  # Part 83: "list me doodh add karo", "list dikhao" (own words, never sent to the AI)

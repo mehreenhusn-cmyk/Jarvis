@@ -14,7 +14,7 @@
 | 4 | Total plan: files and lines | What the planned Parts add up to |
 | 5 | Ideas we will not build | And why |
 | 6 | Safety rules for the new Parts | Every new Part must keep these |
-| 7 | Phone tests (Table A) | 25 things to try on the phone |
+| 7 | Phone tests (Table A) | 26 things to try on the phone |
 | 8 | Rules for every Claude | How we work |
 | 9 | Known limits and fixes | What Jarvis cannot do, honest |
 | R1 to R7 | Reference | How it works, setup, cheat sheet, security, old status, build log, master plan |
@@ -33,7 +33,7 @@
 
 **How to use this table.** Parts are plain numbers in one sequence. No letters, no groups. A new idea gets the NEXT number at the bottom (now 123). When a Part is built, change its Status and fill in the real lines. A range like `1 to 5` means the old notes did not split them. `*` = new file. `-` = not recorded in the old notes (see R5, R6, R7).
 
-**Honest count (17 Nov 2026).** Code is written for Parts 1 to 88 and Part 117 (about 7,100 lines; Part 67 was dropped, Part 81 has no record). Phone tested: Parts 1 to 17 only (12 to 14 partly). Table A (section 7): 0 of 25 tried. Java has never been fully compiled: GitHub Build APK runs #17 to #21 were green (Parts 48, 49, 64, 65 compile). Not compiled yet: `QuickSet` (alarm, timer, search, media), the WhatsApp part of `CallByName`, `Ears` interrupt, `PaymentGuard`, the deep phone check, the `Privacy` timeline.
+**Honest count (17 Nov 2026).** Code is written for Parts 1 to 89 and Part 117 (about 7,100 lines; Part 67 was dropped, Part 81 has no record). Phone tested: Parts 1 to 17 only (12 to 14 partly). Table A (section 7): 0 of 26 tried. Java has never been fully compiled: GitHub Build APK runs #17 to #21 were green (Parts 48, 49, 64, 65 compile). Not compiled yet: `QuickSet` (alarm, timer, search, media), the WhatsApp part of `CallByName`, `Ears` interrupt, `PaymentGuard`, the deep phone check, the `Privacy` timeline.
 
 | Part | What it does | Files | Lines | New APK? | Status |
 |---|---|---|---|---|---|
@@ -114,7 +114,7 @@
 | 86 | **Now / Next / Later** strip under that card (built together with 85) | `lens.py`, `index.html` | about 43 | No | Built, not phone tested |
 | 87 | **Honest Mission view**: three separate counts, Code built, Phone tested, Verified (Table A PASS), read from the status column and Table A. Chat word `mission`; Home card `Honest progress`. Plain count, no percentage | `progress.py`, `app.py`, `index.html` | 39 | No | Built, not phone tested |
 | 88 | **Memory Atlas**: the `Your Data` panel in Settings now shows counts of everything Jarvis keeps (12 stores, one list `memory.STORES`) with how to remove each, plus your Notes with a Remove button. People and Memory already had Remove. Reading only; nothing new is saved | `memory.py`, `app.py`, `index.html` | 30 | No | Built, not phone tested |
-| 89 | **Search everywhere**: `sab jagah dhundo Bombay` looks in notes, memories, people, lists, reminders (and later decisions, capsules, dreams) and says where each hit came from. Matches words, not meaning | `search.py*`, `app.py`, `index.html` | ~70 | No | Planned |
+| 89 | **Search everywhere**: `sab jagah dhundo Bombay` (also `sab jagah Bombay dhundo`, `search everywhere Bombay`) looks in notes, memories, people notes, lists and reminders and says where each hit came from. Matches the same words, not the meaning. Reads only, no AI. Home tools row has a `Search all` button that types the start. Later Parts add their store to `SOURCES` in `search.py` (decisions, capsules, dreams) | `search.py`*, `app.py`, `index.html` | 39 | No | Built, not phone tested |
 | 90 | **Source label** on research answers: `One report` or `N sources agree`, counted from the real search result | `web.py`, `index.html` | ~45 | No | Planned |
 | 91 | **Red Team**: `red team: yeh phone kharidna hai`. The AI gets only your own Jarvis numbers (this month's spending, habits, memories), asks 3 hard questions and gives 2 counter-points. No invented numbers | `redteam.py*`, `app.py`, `index.html` | ~60 | No | Planned |
 | 92 | **Debate Jarvis**: `debate ruthless: ...`, `debate spiritual: ...` or `debate opposite: ...`. Jarvis argues that side with a visible badge for 10 minutes, then goes back to normal. Only when you call it | `debate.py*`, `app.py`, `index.html` | ~80 | No | Planned |
@@ -153,10 +153,10 @@
 
 1. GitHub > Actions > **Build APK** > Run. If it goes red, send a screenshot of the error. That is fixed before anything else.
 2. Install the APK on the phone.
-3. Try the 25 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
-4. Then say **"ok 89"** (or any Part number from section 2). Claude builds one Part at a time.
+3. Try the 26 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
+4. Then say **"ok 90"** (or any Part number from section 2). Claude builds one Part at a time.
 
-Why this order: Parts 18 to 88 and Part 117 are built and none is phone tested. A new feature on top of an untested base only makes bugs harder to find. Parts 112 to 116 (Java) wait longest, because Java is not even compiled yet. This README-only update needs no new APK.
+Why this order: Parts 18 to 89 and Part 117 are built and none is phone tested. A new feature on top of an untested base only makes bugs harder to find. Parts 112 to 116 (Java) wait longest, because Java is not even compiled yet. This README-only update needs no new APK.
 
 ## 4. TOTAL PLAN: FILES AND LINES (Parts 87 to 122)
 
@@ -169,7 +169,7 @@ Why this order: Parts 18 to 88 and Part 117 are built and none is phone tested. 
 - **New Python files (16):** `assist.py`, `capsule.py`, `debate.py`, `decisions.py`, `dreams.py`, `drift.py`, `events.py`, `ghost.py`, `guest.py`, `money.py`, `mood.py`, `redteam.py`, `search.py`, `signs.py`, `touch.py`, `whatsnew.py`.
 - **New Java files (3):** `CallNote.java`, `PlaceWatch.java`, `UsageWatch.java`.
 - **Older files that grow:** `MainActivity.java`, `actions.py`, `app.py`, `backup.py`, `brief.py`, `habits.py`, `index.html`, `memory.py`, `modes.py`, `people.py`, `progress.py`, `web.py` and the manifest.
-- **Order of work (changed 17 Nov):** 87 with 117, then 88, 89, 90, then 118 and 119 (the guest guard needs the list of every store from Part 88), then 91 to 111, then 120, then 121 and 122 (look only, after Table A passes), Java 112 to 116 last. Older text below: the table order. Python Parts first, Java Parts last. Parts 85, 86, 87, 88 and 117 are built. Part 98 needs Parts 95 and 97. Part 111 needs Parts 84 and 110. Part 114 needs Part 113. Part 116 needs Part 115.
+- **Order of work (changed 17 Nov):** 87 with 117, then 88, 89, 90, then 118 and 119 (the guest guard needs the list of every store from Part 88), then 91 to 111, then 120, then 121 and 122 (look only, after Table A passes), Java 112 to 116 last. Older text below: the table order. Python Parts first, Java Parts last. Parts 85, 86, 87, 88, 89 and 117 are built. Part 98 needs Parts 95 and 97. Part 111 needs Parts 84 and 110. Part 114 needs Part 113. Part 116 needs Part 115.
 - **Each Part stays under 350 lines** (rule 1). Every Part: no full test suite (Hussain's rule), only a syntax check and a small run; everything else is written as NOT RUN.
 
 ## 5. IDEAS WE WILL NOT BUILD (and why)
@@ -237,6 +237,7 @@ Nothing below is phone tested yet. Build APK first for the Java rows. Write PASS
 | 23 | Home tab: look at the Honest progress card, then type `mission` in chat | The card and the chat show the same three counts: Code built, Phone tested, Verified (Table A). With nothing marked PASS yet, Verified says 0 of 24 | No | not tested |
 | 24 | Type `last update`, then `last 3 updates`, then `kya kya add hua` | Last update: the newest zip name, its time, what that Part does, its files and lines, and the files inside the zip. The list shows Part numbers with one line each. No `I cannot access GitHub` | No | not tested |
 | 25 | Settings > Your Data (Memory Atlas): look at the counts, add a note with `note karo test`, reopen the panel, press Remove on that note | The counts list 12 kinds of data with how to remove each; the test note appears under Notes and disappears after Remove; counts match what you know you saved | No | not tested |
+| 26 | Save a note with `note karo Bombay trip`, then say `sab jagah dhundo Bombay`; also tap Home > Search all | The answer lists the note under Notes and any memory, person, list item or reminder with that word; a word you never saved says `nowhere`; nothing is sent to the AI | No | not tested |
 
 ## 8. RULES FOR EVERY CLAUDE (always follow)
 1. Each part is under 350 lines of code. New files only when really needed. Update this README after every part.
@@ -610,7 +611,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 86 DONE | Now / Next / Later strip under that card | lens.py, index.html | ~60 | With | The day in three columns |
 | 87 DONE | Honest Mission view: three separate counts, Code built, Phone tested, Verified | progress.py, app.py, index.html | 39 | With | Honest count of what is really done |
 | 88 DONE | Memory Atlas: counts of everything Jarvis keeps, notes with Remove | memory.py, app.py, index.html | 30 | With | See and delete what Jarvis keeps in one panel |
-| 89 | Search everywhere: sab jagah dhundo Bombay looks in notes, memories, people, lists, reminders (and later decis | search.py*, app.py, index.html | ~70 | With | Planned, see section 2 |
+| 89 DONE | Search everywhere: same words in notes, memories, people, lists, reminders | search.py*, app.py, index.html | 39 | With | Find anything you told Jarvis in one go |
 | 90 | Source label on research answers: One report or N sources agree, counted from the real search result | web.py, index.html | ~45 | With | Planned, see section 2 |
 | 91 | Red Team: red team: yeh phone kharidna hai. The AI gets only your own Jarvis numbers (this month's spending, h | redteam.py*, app.py, index.html | ~60 | With | Planned, see section 2 |
 | 92 | Debate Jarvis: debate ruthless: ..., debate spiritual: ... or debate opposite: .... Jarvis argues that side wi | debate.py*, app.py, index.html | ~80 | With | Planned, see section 2 |
