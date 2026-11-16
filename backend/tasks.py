@@ -24,6 +24,7 @@ def init(c):
     for col in ("at", "last", "days"):  # Part 76: routine ka time (HH:MM, phone ka) aur kis din aakhri baar bataya; purani table mein sirf 2 naye column
         if col not in [r[1] for r in c.execute("PRAGMA table_info(routines)")]:
             c.execute(f"ALTER TABLE routines ADD COLUMN {col} TEXT DEFAULT ''")
+    c.execute("CREATE TABLE IF NOT EXISTS dayreport(device INT PRIMARY KEY, at TEXT, last TEXT DEFAULT '')")  # Part 83: the time of the daily day report (one row per device)
     c.commit()
 
 
@@ -169,6 +170,52 @@ def due_routines(c, dev, now):
             out.append({"name": name, "at": at})
     c.commit()
     return out
+
+
+REP = r"(?:day report|din ka report|daily report|दिन की रिपोर्ट|दिन का रिपोर्ट)"
+REPSET = re.compile(r"^\s*" + REP + r"\s+(?:(?:roz|rozana|daily|at|रोज़|रोज)\s+)?(?:(" + PART + r")\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|baje|bje|बजे)?\s*(" + PART + r")?\s*$", re.I)
+REPOFF = re.compile(r"^\s*" + REP + r"\s+(?:off|band|bandh|hatao|बंद|हटाओ)\s*$", re.I)
+REPASK = re.compile(r"^\s*" + REP + r"\s*\??\s*$", re.I)
+
+
+def report(c, dev, msg, hindi):
+    """Part 83: 'day report 9 baje' sets a time; every day at that time the page offers ONE tap that shows the day summary (it never runs by itself). None = not this command."""
+    say = lambda hi, en: hi if hindi else en
+    msg = unicodedata.normalize("NFC", msg)
+    if REPOFF.match(msg):
+        c.execute("DELETE FROM dayreport WHERE device=?", (dev,))
+        c.commit()
+        return say("ठीक है सर, रोज़ का दिन-रिपोर्ट बंद।", "Okay sir, the daily day report is OFF.")
+    if REPASK.match(msg):
+        r = c.execute("SELECT at FROM dayreport WHERE device=?", (dev,)).fetchone()
+        return say(f"सर, दिन-रिपोर्ट रोज़ {r[0]} पर है।", f"Sir, the day report is set for {r[0]} every day.") if r else say("सर, दिन-रिपोर्ट का समय नहीं है। जैसे: day report 9 baje", "Sir, no day report time is set. Example: day report 9 baje")
+    m = REPSET.match(msg)
+    if not m:
+        return None
+    w = m.group(1) or (m.group(4) if (m.group(4) or "").lower() in ("am", "pm") else None) or m.group(5)  # "baje" is not a day part
+    h, mi = int(m.group(2)), int(m.group(3) or 0)
+    if not w and 1 <= h <= 11:
+        h += 12  # a day report is for the evening, so "9" means 21:00 unless you say subah or am
+    else:
+        h = _hour(h, w)
+    if h > 23 or mi > 59:
+        return say("सर, समय समझ नहीं आया। जैसे: day report 9 baje", "Sir, I could not read that time. Example: day report 9 baje")
+    c.execute("INSERT OR REPLACE INTO dayreport(device, at, last) VALUES(?,?,'')", (dev, f"{h:02d}:{mi:02d}"))
+    c.commit()
+    return say(f"ठीक है सर, रोज़ {h:02d}:{mi:02d} पर दिन-रिपोर्ट का बटन दिखाऊँगा। (शाम मानकर 24 घंटे का समय)", f"Okay sir, every day at {h:02d}:{mi:02d} I will show a day report button (24-hour time; a bare 9 means evening).")
+
+
+def due_report(c, dev, now):
+    """Part 83: {'at': 'HH:MM'} once a day when the day report time is here (and at most 3 hours late), else None. It only tells; the summary is shown after your tap."""
+    day, hm = str(now)[:10], str(now)[11:16]
+    if not re.fullmatch(r"\d{4}-\d\d-\d\d", day) or not re.fullmatch(r"\d\d:\d\d", hm):
+        return None
+    r = c.execute("SELECT at FROM dayreport WHERE device=? AND at<=? AND last<>?", (dev, hm, day)).fetchone()
+    if not r:
+        return None
+    c.execute("UPDATE dayreport SET last=? WHERE device=?", (day, dev))
+    c.commit()
+    return {"at": r[0]} if int(hm[:2]) * 60 + int(hm[3:]) - (int(r[0][:2]) * 60 + int(r[0][3:])) <= 180 else None
 
 
 def scheduled(c, dev):

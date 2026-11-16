@@ -12,7 +12,8 @@ MAGIC = "JARVISBK1"
 # table: (columns saved, columns that make a row "the same", extra WHERE)
 T = {"memories": ("text", "text", ""), "notes": ("text,ts", "text", ""), "people": ("name,note", "name,note", ""),
      "reminders": ("text,due,rep", "text,due,rep", "AND sent=0"), "ledger": ("who,amount,dir,due,note,paid", "who,amount,dir,due,note,paid", "AND paid=0"),
-     "routines": ("name,phrase,at,days", "name", ""), "messages": ("role,content,ts", "role,content,ts", "")}
+     "routines": ("name,phrase,at,days", "name", ""), "messages": ("role,content,ts", "role,content,ts", ""),
+     "listitems": ("list,item", "list,item", ""), "habits": ("name,day", "name,day", "")}  # Part 83: shopping lists, habits and their check-ins
 NAME = re.compile(r"^Jarvis_backup_[0-9A-Za-z_\-]{1,40}\.jbk$")
 PHRASE = "DELETE ALL MY JARVIS DATA"
 ASK = re.compile(r"^\s*(?:delete|erase|wipe)\s+(?:everything|all my (?:jarvis )?data)\s*$", re.I)
@@ -157,7 +158,7 @@ def restore(c, dev, name, pw):
 
 
 def wipe(c, dev):
-    for t in ("memories", "notes", "people", "reminders", "ledger", "routines", "messages", "tasks"):
+    for t in ("memories", "notes", "people", "reminders", "ledger", "routines", "messages", "tasks", "listitems", "habits", "dayreport"):
         c.execute(f"DELETE FROM {t} WHERE device=?", (dev,))
     c.commit()
 

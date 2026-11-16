@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, autostart, backup, brief, calls, clock, handoff, ledger, memory, modes, notes, people, phone, place, progress, remind, screen, see, sysinfo, tasks, tts, voiceengine, web
+import actions, autostart, backup, brief, calls, clock, handoff, habits, ledger, lists, memory, modes, notes, people, phone, place, progress, remind, screen, see, sysinfo, tasks, tts, voiceengine, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -51,6 +51,8 @@ def db():
     people.init(c)
     remind.init(c)
     ledger.init(c)
+    lists.init(c)  # Part 83: shopping and packing lists
+    habits.init(c)  # Part 83: habit and streak tracker
     tasks.init(c)  # Part 41: tracked multi-step tasks
     return c
 
@@ -300,7 +302,7 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, {"ok": True})
         if self.path == "/due":  # page har 10 sec poochta hai: kisi reminder ka time hua?
             now = str(data.get("now", ""))
-            return self.send(200, {"due": remind.due(db(), dev, now), "routines": tasks.due_routines(db(), dev, now), "follow": remind.followup(db(), dev, now)})  # Part 76: routine ka time hua to page ek-tap button dikhata hai
+            return self.send(200, {"due": remind.due(db(), dev, now), "routines": tasks.due_routines(db(), dev, now), "report": tasks.due_report(db(), dev, now), "follow": remind.followup(db(), dev, now)})  # Part 76: routine ka time hua to page ek-tap button dikhata hai
         if self.path == "/task/update":  # Part 41/42: the page tells how a task is going (RUNNING, WAITING_FOR_PERMISSION, ...)
             try:
                 ok = tasks.update(db(), dev, int(data.get("id") or 0), str(data.get("state", "")), data.get("cur") if isinstance(data.get("cur"), int) else None, data.get("note", ""))
@@ -441,6 +443,12 @@ class H(BaseHTTPRequestHandler):
             now = str(data.get("now", ""))
             if mem is None:  # Part 72: "note karo ...", "meri notes", "notes me bijli dhundo" (saved only on your words, never sent to the AI)
                 mem = notes.handle(c, dev, msg, style == "hindi")
+            if mem is None:  # Part 83: "list me doodh add karo", "list dikhao" (own words, never sent to the AI)
+                mem = lists.handle(c, dev, msg, style == "hindi")
+            if mem is None:  # Part 83: "habit banao gym", "aaj gym gaya", "my habits" (only habits you made)
+                mem = habits.handle(c, dev, msg, style == "hindi", now)
+            if mem is None:  # Part 83: "day report 9 baje" (the time at which the page offers a one-tap day summary)
+                mem = tasks.report(c, dev, msg, style == "hindi")
             if mem is None:  # Part 47: "backup", "delete everything" (typed phrase). Never takes a passphrase
                 mem = backup.handle(c, dev, msg, style == "hindi")
             if mem is None:  # Part 48: "handoff" (summary for Claude or ChatGPT) and "phone kho gaya" (steps)

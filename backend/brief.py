@@ -3,7 +3,7 @@ Part 45: phone calendar ke events (sirf jab aap khud 'briefing' likhein), sujhav
 apne aap nahi, har type alag band ho sakta hai. Settings brief.json mein (restart ke baad bhi rehti hain)."""
 import json, os, re, time
 
-import ledger, phone, remind
+import habits, ledger, phone, remind
 
 TRIG = re.compile(r"briefing|brief karo|aaj ka plan|aaj kya hai|my plan today|good morning jarvis|ब्रीफिंग|सुप्रभात", re.I)
 FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brief.json")
@@ -72,6 +72,16 @@ def suggest(c, dev, n, hindi, s, auto):
     return out
 
 
+def guardian(ph, hindi):
+    """Part 83 battery guardian: from 16 to 19 percent and not charging, one calm suggestion (the Phone Doctor already warns at 15 or less). Only a suggestion; nothing is switched."""
+    b = ph.get("battery") if isinstance(ph, dict) else None
+    if not isinstance(b, (int, float)) or isinstance(b, bool) or ph.get("charging") or not 15 < b < 20:
+        return []
+    saver = ph.get("power_save")
+    return [(f"बैटरी {b:.0f}% है और चार्ज नहीं हो रही। चार्जर लगाइए" + ("।" if saver else " या बैटरी सेवर चालू कीजिए (बोलिए: battery settings kholo)।"))
+            if hindi else (f"Battery is {b:.0f}% and not charging. Plug in the charger" + ("." if saver else " or turn on battery saver (say: battery settings kholo)."))]
+
+
 def events(cal, hindi):
     """Calendar ke aaj ke events ki lines (app se aaye, kuch save nahi hota)."""
     if not isinstance(cal, list):
@@ -101,6 +111,8 @@ def build(c, dev, now, hindi, auto=False, cal=None, ph=None):
     bd = [(t, k, on) for k, t, on in remind.birthdays(c, dev, n, 3)]  # Part 75: janamdin aaj se 3 din tak
     nt = [] if auto else [r[0][:80] for r in c.execute("SELECT text FROM notes WHERE device=? ORDER BY id DESC LIMIT 2", (dev,))]  # latest notes: sirf jab aap khud briefing maangein
     pw = [f"{x} {y}" for x, y in phone.analyze(ph, hindi)[:2]] if isinstance(ph, dict) else []  # Part 80: phone problems (battery, storage, heat...) in the briefing, only when there is one
+    pw += guardian(ph, hindi)  # Part 83: battery guardian (16 to 19 percent, not charging)
+    hb = habits.summary(c, dev, now, hindi)  # Part 83: habits not done yet today (only when you have habits)
     if not rem and not near and not ev and not sug and not pw and not any(k == 0 for _, k, _ in bd) and auto:
         return ""
     say = (lambda hi, ro: hi if hindi else ro)
@@ -120,6 +132,9 @@ def build(c, dev, now, hindi, auto=False, cal=None, ph=None):
     if bd:
         out.append(say("जन्मदिन:", "Birthdays:"))
         out += [f"- {t} - " + (say("आज", "today") if k == 0 else on) for t, k, on in bd]
+    if hb:
+        out.append(say("आदतें:", "Habits:"))
+        out += hb
     if nt:
         out.append(say("ताज़ा नोट्स:", "Latest notes:"))
         out += [f"- {x}" for x in nt]
@@ -180,6 +195,9 @@ def daily(c, dev, now, hindi):
            f"- {say('नोट्स सेव', 'Notes saved')}: {nts}",
            f"- {say('खुला हिसाब', 'Open ledger entries')}: {len(L)} ({say('तारीख़ निकली', 'past date')}: {late})",
            f"- {say('कल के रिमाइंडर', 'Reminders tomorrow')}: {tom}"]
+    hd, hn = habits.done_count(c, dev, now)  # Part 83
+    if hn:
+        out.append(f"- {say('आदतें आज पूरी', 'Habits done today')}: {hd}/{hn}")
     bd = [t.replace("🎂 ", "") for k, t, _ in remind.birthdays(c, dev, n, 2) if k == 1]
     if bd:
         out.append(f"- {say('कल जन्मदिन', 'Birthday tomorrow')}: " + ", ".join(bd))

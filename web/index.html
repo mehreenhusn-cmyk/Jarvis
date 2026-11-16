@@ -150,6 +150,7 @@ async function checkDue(){
       else q.forEach(r=>{const t='⏰ Reminder: '+r.text;const w=add('bot',t);speak(t,true,'REMINDER');if(r.id)btns(w,[['⏰ 10 min',()=>snz(r.id,w)]]);if(navigator.vibrate)navigator.vibrate([300,150,300]);});}
     if(s==200&&d.follow){const f=d.follow,w=add('bot','✅ Reminder "'+f.text+'" - ho gaya?');const ans=y=>{api('/followup/answer',{id:f.id,yes:y,now:nowS()}).catch(()=>{});w.textContent=y?'👍 Okay, done.':'⏰ Okay, I will remind you again in 2 hours.';};btns(w,[['Haan, ho gaya',()=>ans(true)],['Nahi abhi',()=>ans(false)]]);}
     if(s==200)(d.routines||[]).forEach(r=>{const t='🔁 Routine "'+r.name+'" time ('+r.at+'). Tap Run to start it.';const w=add('bot',t);speak(t,true,'REMINDER');btns(w,[['▶ Run '+r.name,()=>ask('routine '+r.name)]]);});
+    if(s==200&&d.report){const t='📊 Day report time ('+d.report.at+'). Tap to see today in numbers.';const w=add('bot',t);speak(t,true,'REMINDER');btns(w,[['📊 Show day report',()=>ask('aaj ka summary')]]);}  // Part 83: one tap, it never shows by itself
   }catch(e){}
 }
 let down=0,since='',srvUp=0;
@@ -386,7 +387,7 @@ const pinfo=()=>{try{return window.JarvisApp&&JarvisApp.phoneInfo?JSON.parse(Jar
 const CALQ2=/\b(?:my calendar|calendar events?|upcoming events|events (?:today|tomorrow|this week)|calendar (?:mein|me) kya|calendar dikhao|aaj ke events|kal ke events)\b|कैलेंडर/i,calSpec=t=>/tomorrow|kal ke|कल/i.test(t)?'1,1':/week/i.test(t)?'0,7':/today|aaj|आज/i.test(t)?'0,1':'0,3';
 const CALLQ=/missed calls?|who called|recent calls|call history|call log|मिस्ड कॉल|किसका कॉल/i,CNQ=/^\s*(?:find contact|contact number of|contact for|contact)\s+(.{1,40}?)\s*\??\s*$/i;
 const bridge=(f,a)=>{try{return window.JarvisApp&&JarvisApp[f]?JSON.parse(JarvisApp[f](a)):null}catch(e){return null}};
-const SCREENQ=/(?:read|explain|summari[sz]e|what(?:'s| is) on)\s+(?:my |this |the )?screen|screen (?:read|check)|मेरी स्क्रीन|स्क्रीन पढ़/i;
+const SCREENQ=/(?:read|explain|summari[sz]e|what(?:'s| is) on)\s+(?:my |this |the )?screen|screen (?:read|check)|मेरी स्क्रीन|स्क्रीन पढ़|screen\s+(?:samjhao|batao|padho)|(?:is|iss|ye|yeh)\s+screen\s+(?:par|pe|pr)\s+kya|स्क्रीन\s+(?:समझाओ|बताओ)/i;  // Part 83: more ways to say it
 let screenData=null,pendingMsg=null;
 const sbridge=()=>{try{return window.JarvisApp&&JarvisApp.screen?JSON.parse(JarvisApp.screen()):null}catch(e){return null}};
 window.onScreen=s=>{if(!pendingMsg)return;try{screenData=JSON.parse(s)}catch(e){screenData={error:'could not read the screen'}}$('msg').value=pendingMsg;pendingMsg=null;$('f').requestSubmit();};
@@ -743,7 +744,7 @@ function fill(t){go('chat');$('msg').value=t;$('msg').focus();}  // the tool onl
 $('orb').onclick=()=>{go('chat');$('mic').click();};
 [['📝','Summarize',()=>fill('Summarize: ')],['🌐','Translate',()=>fill('Translate to Hindi: ')],['✍️','Write',()=>fill('Write a message: ')],['💡','Explain',()=>fill('Explain simply: ')],['🗓','Plan my day',()=>ask('briefing')],['📤','Handoff',()=>ask('handoff')]]
   .forEach(([i,n,f])=>{const b=el('button',null);b.type='button';b.append(el('span','',i),n);b.onclick=f;$('htl').appendChild(b);});
-[['☀️','Briefing','Your day in one look','briefing'],['⏰','My reminders','Today and later','my reminders'],['🔁','Routines','Saved task sentences','my routines'],['💰','Money ledger','Who owes what','show ledger'],['📋','Clipboard','Use what you just copied','__clip'],['🔔','Notifications','Summary of the apps you chose','__ns'],['📱','Lost phone help','Steps if the phone is gone','phone kho gaya']]
+[['☀️','Briefing','Your day in one look','briefing'],['⏰','My reminders','Today and later','my reminders'],['🔁','Routines','Saved task sentences','my routines'],['💰','Money ledger','Who owes what','show ledger'],['🛒','Shopping list','Small things by voice','list dikhao'],['💪','Habits','Streaks and check-ins','my habits'],['📊','Day report','Today in numbers','aaj ka summary'],['🖥','Explain screen','Read the app on screen','explain this screen'],['📋','Clipboard','Use what you just copied','__clip'],['🔔','Notifications','Summary of the apps you chose','__ns'],['📱','Lost phone help','Steps if the phone is gone','phone kho gaya']]
   .forEach(([i,n,sub,q])=>{const b=el('button','sc');b.type='button';const w=el('span');w.append(n,el('small','',sub));b.append(el('span','',i),w,el('b','','›'));b.onclick=()=>q=='__clip'?clip():q=='__ns'?nsum():ask(q);$('hsc').appendChild(b);});
 [['⚙ Settings',()=>go('set')],['⏹ Stop everything',()=>{go('chat');add('bot',stopAll());}]]
   .forEach(([n,f])=>{const b=el('button','g',n);b.type='button';b.onclick=f;$('hq').appendChild(b);});
