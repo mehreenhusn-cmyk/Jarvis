@@ -50,6 +50,7 @@ public class ScreenService extends AccessibilityService {
             .setContentTitle("Jarvis paused for payment").setContentText("Screen-reading is off while " + pkg + " is open. Tap to turn it back on when done.")
             .setContentIntent(go).setAutoCancel(true).build();
         nm.notify(81, n);
+        Privacy.event(this, "pay");  // Part 78: timeline shows "paused for a payment app" (no app name saved)
         disableSelf();  // after this, onAccessibilityEvent/onServiceConnected will not fire again until the person taps the toggle in Settings
     }
 

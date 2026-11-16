@@ -143,7 +143,8 @@ let boot='';
 const nowS=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16).replace('T',' ');
 async function checkDue(){
   try{const {s,d}=await api('/due',{now:nowS()});
-    if(s==200)(d.due||[]).forEach(r=>{const t='⏰ Reminder: '+r.text;add('bot',t);speak(t,true,'REMINDER');if(navigator.vibrate)navigator.vibrate([300,150,300]);});
+    if(s==200){const q=d.due||[];if(q.length>2){const t='⏰ '+q.length+' reminders were waiting:\n'+q.map(r=>'- '+r.text).join('\n');add('bot',t);speak(q.length+' reminders were waiting. Check the chat.',true,'REMINDER');if(navigator.vibrate)navigator.vibrate([300,150,300]);}  // Part 78: if you were away, many reminders become ONE message and ONE voice, not a pile
+      else q.forEach(r=>{const t='⏰ Reminder: '+r.text;add('bot',t);speak(t,true,'REMINDER');if(navigator.vibrate)navigator.vibrate([300,150,300]);});}
     if(s==200&&d.follow){const f=d.follow,w=add('bot','✅ Reminder "'+f.text+'" - ho gaya?');const ans=y=>{api('/followup/answer',{id:f.id,yes:y,now:nowS()}).catch(()=>{});w.textContent=y?'👍 Okay, done.':'⏰ Okay, I will remind you again in 2 hours.';};btns(w,[['Haan, ho gaya',()=>ans(true)],['Nahi abhi',()=>ans(false)]]);}
     if(s==200)(d.routines||[]).forEach(r=>{const t='🔁 Routine "'+r.name+'" time ('+r.at+'). Tap Run to start it.';const w=add('bot',t);speak(t,true,'REMINDER');btns(w,[['▶ Run '+r.name,()=>ask('routine '+r.name)]]);});
   }catch(e){}
@@ -595,8 +596,15 @@ function dash(){
     if(p==0){const g=el('button','g','Open settings');g.onclick=()=>JarvisApp.openSettings(go);r.appendChild(g);}
     if(id=='screen'&&p==0){r.appendChild(el('small','','If \"Jarvis screen reader\" is grey and cannot be turned on: Android blocks apps installed outside Play Store. Tap the button below, then the 3 dots at the top right, then \"Allow restricted settings\". Then turn the switch on.'));const g2=el('button','g','Open Jarvis app info');g2.onclick=()=>JarvisApp.openSettings('');r.appendChild(g2);}
     box.appendChild(r);});
-  box.appendChild(el('small','','Recent activity (feature and time only, nothing private is saved):'));
-  const lg=(d.log||[]).slice(-8).reverse();box.appendChild(el('div','',lg.length?lg.map(x=>(nm[x[0]]||x[0])+' · '+new Date(x[1]).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})).join('\n'):'Nothing yet.'));box.lastChild.style.whiteSpace='pre-line';
+  box.appendChild(el('small','','Activity timeline (feature and time only, nothing private is saved):'));
+  const NM=Object.assign({stop:'Stop everything pressed',ctl_on:'Phone control turned ON',ctl_off:'Phone control turned OFF',pay:'Paused for a payment app'},nm),hm=t=>new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),dk=t=>new Date(t).toDateString(),lg=(d.log||[]).slice(-60).reverse();
+  if(!lg.length){box.appendChild(el('div','','Nothing yet.'));return;}
+  const cnt={};lg.filter(x=>dk(x[1])==dk(Date.now())).forEach(x=>cnt[x[0]]=(cnt[x[0]]||0)+1);
+  const sm=Object.keys(cnt).map(k=>(NM[k]||k)+' '+cnt[k]+'x').join(', ');if(sm)box.appendChild(el('p','ok','Today: '+sm));
+  let day='',tl=el('div','');tl.style.cssText='white-space:pre-line;max-height:260px;overflow:auto';
+  lg.slice(0,40).forEach(x=>{const k=dk(x[1]);if(k!=day){day=k;tl.appendChild(el('b','',k==dk(Date.now())?'Today':k==dk(Date.now()-864e5)?'Yesterday':new Date(x[1]).toLocaleDateString([],{day:'numeric',month:'short'})));tl.appendChild(document.createTextNode('\n'));}
+    tl.appendChild(document.createTextNode(hm(x[1])+'  '+(NM[x[0]]||x[0])+'\n'));});
+  box.appendChild(tl);
 }
 window.onLock=()=>setTimeout(dash,300);
 setInterval(()=>{if(!$('set').hidden){dash();bgt();}},3000);

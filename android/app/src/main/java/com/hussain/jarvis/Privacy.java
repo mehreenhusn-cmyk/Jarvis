@@ -45,6 +45,7 @@ final class Privacy {
     /** Called from the bridge thread. Returns what WAS active; the switching off runs on the main thread. */
     static String stopAll(MainActivity a) {
         JSONObject was = state(a);
+        event(a, "stop");
         stopped = true;
         control = false;  // Stop also switches phone control OFF; it must be turned on again by a finger tap
         save();
@@ -75,8 +76,17 @@ final class Privacy {
         LAST.put(id, now);
         String[] old = (sp.getString("plog", "") + id + "|" + now + "\n").split("\n");
         StringBuilder sb = new StringBuilder();
-        for (int i = Math.max(0, old.length - 30); i < old.length; i++) sb.append(old[i]).append('\n');
+        for (int i = Math.max(0, old.length - 200); i < old.length; i++) sb.append(old[i]).append('\n');  // Part 78: last 200 uses (was 30), for the timeline
         sp.edit().putLong("last_" + id, now).putString("plog", sb.toString()).apply();
+    }
+
+    /** Part 78: rare events for the timeline (stop, phone control on/off, paused for payment app). Name and time only, never content, not throttled. */
+    static synchronized void event(Context c, String id) {
+        if (sp == null) sp = c.getSharedPreferences("j", 0);
+        String[] old = (sp.getString("plog", "") + id + "|" + System.currentTimeMillis() + "\n").split("\n");
+        StringBuilder sb = new StringBuilder();
+        for (int i = Math.max(0, old.length - 200); i < old.length; i++) sb.append(old[i]).append('\n');
+        sp.edit().putString("plog", sb.toString()).apply();
     }
 
     private static int has(Context c, String perm) { return c.checkSelfPermission(perm) == PackageManager.PERMISSION_GRANTED ? 1 : 0; }
@@ -108,6 +118,7 @@ final class Privacy {
     /** Part 30: OFF always works. ON only after a real finger tap in the last 3 seconds, and never while Jarvis is stopped. */
     static String setControl(boolean on) {
         if (on && (stopped || System.currentTimeMillis() - MainActivity.touch > 3000)) return "{\"ok\":false,\"control\":" + control + "}";
+        if (control != on && sp != null) event(null, on ? "ctl_on" : "ctl_off");
         control = on;
         save();
         return "{\"ok\":true,\"control\":" + control + "}";
