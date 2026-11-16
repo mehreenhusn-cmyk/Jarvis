@@ -15,7 +15,7 @@
 | 4 | Total plan: files and lines | What the planned Parts add up to |
 | 5 | Ideas we will not build | And why |
 | 6 | Safety rules for the new Parts | Every new Part must keep these |
-| 7 | Phone tests (Table A) | 33 things to try on the phone |
+| 7 | Phone tests (Table A) | 35 things to try on the phone |
 | 8 | Rules for every Claude | How we work |
 | 9 | Known limits and fixes | What Jarvis cannot do, honest |
 | R1 to R7 | Reference | How it works, setup, cheat sheet, security, old status, build log, master plan |
@@ -63,7 +63,7 @@ This README is long (about 750 lines). Do NOT read it all. It wastes Hussain's c
 
 **How to use this table.** Parts are plain numbers in one sequence. No letters, no groups. A new idea gets the NEXT number at the bottom (now 123). When a Part is built, change its Status and fill in the real lines. A range like `1 to 5` means the old notes did not split them. `*` = new file. `-` = not recorded in the old notes (see R5, R6, R7).
 
-**Honest count (17 Nov 2026).** Code is written for Parts 1 to 90, Part 117, Part 118 and Parts 123 to 126 (about 7,100 lines; Part 67 was dropped, Part 81 has no record). Phone tested: Parts 1 to 17 only (12 to 14 partly). Table A (section 7): 0 of 33 tried. Java has never been fully compiled: GitHub Build APK runs #17 to #21 were green (Parts 48, 49, 64, 65 compile). Not compiled yet: `QuickSet` (alarm, timer, search, media), the WhatsApp part of `CallByName`, `Ears` interrupt, `PaymentGuard`, the deep phone check, the `Privacy` timeline.
+**Honest count (17 Nov 2026).** Code is written for Parts 1 to 90, Part 117, Part 118 and Parts 123 to 128 (about 7,100 lines; Part 67 was dropped, Part 81 has no record). Phone tested: Parts 1 to 17 only (12 to 14 partly). Table A (section 7): 0 of 35 tried. Java has never been fully compiled: GitHub Build APK runs #17 to #21 were green (Parts 48, 49, 64, 65 compile). Not compiled yet: `QuickSet` (alarm, timer, search, media), the WhatsApp part of `CallByName`, `Ears` interrupt, `PaymentGuard`, the deep phone check, the `Privacy` timeline.
 
 | Part | What it does | Files | Lines | New APK? | Status |
 |---|---|---|---|---|---|
@@ -182,16 +182,16 @@ This README is long (about 750 lines). Do NOT read it all. It wastes Hussain's c
 | 124 | **One default voice**: Sarvam `Shubh` for Hindi and English; the voice list in Settings shows only Shubh. Edge stays as a hidden backup, so when the Sarvam key or credit ends Jarvis still speaks (the Edge error `NoAudioReceived` is fixed by `pip install -U edge-tts` in Termux) | `voiceengine.py`, `index.html` | 3 + 4 = 7 | No | Built, not phone tested |
 | 125 | **Call by name, dictation tolerant**: `call ammi at anyhow last mein 5895` fails because the word `last` blocks the call rule and the sentence goes to the AI, which then says `main call nahi kar sakta`. Fix: take the name right after the call word, ignore filler and digits, ask which contact if two match | `actions.py` | 2 | No | Built, not phone tested |
 | 126 | **Better context and word match**: the AI gets only the last 10 messages and is not told what Jarvis can do, so it says `I cannot open your watch list` or `I cannot call`. Fix: last 20 turns, a short fixed list of what Jarvis CAN do, and follow-up words (`usko`, `wahi`) kept with the last topic | `app.py` | 7 | No | Built, not phone tested |
-| 127 | **Click by number**: `ooper se teesra video kholo`, `3rd item kholo`. Numbers the visible tappable items top to bottom and taps the Nth. Works where the app shows real text items (YouTube list, watch list rows, settings). Does NOT work inside a drawn chart (a chart is a picture, Android shows no items in it) | `ScreenService.java`, `actions.py`, `index.html` | ~90 | Yes | Planned |
-| 128 | **Keep going words**: `thoda aur scroll karo`, `aur neeche`, `upar jao`, `ek baar aur` repeat the last scroll with the same direction | `actions.py`, `index.html` | ~35 | No | Planned |
+| 127 | **Click by number**: `ooper se teesra video kholo`, `3rd item kholo`. Numbers the visible tappable items top to bottom and taps the Nth. Works where the app shows real text items (YouTube list, watch list rows, settings). Does NOT work inside a drawn chart (a chart is a picture, Android shows no items in it) | `ScreenService.java` 42, `actions.py` about 14, `index.html` 1, `MainActivity.java` 1 | 58 | Yes | Built, not phone tested |
+| 128 | **Keep going words**: `thoda aur scroll karo`, `aur neeche`, `upar jao`, `ek baar aur` repeat the last scroll with the same direction | `actions.py` about 5, `index.html` 2 | 7 | No | Built, not phone tested |
 | 129 | **Look and tap** (hard, last): Jarvis takes ONE screenshot of the open app, a vision AI says where the thing is (for example the chart you named), Jarvis shows a number on it and taps only after your real finger tap on Yes. Needs Android 11 or newer. Slow and not always right, so it is the last step | `ScreenService.java`, `see.py`, `app.py`, `index.html` | ~150 | Yes | Planned |
 
 ## 3. WHAT HUSSAIN DOES NOW
 
 1. GitHub > Actions > **Build APK** > Run. If it goes red, send a screenshot of the error. That is fixed before anything else.
 2. Install the APK on the phone.
-3. Try the 33 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
-4. Then say **"ok 119"** or **"ok 127"** (or 2 or 3 Part numbers together) (or any Part number from section 2). Claude builds one Part at a time.
+3. Try the 35 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
+4. Then say **"ok 119"** (next in order). Part 129 (look and tap) is optional and last (or 2 or 3 Part numbers together) (or any Part number from section 2). Claude builds one Part at a time.
 
 Why this order: Parts 18 to 90 and Part 117 are built and none is phone tested. A new feature on top of an untested base only makes bugs harder to find. Parts 112 to 116 (Java) wait longest, because Java is not even compiled yet. This README-only update needs no new APK.
 
@@ -282,6 +282,8 @@ Nothing below is phone tested yet. Build APK first for the Java rows. Write PASS
 | 31 | Conversation on, stay silent 3 times | Conversation stays on until 4 silent rounds; a `speech error 2` with the internet off retries and then says `no internet right now` | Yes (Part 123) | not tested |
 | 32 | Settings > Voice: look at the speaker list and Voice maker; tap Test JARVIS | Only `Shubh` is listed; Sarvam is the first choice; with the Sarvam key removed Edge speaks | No | not tested |
 | 33 | Say `call ammi at anyhow last mein 5895` and `Ammi ko call karo` | Both start the Ammi call (or ask which Ammi if two fit); the AI does not say `I cannot call` | No | not tested |
+| 34 | Open YouTube home, say `ooper se teesra video kholo`; then in Settings say `2nd item kholo` | The 3rd video card opens (the 2nd row opens in Settings). In a drawn chart (TradingView) Jarvis says it sees only N big items: that is expected | Yes (Part 127) | not tested |
+| 35 | Say `neeche scroll karo`, then `thoda aur scroll karo`, then `upar jao` | The first goes down, the second goes down again (same direction), the third goes up | No for the words, Yes for the scroll (Part 123) | not tested |
 
 ## 8. RULES FOR EVERY CLAUDE (always follow)
 1. Each part is under 350 lines of code. New files only when really needed. Update this README after every part.
@@ -695,8 +697,8 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 124 DONE | Sarvam Shubh default voice, Edge hidden backup | voiceengine.py, index.html | 7 | With | One good voice that never goes silent |
 | 125 DONE | Call by name ignores dictation noise (last 4 digits words) | actions.py | 2 | With | `call ammi at anyhow last mein 5895` works |
 | 126 DONE | 20 turns of context and a CAN list for the AI | app.py | 7 | With | No more "I cannot call" for things Jarvis can do |
-| 127 | Click by number | ScreenService.java, actions.py, index.html | ~90 | Without | Planned |
-| 128 | Keep going words (thoda aur scroll) | actions.py, index.html | ~35 | With | Planned |
+| 127 DONE | Click by number: `teesra video kholo`, `3rd item kholo` | ScreenService.java, actions.py, MainActivity.java, index.html | 58 | Without | Open the Nth card or row by words |
+| 128 DONE | Keep going words: `thoda aur scroll karo`, `aur neeche`, `upar jao` | actions.py, index.html | 7 | With | Scroll without repeating the full sentence |
 | 129 | Look and tap (screenshot and vision) | ScreenService.java, see.py, app.py, index.html | ~150 | Without | Planned |
 Estimates are rough (plus or minus 25 percent). Real numbers go into this table after each Part.
 

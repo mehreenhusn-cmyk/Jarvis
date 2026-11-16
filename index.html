@@ -497,6 +497,7 @@ function actMsg(r,a){
     if(t=='back'||t=='home'||t=='swipe')return say('हो गया सर।','Done, sir.');
     return r.changed===false?say('सर, मैंने कर दिया, पर स्क्रीन पर कोई बदलाव नहीं दिखा। एक बार देख लीजिए।','Sir, I did it, but I saw no change on the screen. Please check.'):say('हो गया सर, स्क्रीन बदल गई।','Done, sir. The screen changed.');
   }
+  if(r.err=='few')return say('सर, यहाँ मुझे सिर्फ़ '+r.count+' बड़े आइटम दिखे। चार्ट जैसी तस्वीर के अंदर मैं कुछ नहीं देख पाता।','Sir, I see only '+r.count+' big items here. I cannot see inside a drawn picture like a chart.');  // Part 127
   const m=ACTERR[r.err]||ACTERR.unknown;return say(m[0],m[1]);
 }
 window.onActDone=s=>{
@@ -546,6 +547,7 @@ window.onTaskDone=s=>{
 async function doCall(a,w){
   const hi=sty()=='hindi',say=(h,e)=>hi?h:e,who=a.said||a.name||a.number||'';
   w.textContent=say('कॉन्टैक्ट ढूँढ रहा हूँ: '+who+'…','Looking for the contact: '+who+'...');await new Promise(z=>setTimeout(z,80));
+  if(a.type=='scroll'){if(a.dir=='again')a=Object.assign({},a,{dir:lastDir});lastDir=a.dir;}  // Part 128: "thoda aur scroll karo" repeats the last direction
   let r;try{r=JSON.parse(JarvisApp.act(JSON.stringify(a)));}catch(e){r={ok:false,err:'unknown'};}
   let t;
   if(r.ok)t='✔ '+(r.mode=='whatsapp'?say('व्हाट्सएप चैट खुल गई सर। भेजने का बटन आप खुद दबाइए।','The WhatsApp chat is open, sir. Please press send yourself.'):r.mode=='dial'?say('डायलर खुल गया सर। हरा कॉल बटन आप खुद दबाइए।','The dialer is open, sir. Please press the green call button yourself.'):say('ठीक है सर, '+r.name+' को कॉल कर रहा हूँ।','Calling '+r.name+', sir.'));
@@ -562,6 +564,7 @@ async function doCall(a,w){
   else t='✖ '+say('Android ने कॉल नहीं लगने दिया सर।','Android did not let me place the call, sir.');
   w.textContent=t;if(!r.ok)w.className='m err';return t;
 }
+let lastDir='down';
 async function doAct(a,w){
   if(a.type=='task')return runTask(a,w);
   if(a.type=='call')return doCall(a,w);
