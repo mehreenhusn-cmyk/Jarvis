@@ -45,7 +45,30 @@ class PhoneInfo {
             if (b != null) { o.put("health", b.getIntExtra("health", 0)); o.put("plug", b.getIntExtra("plugged", 0)); }  // 2 good, 3 hot, 4 dead, 5 over-voltage, 6 failure, 7 cold. plug: 1 AC, 2 USB, 4 wireless
         } catch (Exception e) { /* send what we have */ }
         net(c, o);
+        deep(c, o);
         return o.toString();
+    }
+
+    /** Part 79 (Phone Doctor): only what Android gives ANY app without a special permission. A number Android does not give is simply left out, and the server says "unavailable"; nothing is guessed. */
+    private static void deep(Context c, JSONObject o) {
+        try {
+            Intent b = c.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+            if (b != null) {
+                o.put("volt_mv", b.getIntExtra("voltage", 0));
+                int cyc = b.getIntExtra("android.os.extra.CYCLE_COUNT", -1);  // Android 14+ and only if the phone reports it
+                if (cyc >= 0) o.put("cycles", cyc);
+            }
+            android.os.BatteryManager bm = (android.os.BatteryManager) c.getSystemService(Context.BATTERY_SERVICE);
+            int uah = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER);
+            if (uah > 0) o.put("charge_mah", uah / 1000);
+        } catch (Exception e) { /* skip */ }
+        try {
+            android.content.ContentResolver r = c.getContentResolver();
+            int t = Settings.System.getInt(r, Settings.System.SCREEN_OFF_TIMEOUT, -1);
+            if (t > 0) o.put("screen_timeout_s", t / 1000);
+            o.put("bright_pct", 100 * Settings.System.getInt(r, Settings.System.SCREEN_BRIGHTNESS, 0) / 255);
+            o.put("auto_bright", Settings.System.getInt(r, Settings.System.SCREEN_BRIGHTNESS_MODE, 0) == 1);
+        } catch (Exception e) { /* skip */ }
     }
 
     /** Part 65: which network is active, Bluetooth on/off and the NAME of connected audio devices (earbuds, speaker, car). Needs only the normal network-state permission.

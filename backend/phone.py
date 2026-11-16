@@ -5,6 +5,7 @@ import os, re, shutil
 ASK = re.compile(r"phone (?:is )?(?:slow|hang|lag)|why is my phone|phone health|phone check|slow phone|फ़ोन धीमा|फोन धीमा|phone slow"
                  r"|\b(?:phone|mobile)\b(?!.{0,12}\b(?:number|nambar)\b).{0,20}\b(?:problem|dikkat|issue|kharab|slow|hang|lag(?:ging)?|garam|gram|hot|heat(?:ing)?|health|check|theek|thik|wrong)\b"
                  r"|what'?s wrong with my (?:phone|mobile)|battery (?:health|kharab|jaldi|drain)|फोन में क्या|फोन गर्म", re.I)  # Part 65: Roman Hindi and English
+DEEP = re.compile(r"phone doctor|deep (?:phone )?check|full phone check|phone performance|performance doctor|poori phone (?:ki )?jaanch|फोन डॉक्टर", re.I)  # Part 79
 BT = re.compile(r"bluetooth|ब्लूटूथ|\bbt\b|earbuds?|airpods?|headphones?|हेडफोन", re.I)
 NET = re.compile(r"wi-?fi|वाईफाई|internet|इंटरनेट|\bnet\b|network|mobile data|net data", re.I)
 STORE = re.compile(r"storage|स्टोरेज|memory|मेमोरी|\bram\b|space", re.I)
@@ -104,6 +105,8 @@ def topic(msg):
     m = msg.strip()
     if len(m) > 90:
         return ""
+    if DEEP.search(m):
+        return "deep"
     short = STAT.search(m) and not CMD.search(m) and not HOWQ.search(m)
     if BT.search(m) and short:
         return "bt"
@@ -137,6 +140,8 @@ def handle(msg, info, hindi):
             bits.append(f"RAM {pct_free(i['ram_free'], i['ram_total'])}% {say('खाली', 'free')}")
         return say("सर, ", "Sir, ") + ", ".join(bits) + "." + src if bits else say("सर, मैं स्टोरेज नहीं पढ़ पाया।", "Sir, I could not read the storage.")
     found = analyze(i, hindi)
+    if t == "deep":
+        found += deep(i, hindi)
     bits = []
     if i.get("ram_total"):
         bits.append(f"RAM {pct_free(i['ram_free'], i['ram_total'])}% {'खाली' if hindi else 'free'}")
@@ -149,9 +154,45 @@ def handle(msg, info, hindi):
     head = (say("सर, फ़ोन की जाँच: ", "Sir, phone check: ")) + ", ".join(bits) + "."
     extra = [x for x in (_net(i, say), _bt(i, say)) if x]
     body = head + ("\n" + "\n".join(f"- {x}" for x in extra) if extra else "")
+    if t == "deep":  # Part 79: honest list of what Android does not give
+        body += "\n" + deep_info(i, hindi) + "\n" + say("उपलब्ध नहीं: CPU लोड, हर ऐप की बैटरी/RAM/स्टोरेज और भारी ऐप के नाम। Android आम ऐप को ये नहीं देता और Jarvis Usage Access माँगता नहीं। ऐप देखने के लिए Settings > Battery या Storage खोलिए।",
+                                                   "Unavailable: CPU load, per-app battery/RAM/storage and heavy-app names. Android does not give these to normal apps and Jarvis does not ask for Usage Access. To see apps, open Settings > Battery or Storage.")
     if not found:
         return body + say("\nकोई दिक्कत नहीं दिख रही। धीमेपन की वजह शायद कोई भारी ऐप है।", "\nNo problem found. A heavy app may be the cause if it feels slow.") + src
     return body + say("\nदिक्कतें:\n", "\nProblems found:\n") + "\n".join(f"- {p} {a}" for p, a in found) + src
+
+
+def deep_info(i, hindi):
+    """Part 79: extra real numbers, only the ones Android gave. Missing ones are named, never guessed."""
+    say = lambda hi, en: hi if hindi else en
+    L = []
+    if i.get("volt_mv"):
+        L.append(f"{say('बैटरी वोल्टेज', 'Battery voltage')} {i['volt_mv'] / 1000:.2f} V")
+    L.append(f"{say('चार्ज साइकल', 'Charge cycles')} {i['cycles']}" if "cycles" in i else say("चार्ज साइकल: उपलब्ध नहीं (Android 14 और फ़ोन की रिपोर्ट चाहिए)", "Charge cycles: unavailable (needs Android 14 and a phone that reports it)"))
+    if i.get("charge_mah"):
+        L.append(f"{say('अभी बैटरी में', 'Charge now')} ~{i['charge_mah']} mAh")
+    if i.get("ram_total"):
+        L.append(f"RAM {i['ram_free'] / 1e9:.1f} / {i['ram_total'] / 1e9:.1f} GB {say('खाली', 'free')}")
+    if i.get("uptime_h") is not None:
+        L.append(f"{say('बिना रीस्टार्ट', 'Up for')} {i['uptime_h'] // 24} {say('दिन', 'd')} {i['uptime_h'] % 24} h")
+    if "bright_pct" in i:
+        L.append(f"{say('ब्राइटनेस', 'Brightness')} {i['bright_pct']}%" + (f" ({say('ऑटो', 'auto')})" if i.get("auto_bright") else ""))
+    if i.get("screen_timeout_s"):
+        L.append(f"{say('स्क्रीन टाइमआउट', 'Screen timeout')} {i['screen_timeout_s']} s")
+    return say("गहरी जाँच:\n", "Deep check:\n") + "\n".join(f"- {x}" for x in L)
+
+
+def deep(i, hindi):
+    """Part 79: advice only from real numbers."""
+    say = lambda hi, en: hi if hindi else en
+    out = []
+    if i.get("screen_timeout_s", 0) > 60:
+        out.append((say(f"स्क्रीन {i['screen_timeout_s']} सेकंड जलती रहती है, बैटरी जाती है।", f"The screen stays on for {i['screen_timeout_s']} s, which drains the battery."), say("टाइमआउट 30 सेकंड रखिए।", "Set the timeout to 30 s.")))
+    if i.get("bright_pct", 0) >= 80 and not i.get("auto_bright"):
+        out.append((say(f"ब्राइटनेस {i['bright_pct']}% पर है।", f"Brightness is at {i['bright_pct']}%."), say("ऑटो ब्राइटनेस चालू कीजिए।", "Turn on auto brightness.")))
+    if i.get("cycles", 0) >= 800:
+        out.append((say(f"बैटरी के {i['cycles']} चार्ज साइकल हो चुके हैं।", f"The battery has done {i['cycles']} charge cycles."), say("बैटरी पुरानी हो गई है, बदलवाने का सोचिए।", "It is ageing; think about replacing it.")))
+    return out
 
 
 def pct_free(a, b):
