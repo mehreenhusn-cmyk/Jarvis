@@ -261,11 +261,11 @@ window.onHeard=(txt,wake)=>{txt=(txt||'').trim();
 window.onHeardErr=txt=>{if(barging||cutWait){barging=cutWait=false;return;}appListening=false;
   if(convOn){if(/did not hear/i.test(txt))return convSilent();convEnd('Conversation mode stopped. Mic: '+txt);return;}
   wakeOn=false;cmdNext=false;micState(false);wakeBtn();add('err','Mic: '+txt);};
-// Part 55: conversation mode. After Jarvis finishes speaking the phone mic opens by itself. It ends after 2 silent rounds, on "bas" / "stop", after 20 turns, or on Stop everything. App only, while the app is open.
+// Part 55: conversation mode. After Jarvis finishes speaking the phone mic opens by itself. It ends after 4 silent rounds, on "bas" / "stop", after 20 turns, or on Stop everything. App only, while the app is open.
 const STOPW=/^(?:jarvis[ ,]*)?(?:bas(?: karo| itna| ho gaya)?|stop(?: listening)?|that'?s all|that is all|enough|ruko|band karo|बस(?: करो| इतना)?|रुको|बंद करो)[\s.!,]*$/i;
 function convBtn(){$('conv').hidden=!appEars();$('conv').textContent='Conversation: '+(convOn?'on':'off');micState(appListening);}
 function convEnd(msg){convOn=false;convMiss=0;convTurns=0;if(appEars())JarvisApp.stopListen();appListening=false;convBtn();if(msg)add('bot',msg);}
-function convSilent(){if(++convMiss>=2){convEnd(sty()=='hindi'?'सर, दो बार कुछ सुनाई नहीं दिया, इसलिए बातचीत बंद कर दी। दोबारा शुरू करने के लिए Conversation दबाइए।':'I heard nothing twice, sir, so conversation mode is off. Tap Conversation to start again.');return;}
+function convSilent(){if(++convMiss>=4){convEnd(sty()=='hindi'?'सर, चार बार कुछ सुनाई नहीं दिया, इसलिए बातचीत बंद कर दी। दोबारा शुरू करने के लिए Conversation दबाइए।':'I heard nothing four times, sir, so conversation mode is off. Tap Conversation to start again.');return;}
   setTimeout(()=>{if(convOn&&!priv){appListening=true;micState(true);JarvisApp.listen($('lang').value,false);}},400);}
 $('conv').onclick=()=>{
   if(priv){add('err','Privacy mode is on. Tap "Turn mic on" first.');return;}
@@ -317,15 +317,15 @@ function voiceCard(){
     const c=el('div','dr');c.append(el('b',null,PN[k][0]),el('small',null,PN[k][1]));
     const mk=(n,key,lo,hi2)=>{const l=el('label',null,n+' ');const r=el('input');r.type='range';r.min=lo;r.max=hi2;r.step=1;r.value=VS[k][key];r.style.cssText='width:110px;padding:0';r.onchange=()=>voiceSave({[k]:{[key]:+r.value}});l.append(r,' ');return l;};
     const t=el('button','g','Test '+PN[k][0]);t.type='button';t.onclick=()=>speak(hi?PN[k][2]:PN[k][3],true,'',k);
-    const spk=el('select');[['shubh','Shubh (best for Hindi)'],['rahul','Rahul (deep)'],['aditya','Aditya (clear)'],['ratan','Ratan'],['amit','Amit'],['rohan','Rohan']].forEach(([v,n])=>spk.append(new Option(n,v)));spk.value=(VS.speakers&&VS.speakers[k])||(k=='tony'?'aditya':'rahul');spk.onchange=()=>voiceSave({speakers:{[k]:spk.value}});
+    const spk=el('select');[['shubh','Shubh (default, Hindi and English)']].forEach(([v,n])=>spk.append(new Option(n,v)));spk.value=(VS.speakers&&VS.speakers[k])||'shubh';spk.onchange=()=>voiceSave({speakers:{[k]:spk.value}});
     c.append(...(sv?[el('small',null,'Sarvam speaker for '+PN[k][0]+':'),spk]:[mk('Depth','pitch',-30,10)]),mk('Speed','rate',-25,20),t);rows.push(c);
   });
   // Part 53: voice maker. Edge is free. Sarvam is an Indian company; it needs your own key (their free credit may run out).
   const p=el('div','dr');p.append(el('b',null,'Voice maker'),el('small',null,'Edge is free. Sarvam sounds more natural in Hindi and needs your own Sarvam key. If Sarvam fails, Edge speaks instead.'));
-  const sel=el('select');sel.append(new Option('Edge (free)','edge'),new Option('Sarvam'+(VS.sarvam_saved?'':' (add key first)'),'sarvam'));sel.value=sv?'sarvam':'edge';
+  const sel=el('select');sel.append(new Option('Sarvam Shubh'+(VS.sarvam_saved?'':' (add key first)'),'sarvam'),new Option('Edge (free backup)','edge'));sel.value=sv?'sarvam':'edge';
   sel.onchange=()=>{if(sel.value=='sarvam'&&!VS.sarvam_saved){add('err','Add your Sarvam key first.');sel.value='edge';return;}voiceSave({provider:sel.value});};
   p.append(sel);
-  p.append(el('small',null,sv?'Tony and JARVIS each use their own Sarvam speaker above, so they really sound different.':'Honest note: on Edge there is only ONE male Hindi voice, so Tony and JARVIS differ only in depth and speed in Hindi (English has two different voices). For two truly different Hindi voices, use Sarvam.'));
+  p.append(el('small',null,sv?'Shubh is the only voice. If the Sarvam key or credit ends, Edge speaks instead, so Jarvis never goes silent.':'Honest note: on Edge there is only ONE male Hindi voice, so Tony and JARVIS differ only in depth and speed in Hindi (English has two different voices). For two truly different Hindi voices, use Sarvam.'));
   const ki=el('input');ki.placeholder=VS.sarvam_saved?'Key saved: '+(VS.sarvam_masked||'')+'. Paste a new one to replace.':'Paste your Sarvam key here';ki.autocomplete='off';ki.style.marginTop='8px';
   const kr=el('small',null,'');const kb=el('button','g','Save key');kb.type='button';
   kb.onclick=async()=>{const k=ki.value.trim();if(!k)return;kr.className='';kr.textContent='Checking the key...';

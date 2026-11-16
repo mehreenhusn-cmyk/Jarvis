@@ -130,6 +130,12 @@ def check(n, k):
         return str(e)
 
 
+CAN = ("\n\nWHAT JARVIS CAN DO (the app does these when Hussain's words fit, not you): open any app; scroll, click, back and home on the open app; call or dial a contact by name; alarm and timer; reminders; notes, lists, habits, expenses; read the screen when asked; look at a photo; search the web in Research mode. "
+       "WHAT IT CANNOT DO: see inside another app's private data (like a trading watch list) unless it is on the screen, send a message or pay without his tap, or guess news. "
+       "If he asks for something from the CAN list, never say you cannot: tell him the exact short words to say, for example: Ammi ko call karo, or: Chrome kholo aur neeche scroll karo. "
+       "Use the earlier messages to understand words like usko, wahi, isko, that, it.")  # Part 126
+
+
 def ask(history, style="english", extra=""):
     """PROVIDER=groq,openrouter,... : pehla jo chale uska jawab. Return (jawab, provider)."""
     errs = []
@@ -507,11 +513,11 @@ class H(BaseHTTPRequestHandler):
                 c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", keep, time.time()))
                 c.commit()
                 return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {})))
-            rows = c.execute("SELECT role, content, ts FROM messages WHERE device=? ORDER BY id DESC LIMIT 10", (dev,)).fetchall()
+            rows = c.execute("SELECT role, content, ts FROM messages WHERE device=? ORDER BY id DESC LIMIT 20", (dev,)).fetchall()  # Part 126: 20 turns, not 10
             tctx = clock.context([(r, t) for r, _, t in reversed(rows)], prev_ts)
             wtxt, srcs = web.lookup(msg, now, mode == "research" and len(msg) >= 8 and not screen.used(data.get("screen")))  # Part 57: in Research mode every question is searched
             try:
-                reply, via = ask([{"role": r, "content": t} for r, t, _ in reversed(rows)], style, tctx + memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + replyideas.context(data.get("notif")) + wtxt + MOOD + modes.extra(mode))
+                reply, via = ask([{"role": r, "content": t} for r, t, _ in reversed(rows)], style, CAN + tctx + memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + replyideas.context(data.get("notif")) + wtxt + MOOD + modes.extra(mode))
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
             if srcs:  # the list of sites comes from the real search result, not from the AI

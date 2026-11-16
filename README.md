@@ -2,24 +2,54 @@
 
 > **For any new Claude or AI (read this first):** Hussain only sends you this repo link. He has 2-3 Claude accounts and the chat limit
 > runs out often. This README has everything: what Jarvis is, every Part (done and planned) in ONE table, what is next, the rules.
-> Read sections 1 to 9, then start the next Part he names. Do not ask him to resend the old chat. Repo: https://github.com/mehreenhusn-cmyk/Jarvis
+> Read section 0 (fast read) and section 3, then only your Part's row and files. Then start the next Part he names. Do not ask him to resend the old chat. Repo: https://github.com/mehreenhusn-cmyk/Jarvis
 
 **Map of this file.** Sections 1 to 9 are for everyone (plain words, numbered). `R1` to `R7` after them are old reference detail; open them only when needed.
 
 | # | Section | In one line |
 |---|---|---|
+| 0 | **Fast read + file map** | Read this first. Which lines to read, where things are |
 | 1 | What Jarvis is | What it does, in 5 lines |
-| 2 | All Parts in ONE table | Part 1 to 122: what is built, what is planned, files, lines |
+| 2 | All Parts in ONE table | Part 1 to 129: what is built, what is planned, files, lines |
 | 3 | What Hussain does now | 4 steps |
 | 4 | Total plan: files and lines | What the planned Parts add up to |
 | 5 | Ideas we will not build | And why |
 | 6 | Safety rules for the new Parts | Every new Part must keep these |
-| 7 | Phone tests (Table A) | 27 things to try on the phone |
+| 7 | Phone tests (Table A) | 33 things to try on the phone |
 | 8 | Rules for every Claude | How we work |
 | 9 | Known limits and fixes | What Jarvis cannot do, honest |
 | R1 to R7 | Reference | How it works, setup, cheat sheet, security, old status, build log, master plan |
 
 ---
+
+## 0. FAST READ (any new Claude: read ONLY this section first, then only what your Part needs)
+
+This README is long (about 750 lines). Do NOT read it all. It wastes Hussain's chat limit. Do this instead:
+
+1. Read this section 0 and section 3 (what Hussain does now). Stop.
+2. Find your Part's row: `grep -n "^| 127 " README.md` (section 2 has ONE row per Part: what, files, lines, APK, status). Open ONLY the files in that row.
+3. Need the rules? Read section 8 (`grep -n "^## 8" README.md`, then the next 25 lines). Safety rules: section 6.
+4. Need to know where to add a chat command? In `backend/app.py` run `grep -n "if mem is None" backend/app.py`: each handler is one line in the `/chat` chain, in order. Guest session is checked FIRST (before anything is saved).
+5. Need a page anchor? In `web/index.html` run `grep -n "function NAME" web/index.html`. The page has ONE big script. Home tab code starts at `homeLoad`. Voice panel code starts at `voiceLoad`. Phone-action code starts at `doAct` and `window.onActDone`.
+6. Phone test list: `grep -n "^| [0-9]* | " README.md` shows every table row. Table A is section 7.
+
+**File map (backend, real line counts, 17 Nov 2026):**
+
+| File | Lines | What it does |
+|---|---|---|
+| `app.py` | 540 | Server: all routes (`/chat`, `/tts`, `/today`, `/see`, `/guest`...). The `/chat` handler chain is the heart |
+| `actions.py` | 595 | Phone commands: open app, call, alarm, timer, WhatsApp. Fixed grammar, never the AI |
+| `tasks.py` | 287 | Multi-step tasks and routines (Chrome kholo aur neeche scroll karo) |
+| `guest.py` | 56 | Guest session: RAM only, number masking (Part 118) |
+| `voiceengine.py`, `tts.py` | 98, 72 | Voice choice (Sarvam Shubh default, Edge backup) and speech making |
+| `memory.py`, `people.py`, `notes.py`, `lists.py`, `habits.py`, `spend.py`, `ledger.py`, `remind.py` | 88, 82, 71, 93, 122, 109, 85, 240 | What Jarvis keeps: memory, people, notes, lists, habits, expenses, money, reminders. The list of every store is `memory.STORES` |
+| `brief.py`, `lens.py`, `progress.py`, `whatsnew.py`, `search.py` | 250, 109, 73, 77, 35 | Briefing, Home card, honest counts, what's new, search everywhere |
+| `web.py`, `see.py`, `screen.py` | 134, 37, 64 | Internet answers, photo helper, screen reader text |
+| `phone.py`, `calls.py`, `place.py`, `sysinfo.py`, `clock.py`, `modes.py`, `backup.py`, `handoff.py`, `replyideas.py`, `lang.py`, `autostart.py` | small | Phone doctor, calls and calendar info, location, system card, time, voice modes, backup, handoff, reply ideas, languages, auto start |
+
+**Java (needs new APK, Claude cannot compile it):** `MainActivity` (bridge between page and phone), `ScreenService` (reads screen, click, scroll, swipe), `TaskRunner` (runs task steps), `Ears` (phone speech recognizer), `CallByName`, `Apps`, `QuickSet` (alarm, timer), `PaymentGuard`, `Privacy`, `ListenService`, `WakeEngine`.
+
+**Rule for the answer:** after reading, say which files you will touch and the line estimate (rule 17), then build. Never paste a whole file into chat.
 
 ## 1. WHAT JARVIS IS
 
@@ -33,7 +63,7 @@
 
 **How to use this table.** Parts are plain numbers in one sequence. No letters, no groups. A new idea gets the NEXT number at the bottom (now 123). When a Part is built, change its Status and fill in the real lines. A range like `1 to 5` means the old notes did not split them. `*` = new file. `-` = not recorded in the old notes (see R5, R6, R7).
 
-**Honest count (17 Nov 2026).** Code is written for Parts 1 to 90, Part 117 and Part 118 (about 7,100 lines; Part 67 was dropped, Part 81 has no record). Phone tested: Parts 1 to 17 only (12 to 14 partly). Table A (section 7): 0 of 29 tried. Java has never been fully compiled: GitHub Build APK runs #17 to #21 were green (Parts 48, 49, 64, 65 compile). Not compiled yet: `QuickSet` (alarm, timer, search, media), the WhatsApp part of `CallByName`, `Ears` interrupt, `PaymentGuard`, the deep phone check, the `Privacy` timeline.
+**Honest count (17 Nov 2026).** Code is written for Parts 1 to 90, Part 117, Part 118 and Parts 123 to 126 (about 7,100 lines; Part 67 was dropped, Part 81 has no record). Phone tested: Parts 1 to 17 only (12 to 14 partly). Table A (section 7): 0 of 33 tried. Java has never been fully compiled: GitHub Build APK runs #17 to #21 were green (Parts 48, 49, 64, 65 compile). Not compiled yet: `QuickSet` (alarm, timer, search, media), the WhatsApp part of `CallByName`, `Ears` interrupt, `PaymentGuard`, the deep phone check, the `Privacy` timeline.
 
 | Part | What it does | Files | Lines | New APK? | Status |
 |---|---|---|---|---|---|
@@ -148,17 +178,20 @@
 | 120 | **Lens rail** on Home: chips Project, Phone, Life filter the Next best move card and the strip. World and Sports chips wait until a news source exists | `lens.py`, `index.html` | ~60 | No | Planned |
 | 121 | **Glass skin**: the premium glass look (orb, glass cards, gradient buttons) for Home and Assist only, dark only, with a `Reduce effects` switch. CSS from Hussain, about 330 lines. Only after Table A passes | `index.html` | ~380 | No | Planned |
 | 122 | **Bottom bar**: tabs appear as their Parts are built (Home, Talk, Assist, Timeline, Memory, Settings). Needs Parts 88, 109 and 118. Only after Table A passes | `index.html` | ~90 | No | Planned |
-| 123 | **Mic keeps going** (fix round, 17 Nov screenshots). `speech error 2` is a phone network error and `I did not hear anything` is silence; today both end Conversation mode. Fix: network errors 1 and 2 retry up to 3 times with a pause, silent rounds 2 to 4, and the stop message says why | `Ears.java`, `index.html` | ~40 | Yes | Planned |
-| 124 | **One default voice**: Sarvam `Shubh` for Hindi and English; the voice list in Settings shows only Shubh. Edge stays as a hidden backup, so when the Sarvam key or credit ends Jarvis still speaks (the Edge error `NoAudioReceived` is fixed by `pip install -U edge-tts` in Termux) | `voiceengine.py`, `app.py`, `index.html` | ~50 | No | Planned |
-| 125 | **Call by name, dictation tolerant**: `call ammi at anyhow last mein 5895` fails because the word `last` blocks the call rule and the sentence goes to the AI, which then says `main call nahi kar sakta`. Fix: take the name right after the call word, ignore filler and digits, ask which contact if two match | `actions.py` | ~40 | No | Planned |
-| 126 | **Better context and word match**: the AI gets only the last 10 messages and is not told what Jarvis can do, so it says `I cannot open your watch list` or `I cannot call`. Fix: last 20 turns, a short fixed list of what Jarvis CAN do, and follow-up words (`usko`, `wahi`) kept with the last topic | `app.py` | ~60 | No | Planned |
+| 123 | **Mic keeps going** (fix round, 17 Nov screenshots). `speech error 2` is a phone network error and `I did not hear anything` is silence; today both end Conversation mode. Fix: network errors 1 and 2 retry up to 3 times with a pause, silent rounds 2 to 4, and the stop message says why. **Also scroll fix:** `scroll` now picks the BIGGEST scroll area (not the first), and when nothing scrolls or nothing changed it does one plain swipe by itself (YouTube, charts, web pages), no extra Yes | `Ears.java`, `ScreenService.java`, `index.html` | 17 + 22 + 4 = 43 | Yes | Built, not phone tested |
+| 124 | **One default voice**: Sarvam `Shubh` for Hindi and English; the voice list in Settings shows only Shubh. Edge stays as a hidden backup, so when the Sarvam key or credit ends Jarvis still speaks (the Edge error `NoAudioReceived` is fixed by `pip install -U edge-tts` in Termux) | `voiceengine.py`, `index.html` | 3 + 4 = 7 | No | Built, not phone tested |
+| 125 | **Call by name, dictation tolerant**: `call ammi at anyhow last mein 5895` fails because the word `last` blocks the call rule and the sentence goes to the AI, which then says `main call nahi kar sakta`. Fix: take the name right after the call word, ignore filler and digits, ask which contact if two match | `actions.py` | 2 | No | Built, not phone tested |
+| 126 | **Better context and word match**: the AI gets only the last 10 messages and is not told what Jarvis can do, so it says `I cannot open your watch list` or `I cannot call`. Fix: last 20 turns, a short fixed list of what Jarvis CAN do, and follow-up words (`usko`, `wahi`) kept with the last topic | `app.py` | 7 | No | Built, not phone tested |
+| 127 | **Click by number**: `ooper se teesra video kholo`, `3rd item kholo`. Numbers the visible tappable items top to bottom and taps the Nth. Works where the app shows real text items (YouTube list, watch list rows, settings). Does NOT work inside a drawn chart (a chart is a picture, Android shows no items in it) | `ScreenService.java`, `actions.py`, `index.html` | ~90 | Yes | Planned |
+| 128 | **Keep going words**: `thoda aur scroll karo`, `aur neeche`, `upar jao`, `ek baar aur` repeat the last scroll with the same direction | `actions.py`, `index.html` | ~35 | No | Planned |
+| 129 | **Look and tap** (hard, last): Jarvis takes ONE screenshot of the open app, a vision AI says where the thing is (for example the chart you named), Jarvis shows a number on it and taps only after your real finger tap on Yes. Needs Android 11 or newer. Slow and not always right, so it is the last step | `ScreenService.java`, `see.py`, `app.py`, `index.html` | ~150 | Yes | Planned |
 
 ## 3. WHAT HUSSAIN DOES NOW
 
 1. GitHub > Actions > **Build APK** > Run. If it goes red, send a screenshot of the error. That is fixed before anything else.
 2. Install the APK on the phone.
-3. Try the 29 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
-4. Then say **"ok 119"** (or 2 or 3 Part numbers together) (or any Part number from section 2). Claude builds one Part at a time.
+3. Try the 33 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
+4. Then say **"ok 119"** or **"ok 127"** (or 2 or 3 Part numbers together) (or any Part number from section 2). Claude builds one Part at a time.
 
 Why this order: Parts 18 to 90 and Part 117 are built and none is phone tested. A new feature on top of an untested base only makes bugs harder to find. Parts 112 to 116 (Java) wait longest, because Java is not even compiled yet. This README-only update needs no new APK.
 
@@ -245,6 +278,10 @@ Nothing below is phone tested yet. Build APK first for the Java rows. Write PASS
 | 27 | Type `search: Bombay population` (needs internet) | The answer ends with `Sources: ...` and a bracket line saying how many sites were seen. One site gives `One site only`. No word `agree` | No | not tested |
 | 28 | Home > Guest session (or type `guest session start`), ask a question with a made-up phone number in it, then tap End & erase, then `my notes` and `sab jagah dhundo` that question's word | The gold badge `Guest: temporary, Memory saved: No` shows; the guest chat disappears on End & erase; reopening the page shows none of it; nothing appears in notes, memories or chat history | No | not tested |
 | 29 | Settings > Voice (the speaker button) while the mic is listening, and look at the Home Honest progress card | The voice panel says `Mic ON` while listening and `Mic off` after; the Honest progress card keeps its counts | No | not tested |
+| 30 | Open YouTube or Chrome, then say `Jarvis neeche scroll karo` (Phone control and screen reader ON) | The page moves down; if no scroll area exists Jarvis swipes by itself; the chat says what changed | Yes (Part 123) | not tested |
+| 31 | Conversation on, stay silent 3 times | Conversation stays on until 4 silent rounds; a `speech error 2` with the internet off retries and then says `no internet right now` | Yes (Part 123) | not tested |
+| 32 | Settings > Voice: look at the speaker list and Voice maker; tap Test JARVIS | Only `Shubh` is listed; Sarvam is the first choice; with the Sarvam key removed Edge speaks | No | not tested |
+| 33 | Say `call ammi at anyhow last mein 5895` and `Ammi ko call karo` | Both start the Ammi call (or ask which Ammi if two fit); the AI does not say `I cannot call` | No | not tested |
 
 ## 8. RULES FOR EVERY CLAUDE (always follow)
 1. Each part is under 350 lines of code. New files only when really needed. Update this README after every part.
@@ -269,6 +306,7 @@ Nothing below is phone tested yet. Build APK first for the Java rows. Write PASS
 16. **Language:** Hussain may speak or dictate in ANY language or script (Hindi, Marathi, Urdu, English...). Always answer him in Roman script (English letters), in simple Hinglish or simple English. Never Devanagari or any other script in replies.
 17. **Plan before, plan after:** BEFORE building a Part say its number, files and lines in a small table (and WITH or WITHOUT tests). AFTER building say the real lines, then the NEXT Part in the same way (number, files, lines). Part numbers are plain numbers from the table in section 2 only.
 18. **Speed (Hussain, 17 Nov):** save his chat limit. Read only the files the Part touches. Edit, syntax check and one small run in as few commands as possible. After each build give a SHORT report and offer 3 or 4 next Part options in a table (Part, files, lines); he may pick 2 or 3 at once and then you build them in one zip. A new chat after every 3 or 4 Parts is cheaper than one very long chat.
+19. **Read less (Hussain, 17 Nov):** never read this whole README. Read section 0, section 3, your Part's row and the files in that row. Use `grep -n` to find things (see section 0). Say in one line which files you read.
 
 
 ## 9. KNOWN LIMITS AND FIXES (honest list)
@@ -653,6 +691,13 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 120 | Lens rail on Home: Project, Phone, Life chips | lens.py, index.html | ~60 | With | Filter the Home card by topic |
 | 121 | Glass skin: premium look for Home and Assist, Reduce effects switch | index.html | ~380 | With | Look only, after Table A |
 | 122 | Bottom bar with tabs as Parts are built | index.html | ~90 | With | One tap to Home, Talk, Assist, Timeline, Memory |
+| 123 DONE | Mic and scroll fix: network errors retry, 4 silent rounds, scroll picks the biggest area and swipes by itself | Ears.java, ScreenService.java, index.html | 43 | Without | Conversation mode lasts, scroll works in more apps |
+| 124 DONE | Sarvam Shubh default voice, Edge hidden backup | voiceengine.py, index.html | 7 | With | One good voice that never goes silent |
+| 125 DONE | Call by name ignores dictation noise (last 4 digits words) | actions.py | 2 | With | `call ammi at anyhow last mein 5895` works |
+| 126 DONE | 20 turns of context and a CAN list for the AI | app.py | 7 | With | No more "I cannot call" for things Jarvis can do |
+| 127 | Click by number | ScreenService.java, actions.py, index.html | ~90 | Without | Planned |
+| 128 | Keep going words (thoda aur scroll) | actions.py, index.html | ~35 | With | Planned |
+| 129 | Look and tap (screenshot and vision) | ScreenService.java, see.py, app.py, index.html | ~150 | Without | Planned |
 Estimates are rough (plus or minus 25 percent). Real numbers go into this table after each Part.
 
 
