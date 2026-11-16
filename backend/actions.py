@@ -1,6 +1,7 @@
 """Jarvis command layer (Part 30). Turns "WhatsApp kholo" into ONE action from a FIXED list. The server only proposes; the Android app
 (Java) checks the master switch, Stop and the real app list before anything happens. The AI never gives code, shell or package names."""
 import json, re
+from difflib import get_close_matches
 import lang
 
 ACTIONS = {"open_app"}  # what the AI fallback may return. Only open_app, nothing else.
@@ -43,6 +44,19 @@ def _trim(w):
     while w and w[-1] in FILL:
         w = w[:-1]
     return w
+
+
+def _fuzzy(w, vocab, cutoff=0.8):
+    """Part 73: nudge a slightly-misheard word (phone dictation writes 'alaam' for 'alarm', 'pazz' for 'pause') onto the
+    closest word in vocab. Exact matches, short words (<4 letters) and numbers are left alone, so normal text never changes."""
+    out = []
+    for t in w:
+        if t in vocab or len(t) < 4 or t.replace(".", "", 1).isdigit():
+            out.append(t)
+            continue
+        hit = get_close_matches(t, vocab, n=1, cutoff=cutoff)
+        out.append(hit[0] if hit else t)
+    return out
 
 
 def parse(msg):
@@ -366,6 +380,7 @@ def alarm_cmd(msg):
     if "?" in m or len(m) > 80:
         return None
     w = _words(m)
+    w = _fuzzy(w, ALW | TMW)  # Part 73: "alaam"/"taimr" etc. still trigger
     s = set(w)
     if not w or len(w) > 10 or s & QW:
         return None
@@ -453,6 +468,7 @@ def media_cmd(msg):
     if "?" in m or len(m) > 60:
         return None
     w = _words(m)
+    w = _fuzzy(w, MEDW | M_PAUSE | M_PLAY | M_NEXT | M_PREV)  # Part 73: "pazz"/"gaanaa" etc. still trigger
     s = set(w)
     if not w or len(w) > 6 or s & QW or s & VOLW:
         return None

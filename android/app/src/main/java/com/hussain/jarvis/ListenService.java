@@ -104,6 +104,17 @@ public class ListenService extends Service implements RecognitionListener {
 
     void again(long ms) { ui.postDelayed(this::listen, ms); }
 
+    /** Turns the screen on for a few seconds, exactly like a power-button press. The lock screen (fingerprint/pattern/PIN)
+     *  still shows and still has to be opened by the person - this never skips or touches that. */
+    @SuppressWarnings("deprecation")
+    private void wakeScreen() {
+        try {
+            PowerManager pm = getSystemService(PowerManager.class);
+            PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "Jarvis:heard");
+            wl.acquire(4000);
+        } catch (Exception e) { /* some phones restrict this; the notification still works either way */ }
+    }
+
     void fail(String m) {
         sp.edit().putString("bg_err", m).apply();
         if (++bad >= 10) { why = "too many speech errors"; stopSelf(); } else again(3000);
@@ -112,6 +123,7 @@ public class ListenService extends Service implements RecognitionListener {
     /** One "Jarvis" was heard. Counts it (numbers only). With the offline engine it also acts: on screen it opens the mic; otherwise a notification says "Tap to talk". */
     void hit() {
         boolean off = !getSystemService(PowerManager.class).isInteractive();
+        if (off) wakeScreen();  // Part 73: same as pressing the power button - shows the (locked) screen, does NOT unlock it
         long now = System.currentTimeMillis();
         sp.edit().putInt("bg_hits", sp.getInt("bg_hits", 0) + 1).putLong("bg_last", now)
             .putInt("bg_off", sp.getInt("bg_off", 0) + (off ? 1 : 0)).putInt("bg_bg", sp.getInt("bg_bg", 0) + (MainActivity.visible ? 0 : 1)).apply();

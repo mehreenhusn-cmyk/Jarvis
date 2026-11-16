@@ -2,26 +2,57 @@ package com.hussain.jarvis;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Path;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import org.json.JSONObject;
 
-/** Part 23: reads the text on the screen ONLY when you ask. It ignores every event and never reads in the background.
- *  Part 34: also does ONE step when asked (click, scroll, type, back, home, swipe). Every step is found again on the live screen, checked and verified. */
+/** Part 23: reads the text on the screen ONLY when you ask. Part 34: also does ONE step when asked (click, scroll, type,
+ *  back, home, swipe). Every step is found again on the live screen, checked and verified.
+ *  Part 73: the ONE event it does act on is "which app just came to the front" (only the package name, never the screen's
+ *  text) - only to notice a payment app and turn this service off, so the bank's accessibility check passes. */
 public class ScreenService extends AccessibilityService {
     static ScreenService live;
 
     @Override protected void onServiceConnected() { live = this; }
     @Override public boolean onUnbind(Intent i) { live = null; return super.onUnbind(i); }
-    @Override public void onAccessibilityEvent(AccessibilityEvent e) { /* ignored on purpose */ }
+
+    @Override public void onAccessibilityEvent(AccessibilityEvent e) {
+        if (e.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;  // only "app came to front", never screen content
+        String pkg = e.getPackageName() == null ? null : e.getPackageName().toString();
+        if (pkg == null || pkg.equals(getPackageName())) return;
+        SharedPreferences sp = getSharedPreferences("j", 0);
+        if (PaymentGuard.isPaymentApp(sp, pkg)) pauseForPayment(pkg);
+    }
+
+    /** Turns this accessibility service off and tells the person how to turn it back on. Android lets an app disable
+     *  itself (disableSelf()) but never lets it re-enable itself - only a tap in Settings by the person can do that. */
+    private void pauseForPayment(String pkg) {
+        NotificationManager nm = getSystemService(NotificationManager.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+            nm.createNotificationChannel(new NotificationChannel("jarvis_payment", "Jarvis paused for payment", NotificationManager.IMPORTANCE_HIGH));
+        PendingIntent go = PendingIntent.getActivity(this, 7, new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
+            PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        Notification n = new Notification.Builder(this, "jarvis_payment").setSmallIcon(android.R.drawable.ic_lock_idle_lock)
+            .setContentTitle("Jarvis paused for payment").setContentText("Screen-reading is off while " + pkg + " is open. Tap to turn it back on when done.")
+            .setContentIntent(go).setAutoCancel(true).build();
+        nm.notify(81, n);
+        disableSelf();  // after this, onAccessibilityEvent/onServiceConnected will not fire again until the person taps the toggle in Settings
+    }
+
     @Override public void onInterrupt() { }
 
     /** Text of the app on screen as JSON: {app, text} or {error}. Password fields are only named, never read. Max 3000 characters. */

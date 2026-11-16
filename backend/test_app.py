@@ -42,6 +42,9 @@ def _unit():
     ok("69: Ammi ko WhatsApp pe hello -> chat khulti hai, text bhara", a("Ammi ko WhatsApp pe hello bhejo")[1] == {"type": "call", "via": "whatsapp", "name": "Ammi", "text": "hello"})
     ok("69: send hello to Ammi on WhatsApp", a("send hello to Ammi on WhatsApp")[1]["text"] == "hello" and a("Ammi ko whatsapp karo")[1]["text"] == "")
     ok("69: bina naam 'message bhejo' ab bhi Yes maangta hai, 'whatsapp kholo' sirf app kholta hai", a("message bhejo")[1]["type"] == "confirm" and a("whatsapp kholo")[1]["type"] == "open_app")
+    ok("73: thoda misheard alarm/timer word bhi chalta hai (alram, tiemr)", a("subah 6 baje alram laga")[1] == {"type": "alarm", "hour": 6, "minute": 0} and a("5 minute ka tiemr laga do")[1] == {"type": "timer", "seconds": 300})
+    ok("73: misheard music word bhi chalta hai (agli gaana -> next)", a("agli gaana")[1] == {"type": "media", "cmd": "next"} and a("gaana playy karo")[1] == {"type": "media", "cmd": "play"})
+    ok("73: exact galat shabd (random typo) action nahi banata, chat hi rehta hai", a("xyz123 kuch bhi") is None)
     import voiceengine as _ve, notes as _nt, sqlite3 as _sq, tempfile as _tf, os as _os
     _ve.FILE = _os.path.join(_tf.mkdtemp(), "voice.json")  # a throw-away settings file, the real voice.json is never touched
     _p = lambda t, i="": _ve.pick(t, i)["profile"]
