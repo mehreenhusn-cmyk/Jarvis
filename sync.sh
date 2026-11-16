@@ -20,6 +20,7 @@ main() {
       echo "[sync] $b"
       unzip -oq "$z" -x sync.sh -d "$REPO" || { echo "[sync] unzip fail"; note "unzip failed"; continue; }
       mv "$z" "$DONE/$b"
+      [ -d "$REPO/Jarvis-main/backend" ] && [ -f "$REPO/Jarvis-main/README.md" ] && rm -rf "$REPO/Jarvis-main" && echo "[sync] purana duplicate folder Jarvis-main/Jarvis-main hata diya"  # Part 80: stale copy, never needed
       cd "$REPO" && git add -A
       if git diff --cached --quiet; then echo "[sync] repo mein kuch naya nahi (commit nahi)"; else git commit -qm "Update from $b"; fi
       git pull --rebase -q origin main 2>/dev/null
