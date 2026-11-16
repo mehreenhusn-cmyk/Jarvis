@@ -42,6 +42,21 @@ def _unit():
     ok("69: Ammi ko WhatsApp pe hello -> chat khulti hai, text bhara", a("Ammi ko WhatsApp pe hello bhejo")[1] == {"type": "call", "via": "whatsapp", "name": "Ammi", "text": "hello"})
     ok("69: send hello to Ammi on WhatsApp", a("send hello to Ammi on WhatsApp")[1]["text"] == "hello" and a("Ammi ko whatsapp karo")[1]["text"] == "")
     ok("69: bina naam 'message bhejo' ab bhi Yes maangta hai, 'whatsapp kholo' sirf app kholta hai", a("message bhejo")[1]["type"] == "confirm" and a("whatsapp kholo")[1]["type"] == "open_app")
+    import voiceengine as _ve, notes as _nt, sqlite3 as _sq, tempfile as _tf, os as _os
+    _ve.FILE = _os.path.join(_tf.mkdtemp(), "voice.json")  # a throw-away settings file, the real voice.json is never touched
+    _p = lambda t, i="": _ve.pick(t, i)["profile"]
+    ok("71: normal baat-cheet = TONY", _p("kaise ho sir") == "tony")
+    ok("71: jaankari, task, reminder, briefing, alert = JARVIS", (_p("battery 42 percent hai"), _p("x", "TASK_CONFIRMATION"), _p("x", "REMINDER"), _p("x", "BRIEFING"), _p("low battery warning")) == ("jarvis",) * 5)
+    ok("71: na samajh aane wala intent = JARVIS", _p("kuch", "WHATEVER") == "jarvis")
+    ok("71: Edge par Hindi mein dono ek hi awaaz (sach bataya jata hai), English mein alag", _ve.pick("hi")["distinct"] is False and _ve.pick("hi", "", "", "english")["distinct"] is True)
+    _ve.save({"provider": "sarvam"})
+    ok("71: Sarvam par dono ke alag speaker, restart ke baad bhi", _ve.pick("hi", "", "tony")["speaker"] != _ve.pick("hi", "", "jarvis")["speaker"] and _ve.pick("hi")["distinct"] is True and _ve.load()["provider"] == "sarvam")
+    _db = _sq.connect(":memory:"); _nt.init(_db)
+    _n = lambda m: _nt.handle(_db, 1, m, False)
+    ok("72: note karo -> save, meri notes -> list, dhundo -> search", "saved" in _n("note karo ki kal bijli ka bill bharna hai") and "bijli" in _n("meri notes") and "bijli" in _n("notes me bijli dhundo"))
+    ok("72: password / OTP / card wala note save nahi hota", "do not save" in _n("note karo mera password 1234 hai") and "do not save" in _n("note karo card 4111111111111111"))
+    ok("72: 'note about Faisal: ...' aur sawal notes ko nahi chhuate (people/AI ke paas jate hain)", _n("note about Faisal: loves cricket") is None and _n("note kya hota hai") is None)
+    ok("72: delete note 1 hata deta hai", "deleted" in _n("delete note 1") and "no note" in _n("delete note 1"))
     ok("36: gap shabd sahi", CK.gap(40) == "40 seconds" and CK.gap(300) == "5 minutes" and CK.gap(7200) == "2 hours")
     ok("36: AI ko gap aur time rule milta hai", "5 minutes ago" in CK.context([("user", time.time() - 300)], time.time() - 300) and "Never write timestamps" in CK.context([], None))
     ok("36: 1 ghante se purani baat par naya shuru", "fresh start" in CK.context([], time.time() - 7200) and "fresh start" not in CK.context([], time.time() - 60))

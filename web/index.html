@@ -256,13 +256,13 @@ function loadVoices(){
   if(!want||$('voice').value!==want)$('voice').value='neural:hi-IN-MadhurNeural'; // old saved voice no longer in the list
 }
 // Part 52: Tony and JARVIS. The server picks the voice by intent; the badge shows the voice that really spoke.
-let VS={auto:true,manual:'jarvis',provider:'edge',speaker:'shubh',tony:{pitch:0,rate:8},jarvis:{pitch:-14,rate:-10}};
+let VS={auto:true,manual:'jarvis',provider:'edge',speaker:'rahul',speakers:{tony:'aditya',jarvis:'rahul'},tony:{pitch:0,rate:8},jarvis:{pitch:-14,rate:-10}};
 const badge=t=>document.querySelectorAll('.vbadge').forEach(b=>b.textContent=t);
 async function engine(t,intent,profile){
   const r=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text:t,intent:intent||'',profile:profile||'',lang:sty()})});
   if(!r.ok){let e={};try{e=await r.json()}catch(x){}throw new Error(e.error||'voice error');}
   const w=r.headers.get('X-Voice')||'';if(aud)aud.pause();if(window.speechSynthesis)speechSynthesis.cancel();
-  aud=new Audio(URL.createObjectURL(await r.blob()));aud.onended=aud.onerror=heardBack;await aud.play();bargeStart();const en=r.headers.get('X-Engine')||'';badge('Voice: '+(w=='tony'?'TONY':'JARVIS')+(en=='sarvam'?' (Sarvam)':en=='edge-fallback'?' (Edge, Sarvam failed)':' (Edge)'));
+  aud=new Audio(URL.createObjectURL(await r.blob()));aud.onended=aud.onerror=heardBack;await aud.play();bargeStart();const en=r.headers.get('X-Engine')||'';badge('Voice: '+(w=='tony'?'TONY':'JARVIS')+(en=='sarvam'?' (Sarvam)':en=='edge-fallback'?' (Edge, Sarvam failed)':' (Edge)')+(r.headers.get('X-Distinct')=='no'?' · same Hindi voice, only depth and speed differ':''));
 }
 async function voiceSave(p){  // saving stops the voice that is speaking now, so a switch is heard at once
   if(aud)aud.pause();if(window.speechSynthesis)speechSynthesis.cancel();
@@ -273,22 +273,23 @@ async function voiceLoad(){try{const {s,d}=await api('/voice');if(s==200)VS=d;}c
 function voiceCard(){
   const box=$('vcard');if(!box)return;const rows=[],hi=sty()=='hindi';
   const L=(t,c)=>{const l=el('label','');const i=el('input');i.type='checkbox';i.style.width='auto';i.checked=c;l.append(i,' '+t);return [l,i];};
-  const [el2,ei]=L('Use the JARVIS voice (switch off for the classic voice)',localStorage.getItem('jeng')!='0');ei.onchange=()=>{localStorage.setItem('jeng',ei.checked?'1':'0');voiceCard();};rows.push(el2);
-  // Tony is hidden (16 Nov 2026). The server still knows the Tony profile; to show it again, use ['tony','jarvis'] below.
-  const PN={tony:['Tony','Conversation: confident, a little faster','नमस्ते सर, मैं टोनी हूँ। बताइए, क्या हाल है?','Hello sir, Tony here. What is up?'],jarvis:['JARVIS','Calm and deep. Used for every reply, task, reminder and alert.','नमस्ते सर, मैं जार्विस हूँ। सब सिस्टम तैयार हैं।','Good morning sir. All systems are ready.']};
+  const [el2,ei]=L('Use the Tony and JARVIS voices (switch off for the classic voice)',localStorage.getItem('jeng')!='0');ei.onchange=()=>{localStorage.setItem('jeng',ei.checked?'1':'0');voiceCard();};rows.push(el2);
+  // Part 71: both personalities are shown again. Tony = normal conversation, JARVIS = information, tasks, reminders, briefings, alerts and anything unclear.
+  const PN={tony:['Tony','Normal conversation: confident, a little faster and livelier.','नमस्ते सर, मैं टोनी हूँ। बताइए, क्या हाल है?','Hello sir, Tony here. What is up?'],jarvis:['JARVIS','Calm and deep. Used for information, task confirmations, reminders, briefings, alerts and when the kind of reply is unclear.','नमस्ते सर, मैं जार्विस हूँ। सब सिस्टम तैयार हैं।','Good morning sir. All systems are ready.']};
   const sv=VS.provider=='sarvam';
-  ['jarvis'].forEach(k=>{
+  ['tony','jarvis'].forEach(k=>{
     const c=el('div','dr');c.append(el('b',null,PN[k][0]),el('small',null,PN[k][1]));
     const mk=(n,key,lo,hi2)=>{const l=el('label',null,n+' ');const r=el('input');r.type='range';r.min=lo;r.max=hi2;r.step=1;r.value=VS[k][key];r.style.cssText='width:110px;padding:0';r.onchange=()=>voiceSave({[k]:{[key]:+r.value}});l.append(r,' ');return l;};
     const t=el('button','g','Test '+PN[k][0]);t.type='button';t.onclick=()=>speak(hi?PN[k][2]:PN[k][3],true,'',k);
-    c.append(...(sv?[]:[mk('Depth','pitch',-30,10)]),mk('Speed','rate',-25,20),t);rows.push(c);
+    const spk=el('select');[['shubh','Shubh (best for Hindi)'],['rahul','Rahul (deep)'],['aditya','Aditya (clear)'],['ratan','Ratan'],['amit','Amit'],['rohan','Rohan']].forEach(([v,n])=>spk.append(new Option(n,v)));spk.value=(VS.speakers&&VS.speakers[k])||(k=='tony'?'aditya':'rahul');spk.onchange=()=>voiceSave({speakers:{[k]:spk.value}});
+    c.append(...(sv?[el('small',null,'Sarvam speaker for '+PN[k][0]+':'),spk]:[mk('Depth','pitch',-30,10)]),mk('Speed','rate',-25,20),t);rows.push(c);
   });
   // Part 53: voice maker. Edge is free. Sarvam is an Indian company; it needs your own key (their free credit may run out).
   const p=el('div','dr');p.append(el('b',null,'Voice maker'),el('small',null,'Edge is free. Sarvam sounds more natural in Hindi and needs your own Sarvam key. If Sarvam fails, Edge speaks instead.'));
   const sel=el('select');sel.append(new Option('Edge (free)','edge'),new Option('Sarvam'+(VS.sarvam_saved?'':' (add key first)'),'sarvam'));sel.value=sv?'sarvam':'edge';
   sel.onchange=()=>{if(sel.value=='sarvam'&&!VS.sarvam_saved){add('err','Add your Sarvam key first.');sel.value='edge';return;}voiceSave({provider:sel.value});};
-  const sp=el('select');[['shubh','Shubh (best for Hindi)'],['rahul','Rahul (deep)'],['aditya','Aditya (clear)'],['ratan','Ratan'],['amit','Amit'],['rohan','Rohan']].forEach(([v,n])=>sp.append(new Option(n,v)));sp.value=VS.speaker||'shubh';sp.onchange=()=>voiceSave({speaker:sp.value});
-  p.append(sel,' ',sp);
+  p.append(sel);
+  p.append(el('small',null,sv?'Tony and JARVIS each use their own Sarvam speaker above, so they really sound different.':'Honest note: on Edge there is only ONE male Hindi voice, so Tony and JARVIS differ only in depth and speed in Hindi (English has two different voices). For two truly different Hindi voices, use Sarvam.'));
   const ki=el('input');ki.placeholder=VS.sarvam_saved?'Key saved: '+(VS.sarvam_masked||'')+'. Paste a new one to replace.':'Paste your Sarvam key here';ki.autocomplete='off';ki.style.marginTop='8px';
   const kr=el('small',null,'');const kb=el('button','g','Save key');kb.type='button';
   kb.onclick=async()=>{const k=ki.value.trim();if(!k)return;kr.className='';kr.textContent='Checking the key...';

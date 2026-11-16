@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, autostart, backup, brief, calls, clock, handoff, ledger, memory, modes, people, phone, place, progress, remind, screen, see, sysinfo, tasks, tts, voiceengine, web
+import actions, autostart, backup, brief, calls, clock, handoff, ledger, memory, modes, notes, people, phone, place, progress, remind, screen, see, sysinfo, tasks, tts, voiceengine, web
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -47,6 +47,7 @@ def db():
     c.execute("CREATE TABLE IF NOT EXISTS devices(id INTEGER PRIMARY KEY, name TEXT, token_hash TEXT UNIQUE, ts REAL)")
     c.execute("CREATE TABLE IF NOT EXISTS messages(id INTEGER PRIMARY KEY, device INT, role TEXT, content TEXT, ts REAL)")
     memory.init(c)
+    notes.init(c)  # Part 71/72: voice notes (same database, one table)
     people.init(c)
     remind.init(c)
     ledger.init(c)
@@ -368,7 +369,7 @@ class H(BaseHTTPRequestHandler):
                 else:
                     v = voiceengine.pick(txt, str(data.get("intent", "")), str(data.get("profile", "")), "english" if data.get("lang") == "english" else "hindi")
                     who, audio = v["profile"], None
-                    if v["provider"] == "sarvam" and who == "jarvis":
+                    if v["provider"] == "sarvam":  # Part 71: both personalities use Sarvam, each with its own speaker
                         try:
                             audio, mime, eng = tts.sarvam(txt, getkey("sarvam"), v["speaker"], "english" if data.get("lang") == "english" else "hindi", v["rate"]), "audio/wav", "sarvam"
                         except RuntimeError as e:
@@ -381,6 +382,7 @@ class H(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("X-Voice", who)
             self.send_header("X-Engine", eng)
+            self.send_header("X-Distinct", "no" if (not data.get("voice") and eng != "sarvam" and not v["distinct"]) else "yes")  # "no" = Tony and JARVIS are the same voice with pitch/speed only
             self.send_header("Content-Type", mime)
             self.send_header("Content-Length", str(len(audio)))
             self.end_headers()
@@ -417,6 +419,8 @@ class H(BaseHTTPRequestHandler):
                 return self.send(200, {"reply": hit[0], "via": "memory", "mode": hit[1]})
             mem = memory.handle(c, dev, msg, style == "hindi")  # yaad rakho / bhool jao / kya yaad hai
             now = str(data.get("now", ""))
+            if mem is None:  # Part 72: "note karo ...", "meri notes", "notes me bijli dhundo" (saved only on your words, never sent to the AI)
+                mem = notes.handle(c, dev, msg, style == "hindi")
             if mem is None:  # Part 47: "backup", "delete everything" (typed phrase). Never takes a passphrase
                 mem = backup.handle(c, dev, msg, style == "hindi")
             if mem is None:  # Part 48: "handoff" (summary for Claude or ChatGPT) and "phone kho gaya" (steps)

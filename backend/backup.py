@@ -10,7 +10,7 @@ import memory, people
 DIR = os.environ.get("JARVIS_DL") or os.path.join(os.path.expanduser("~"), "storage", "downloads")
 MAGIC = "JARVISBK1"
 # table: (columns saved, columns that make a row "the same", extra WHERE)
-T = {"memories": ("text", "text", ""), "people": ("name,note", "name,note", ""),
+T = {"memories": ("text", "text", ""), "notes": ("text,ts", "text", ""), "people": ("name,note", "name,note", ""),
      "reminders": ("text,due,rep", "text,due,rep", "AND sent=0"), "ledger": ("who,amount,dir,due,note,paid", "who,amount,dir,due,note,paid", "AND paid=0"),
      "routines": ("name,phrase", "name", ""), "messages": ("role,content,ts", "role,content,ts", "")}
 NAME = re.compile(r"^Jarvis_backup_[0-9A-Za-z_\-]{1,40}\.jbk$")
@@ -139,6 +139,8 @@ def restore(c, dev, name, pw):
                 continue
             if t == "memories" and c.execute("SELECT count(*) FROM memories WHERE device=?", (dev,)).fetchone()[0] >= 100:
                 break
+            if t == "notes" and c.execute("SELECT count(*) FROM notes WHERE device=?", (dev,)).fetchone()[0] >= 300:
+                break
             ph = ",".join("?" * len(r))
             extra_cols, extra_vals = ("device,ts", (dev, time.time())) if t in ("memories", "routines") else ("device", (dev,))
             if t == "reminders":
@@ -151,7 +153,7 @@ def restore(c, dev, name, pw):
 
 
 def wipe(c, dev):
-    for t in ("memories", "people", "reminders", "ledger", "routines", "messages", "tasks"):
+    for t in ("memories", "notes", "people", "reminders", "ledger", "routines", "messages", "tasks"):
         c.execute(f"DELETE FROM {t} WHERE device=?", (dev,))
     c.commit()
 

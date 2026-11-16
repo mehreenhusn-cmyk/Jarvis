@@ -17,9 +17,9 @@
 | Phase | Parts | Built | Left | Code lines (approx) |
 |---|---|---|---|---|
 | Phase 1: base, phone control, voices, memory, Home, notifications, research | 1 to 59 (with 49a, 49b, 53b) | all built | 0 | about 5,000 |
-| Phase 2: any app, any language, calls, phone health, alarm, search in app, interrupt, weather (dropped), music control, WhatsApp by name | 60 to 69 | 60, 61, 62, 63, 64, 65, 66, 68, 69 | 67 (dropped by Hussain, 17 Nov 2026) | built about 1,090, left 0 required |
+| Phase 2: any app, any language, calls, phone health, alarm, search in app, interrupt, weather (dropped), music control, WhatsApp by name | 60 to 69 | 60, 61, 62, 63, 64, 65, 66, 68, 69, 71, 72 | 67 (dropped by Hussain, 17 Nov 2026) | built about 1,250, left 0 required |
 
-**Overall: 9 of 10 Phase 2 Parts built (60 to 66, 68, 69); the 10th (Part 67, weather) was dropped by Hussain, so no Part is left to code. Parts 60 and 66 and the missing `backend/lang.py` fix came in the 17 Nov 2026 zip. Phase 1 is complete in code, but only Parts 1 to 26 were tested on a phone. The most important next step is Build APK plus the phone checklist (section 11.8), because Java has never been compiled.**
+**Overall: 11 of 12 Phase 2 Parts built (60 to 66, 68, 69, 71, 72); the 10th (Part 67, weather) was dropped by Hussain, so no Part is left to code. Parts 60 and 66 and the missing `backend/lang.py` fix came in the 17 Nov 2026 zip. Phase 1 is complete in code, but only Parts 1 to 26 were tested on a phone. The most important next step is Build APK plus the phone checklist (section 11.8), because Java has never been compiled.**
 
 ### Phase 2 plan (each Part: files, lines, benefit, status)
 
@@ -35,6 +35,8 @@
 | 67 | Weather on Home from a free weather service | `app.py`, `index.html` | ~80 | - | - | DROPPED by Hussain (17 Nov 2026): not wanted |
 | 68 | Music control by voice: `gaana pause karo`, `next song`, `agla gaana`, `pichla gaana`, `music band karo`, `gaana badlo`, a lone `pause` or `resume`. Sends the same media keys as earphone buttons to whatever player is active (Spotify, YouTube Music, YouTube...). Says honestly if nothing was playing. Volume words go to Part 37; `play Kesariya on YouTube` stays a search (Part 60). | `actions.py`, `QuickSet.java`, `index.html`, `tasks.py` | ~50 | about 62 (`actions.py` 40, `QuickSet.java` 19, `index.html` 3) | Pause or skip a song without touching the phone | BUILT, Python tested, Java not compiled, not phone tested |
 | 69 | WhatsApp message by contact name: `Ammi ko WhatsApp pe hello bhejo`, `Ammi ko whatsapp karo`, `send hello to Ammi on WhatsApp`, `Ammi ko whatsapp par bol do ki main late hu`, Hindi script works. Java finds the number in the phone's contacts (same finder as Part 64: sure match opens at once, several or close spelling show buttons). It only OPENS the chat with the text filled in; WhatsApp's send button is YOUR tap, Jarvis never sends. Needs Phone control ON and the Contacts permission. Uses `wa.me` (WhatsApp, then WhatsApp Business, then browser). | `actions.py`, `CallByName.java`, `index.html` | ~90 | about 95 (`actions.py` 56, `CallByName.java` 14, `index.html` 3, tests 6) | Message a person by name, hands free until send | BUILT, Python tested, Java not compiled, not phone tested |
+| 71 | Dual voice FIX (from the 17 Nov audit): Conversation now speaks as TONY; information, tasks, reminders, briefings, alerts and any unclear intent speak as JARVIS. Tony is shown again in Settings. Both are there from the first install, auto routing ON, saved in `voice.json` across restarts. On Sarvam each personality has its OWN speaker (Tony: aditya, JARVIS: rahul, changeable), so they really sound different. The badge and Settings say honestly when Edge Hindi uses ONE male voice (Madhur) for both, so only depth and speed differ. A speaker chosen before this Part is kept for JARVIS. | `voiceengine.py`, `app.py` (`/tts`), `index.html` | ~60 | about 55 | Two personalities that match what you asked for | BUILT, Python tested (routing, persistence), not phone tested, nobody has LISTENED to the voices yet |
+| 72 | Voice notes and recall: `note karo ki kal bijli ka bill bharna hai`, `note: ...`, `take a note ...`, `नोट करो कि ...`; `meri notes`, `notes me bijli dhundo`, `bijli wala note`, `delete note 3`. Saved only on your own words, kept in a new small `notes` table in the SAME database (no second database), included in backup and restore and wiped by `delete everything`. Never sent to the AI. Passwords, OTPs, PINs, CVVs and card numbers are refused. Max 300 notes of 500 characters. The note text also sits in chat history like any message; `clear history` removes that copy. | `notes.py`*, `app.py`, `backup.py`, `test_app.py` | ~60 | about 75 (`notes.py` 70, `backup.py` 4, `app.py` 3) | Say a thought, find it later | BUILT, Python tested, not phone tested |
 
 `*` = new file. Estimates are rough; real numbers are filled in after each Part.
 
@@ -49,10 +51,21 @@
 | `Mic: speech error 11` | Android's speech service disconnected (error 11). Jarvis created and destroyed the recognizer every second in Hey Jarvis mode | `Ears.java` reuses one recognizer, and on error 11, 10 or 5 retries up to 4 times with a growing pause. Only if it keeps failing does it say to update Google Speech Services or restart |
 | `Online voice failed ... NoAudioReceived`, then `No voice on this phone` | The `edge-tts` package in Termux is too old for Microsoft's voice service, and the phone has no Android text-to-speech voice for the fallback | In Termux run `pip install -U edge-tts`, then restart `bash run.sh`. The error text now says this. Also Android Settings, Google Speech Services, install a voice |
 
+### After the 17 Nov audit: what was built and what was left out on purpose
+| Item | Decision |
+|---|---|
+| Dual voice, Conversation = Tony | BUILT (Part 71) |
+| Voice notes and recall | BUILT (Part 72) |
+| Smart App Search, Voice interruption | Already built (Parts 60, 61): only phone testing is left |
+| Scheduled routines at a time | NOT built yet: it needs one careful change to the existing reminder scheduler (no second scheduler), so it waits for your OK on the design |
+| Smart follow-ups, Privacy activity timeline | NOT built yet: small, but they touch notifications and privacy screens, so they wait until the phone test round is done |
+| PC companion | NOT built: a security design must be agreed first, phone-first stays |
+| Weather on Home | DROPPED by Hussain |
+
 ### Pending and easy-to-forget list (checked 17 Nov 2026 against the chats and this README)
 | Item | Status |
 |---|---|
-| Phone checklist (11.8). Round 1 done on 17 Nov 2026 (see the test table above); apps opening, mic error 11 and online voice need a re-test after `Jarvis_part70_fix.zip` | OPEN, the most important step |
+| Phone checklist (11.8). Round 1 done on 17 Nov 2026 (see the test table above); apps opening, mic error 11 and online voice need a re-test after `Jarvis_part70_fix.zip`. Then listen to Tony and JARVIS (Part 71) and try notes (Part 72) | OPEN, the most important step |
 | GitHub Build APK runs #17 to #21 (Parts 48, 49b, 64, 65 and older) are GREEN, so those Java files compile. NOT yet compiled: `QuickSet` (alarm, timer, search, media), WhatsApp part of `CallByName`, `Ears` interrupt (Parts 66, 60, 61, 68, 69) | OPEN, the next build may need a small fix |
 | Nested duplicate folder `Jarvis-main/Jarvis-main/` inside the repo (an old copy) | OPEN, delete it from the repo; `backend/lang.py` now lives in the right place |
 | Part 67 weather | DROPPED by Hussain |
@@ -212,6 +225,10 @@ Total: about 40 files and about 2,650 lines of code. Known limits (not bugs): He
 
 ## 8. Cheat sheet (type or say)
 **Languages (Part 62, 63):** say or type the app name in any script: `ઓપન યુટ્યુબ`, `ஓபன் யூடியூப்`, `ఓపెన్ యూట్యూబ్`, `यूट्यूब उघडा`, `open Zomato`. Steps in a row work too (`ઓપન યુટ્યુબ અને ઓપન ક્રોમ`). Choose the same language in "Speak:" for the mic. Ask `battery kitni hai` or `charging status` for a local answer.
+
+**Notes (Part 72):** `note karo ki ...`, `meri notes`, `notes me bijli dhundo`, `delete note 3`.
+
+**Two voices (Part 71):** Settings, Voice personality: Tony (conversation) and JARVIS (information, tasks, reminders, briefings, alerts). With Sarvam each has its own speaker. Listen to both before you decide.
 
 **Music (Part 68):** `gaana pause karo`, `next song`, `agla gaana`, `pichla gaana`, `music band karo`, `resume`. Works on whatever player is active.
 
