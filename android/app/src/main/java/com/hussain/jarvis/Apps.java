@@ -12,7 +12,7 @@ import org.json.JSONObject;
 
 /** Part 31: finds an app on THIS phone by its name and opens ONE. Only names that really exist can be opened. Nothing is saved or sent anywhere. */
 final class Apps {
-    private static final class App { String label, pkg; }
+    private static final class App { String label, pkg, act; }
 
     private static String norm(String s) { return s.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", ""); }
 
@@ -35,6 +35,7 @@ final class Apps {
             if (r.activityInfo.packageName.equals(c.getPackageName())) continue;
             App a = new App();
             a.pkg = r.activityInfo.packageName;
+            a.act = r.activityInfo.name;  // the exact launcher screen, so we do not depend on getLaunchIntentForPackage
             a.label = String.valueOf(r.loadLabel(pm));
             out.add(a);
         }
@@ -72,12 +73,19 @@ final class Apps {
                 for (int i = 0; i < Math.min(4, hit.size()); i++) ask.put(hit.get(i).label);
                 return o.put("ok", false).put("ask", ask);
             }
-            Intent go = c.getPackageManager().getLaunchIntentForPackage(hit.get(0).pkg);
-            if (go == null) return o.put("ok", false).put("err", "launch_failed");
-            c.startActivity(go.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-            return o.put("ok", true).put("app", hit.get(0).label);
+            App h = hit.get(0);
+            Intent go = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setClassName(h.pkg, h.act).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+            try {
+                c.startActivity(go);
+            } catch (Exception first) {  // second try: Android's own launch intent for the package
+                Intent alt = c.getPackageManager().getLaunchIntentForPackage(h.pkg);
+                if (alt == null) return o.put("ok", false).put("err", "launch_failed").put("why", first.getClass().getSimpleName() + ": " + first.getMessage());
+                try { c.startActivity(alt.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); }
+                catch (Exception second) { return o.put("ok", false).put("err", "launch_failed").put("why", second.getClass().getSimpleName() + ": " + second.getMessage()); }
+            }
+            return o.put("ok", true).put("app", h.label);
         } catch (Exception e) {
-            try { return o.put("ok", false).put("err", "launch_failed"); } catch (Exception x) { return o; }
+            try { return o.put("ok", false).put("err", "launch_failed").put("why", e.getClass().getSimpleName() + ": " + e.getMessage()); } catch (Exception x) { return o; }
         }
     }
 }

@@ -322,7 +322,7 @@ async function speak(t,force,intent,profile){
     try{await(eng?engine(t,intent,profile):neural(t,v.slice(7)));return;}catch(e){add('err','Online voice failed: '+(e.name=='NotAllowedError'?'the browser blocked sound. Tap the page once and try again.':e.message)+'. Trying the phone voice.');}
   }
   if(window.speechSynthesis&&speechSynthesis.getVoices().length)local(t);
-  else{heardBack();add('err','No voice on this phone. Install a text-to-speech voice in Android settings, or fix the online voice (pip install edge-tts, internet on).');}
+  else{heardBack();add('err','No voice on this phone. Fix the online voice: in Termux run  pip install -U edge-tts  then restart run.sh (internet on). Or install a text-to-speech voice in Android Settings, Google Speech Services.');}
 }
 if(window.speechSynthesis){speechSynthesis.onvoiceschanged=loadVoices;loadVoices();}
 $('say').checked=localStorage.getItem('jsay')=='1';$('lang').value=localStorage.getItem('jlang')||'hi-IN';
@@ -539,7 +539,7 @@ async function doAct(a,w){
   else if(r.err=='not_found')t='✖ '+(lt(a,1,a.said||a.name)||say('सर, इस फ़ोन में "'+(a.said||a.name)+'" नाम का ऐप नहीं मिला।','Sir, I could not find an app named "'+(a.said||a.name)+'" on this phone.'));
   else if(r.err=='stopped')t=say('Jarvis रुका हुआ है सर। पहले "Turn mic on" दबाइए।','Jarvis is stopped. Tap "Turn mic on" first.');
   else if(r.err=='off')t=say('फ़ोन कंट्रोल बंद है सर। Settings में चालू कीजिए।','Phone control is OFF. Turn it on in Settings.');
-  else t=say('Android ने ऐप खोलने नहीं दिया सर।','Android did not let me open it, sir.');
+  else t=say('Android ने ऐप खोलने नहीं दिया सर।','Android did not let me open it, sir.')+(r.why?' ('+r.why+')':'');
   w.textContent=t;if(!r.ok)w.className='m err';return t;
 }
 const DASH=[['mic','Microphone','Voice input, only after you tap the mic','app'],['wake','Hey Jarvis','Wake word, only while the app is open','app'],['bg','Background listening (test)','Hey Jarvis with the app closed. Test only, started by you, notification with Stop, ends after 8 h','app'],['camera','Camera and photos','Android photo picker, only when you tap the camera button',''],['screen','Screen reader','Needs the Jarvis accessibility switch. Reads text only when you ask','acc'],['location','Location','Only when you ask where you are','app'],['contacts','Contacts','Only when you ask for a contact','app'],['calls','Call log','Only when you ask for calls','app'],['calendar','Calendar','Only when you ask for your events. Title, time and place only, never saved','app'],['notify','Reminders and notifications','Reminders show even when the app is closed','notif'],['battery','Battery limit','Android may stop Jarvis in the background to save battery','battery'],['apps','Phone control (apps and screen steps)','Opens an app or does one screen step (press, scroll, type, back) only when you ask and the switch is ON. Never types passwords, OTPs or PINs','']];

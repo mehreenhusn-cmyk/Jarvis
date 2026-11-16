@@ -27,7 +27,8 @@ def speak(text, voice, pitch=-8, rate=-6):
         if "No module named" in err:
             raise RuntimeError("edge-tts is not installed. Run in Termux: pip install edge-tts")
         if r.returncode != 0 or os.path.getsize(path) < 100:
-            raise RuntimeError("voice failed (check internet): " + err.strip()[-120:])
+            hint = " In Termux run: pip install -U edge-tts  (old versions get NoAudioReceived), then restart run.sh." if "NoAudioReceived" in err or "No audio" in err else ""
+            raise RuntimeError("voice failed (check internet): " + err.strip()[-120:] + hint)
         return open(path, "rb").read()
     except subprocess.TimeoutExpired:
         raise RuntimeError("awaaz banne mein bahut der lagi")

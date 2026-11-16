@@ -22,6 +22,8 @@ class Ears implements RecognitionListener {
     final Handler ui = new Handler(Looper.getMainLooper());
     SpeechRecognizer sr;
     String lang = "en-IN";
+    int fails;           // soft errors in a row (speech service disconnected); reset when you actually speak
+    boolean retrying;    // true when again() calls start(), so the counter is not reset by our own retry
     volatile boolean wake, on, barge;  // barge (Part 61): listening WHILE Jarvis speaks, partial words go to the page so it can stop talking
 
     Ears(Activity a, WebView w) { act = a; web = w; }
@@ -31,18 +33,25 @@ class Ears implements RecognitionListener {
 
     void start(String l, boolean wakeMode, boolean bargeMode) {
         stop();
+        if (!retrying) fails = 0;
+        retrying = false;
         if (Privacy.stopped) { js("onHeardErr", "Jarvis is stopped. Tap Turn mic on first"); return; }
         if (!SpeechRecognizer.isRecognitionAvailable(act)) { js("onHeardErr", "this phone has no speech service"); return; }
         if (ListenService.up) ListenService.halt(act);  // Part 39: only one listener at a time; opening the mic here ends the background test
         lang = l; wake = wakeMode; on = true; barge = bargeMode;
         sr = SpeechRecognizer.createSpeechRecognizer(act);
         sr.setRecognitionListener(this);
-        sr.startListening(new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+        sr.startListening(listenIntent());
+        Privacy.used(wake ? "wake" : "mic");
+    }
+
+    private Intent listenIntent() {
+        boolean bargeMode = barge;
+        return (new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang).putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1).putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, bargeMode)
             .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, wake ? 1500L : 4500L)  // Part 36: when you talk, Jarvis waits about 4 to 5 seconds of quiet before answering, like a person
             .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, wake ? 1500L : 4000L));  // (some phone speech services ignore these two numbers)
-        Privacy.used(wake ? "wake" : "mic");
     }
 
     void stop() {
@@ -55,7 +64,15 @@ class Ears implements RecognitionListener {
         web.evaluateJavascript("window." + fn + "&&" + fn + "(" + JSONObject.quote(text) + "," + wake + ")", null);
     }
 
-    void again(long ms) { ui.postDelayed(() -> { if (on) start(lang, wake, barge); }, ms); }
+    /** Listen again. The same recognizer is reused (cancel, then listen) because creating and destroying it every second makes some phone speech services disconnect (error 11). */
+    void again(long ms) {
+        ui.postDelayed(() -> {
+            if (!on) return;
+            if (sr == null) { retrying = true; start(lang, wake, barge); return; }
+            try { sr.cancel(); sr.startListening(listenIntent()); Privacy.used(wake ? "wake" : "mic"); }
+            catch (Exception x) { try { sr.destroy(); } catch (Exception y) { /* gone already */ } sr = null; retrying = true; start(lang, wake, barge); }
+        }, ms);
+    }
 
     @Override public void onResults(Bundle b) {
         ArrayList<String> r = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
@@ -69,12 +86,21 @@ class Ears implements RecognitionListener {
         if (!on) return;
         boolean quiet = e == SpeechRecognizer.ERROR_NO_MATCH || e == SpeechRecognizer.ERROR_SPEECH_TIMEOUT || e == SpeechRecognizer.ERROR_RECOGNIZER_BUSY;
         if (wake && quiet) { again(e == SpeechRecognizer.ERROR_RECOGNIZER_BUSY ? 1500 : 300); return; }
+        boolean soft = e == 11 || e == 10 || e == SpeechRecognizer.ERROR_CLIENT;  // 11 = speech service disconnected, 10 = too many requests, 5 = client
+        if (soft && fails < 4) {  // a fresh recognizer after a short, growing pause; Jarvis shows nothing unless it keeps failing
+            fails++;
+            if (sr != null) { try { sr.destroy(); } catch (Exception x) { /* gone already */ } sr = null; }
+            again(1200L * fails);
+            return;
+        }
         on = false;
-        js("onHeardErr", quiet ? "I did not hear anything" : e == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ? "allow the microphone permission for Jarvis" : "speech error " + e);
+        js("onHeardErr", quiet ? "I did not hear anything" : e == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ? "allow the microphone permission for Jarvis"
+            : soft ? "the phone speech service keeps disconnecting (error " + e + "). Update 'Speech Recognition & Synthesis' (Google) in Play Store or restart the phone, then tap the mic again"
+            : "speech error " + e);
     }
 
     @Override public void onReadyForSpeech(Bundle p) { }
-    @Override public void onBeginningOfSpeech() { }
+    @Override public void onBeginningOfSpeech() { fails = 0; }
     @Override public void onRmsChanged(float v) { }
     @Override public void onBufferReceived(byte[] b) { }
     @Override public void onEndOfSpeech() { }

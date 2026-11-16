@@ -40,10 +40,19 @@
 
 **Total left: 0 required Parts.** Part 67 (weather) is dropped. The only open work is Build APK, the phone test (section 11.8) and the optional ideas in the list below.
 
+### Phone test round 1 (17 Nov 2026, from Hussain's screenshots) and the fixes
+| What was seen | Cause | Fix (in `Jarvis_part70_fix.zip`) |
+|---|---|---|
+| Page shows `Update: Jarvis_part68_69.zip ... skipped, same zip already done` | The zip had already been pushed once; the second copy is skipped on purpose | Nothing to fix. The server, the new page and the new APK (Interrupt button present) are live |
+| `Open YouTube` / `ओपन युटुब` gives `Android did not let me open it` (the app WAS found) | Java used `getLaunchIntentForPackage`, which can return null or be refused on some phones | `Apps.java` now opens the exact launcher screen found in the app list, then tries the old way, and the chat shows the real Android reason in brackets, e.g. `(SecurityException: ...)`. If it still fails, send that reason |
+| `ओपन बाइनेंस`, `ट्रेडिंगव्यू`: `could not find an app` | Not a bug if the app is not installed (the list is the phone's real list). Check Home, then Smart shortcuts, then the app list. If installed, tell me the exact app name shown on the phone | none yet |
+| `Mic: speech error 11` | Android's speech service disconnected (error 11). Jarvis created and destroyed the recognizer every second in Hey Jarvis mode | `Ears.java` reuses one recognizer, and on error 11, 10 or 5 retries up to 4 times with a growing pause. Only if it keeps failing does it say to update Google Speech Services or restart |
+| `Online voice failed ... NoAudioReceived`, then `No voice on this phone` | The `edge-tts` package in Termux is too old for Microsoft's voice service, and the phone has no Android text-to-speech voice for the fallback | In Termux run `pip install -U edge-tts`, then restart `bash run.sh`. The error text now says this. Also Android Settings, Google Speech Services, install a voice |
+
 ### Pending and easy-to-forget list (checked 17 Nov 2026 against the chats and this README)
 | Item | Status |
 |---|---|
-| Build APK, install, run the phone checklist (11.8) for everything marked NOT YET | OPEN, the most important step |
+| Phone checklist (11.8). Round 1 done on 17 Nov 2026 (see the test table above); apps opening, mic error 11 and online voice need a re-test after `Jarvis_part70_fix.zip` | OPEN, the most important step |
 | GitHub Build APK runs #17 to #21 (Parts 48, 49b, 64, 65 and older) are GREEN, so those Java files compile. NOT yet compiled: `QuickSet` (alarm, timer, search, media), WhatsApp part of `CallByName`, `Ears` interrupt (Parts 66, 60, 61, 68, 69) | OPEN, the next build may need a small fix |
 | Nested duplicate folder `Jarvis-main/Jarvis-main/` inside the repo (an old copy) | OPEN, delete it from the repo; `backend/lang.py` now lives in the right place |
 | Part 67 weather | DROPPED by Hussain |
