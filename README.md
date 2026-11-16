@@ -9,12 +9,12 @@
 | # | Section | In one line |
 |---|---|---|
 | 1 | What Jarvis is | What it does, in 5 lines |
-| 2 | All Parts in ONE table | Part 1 to 116: what is built, what is planned, files, lines |
+| 2 | All Parts in ONE table | Part 1 to 122: what is built, what is planned, files, lines |
 | 3 | What Hussain does now | 4 steps |
 | 4 | Total plan: files and lines | What the planned Parts add up to |
 | 5 | Ideas we will not build | And why |
 | 6 | Safety rules for the new Parts | Every new Part must keep these |
-| 7 | Phone tests (Table A) | 22 things to try on the phone |
+| 7 | Phone tests (Table A) | 24 things to try on the phone |
 | 8 | Rules for every Claude | How we work |
 | 9 | Known limits and fixes | What Jarvis cannot do, honest |
 | R1 to R7 | Reference | How it works, setup, cheat sheet, security, old status, build log, master plan |
@@ -29,11 +29,11 @@
 4. Hussain's goal in his words (16 Nov): say any app name in any language and it opens, and the screen shows what is happening or failing. "Call Ammi" just calls. Jarvis knows battery, Bluetooth and what is wrong with the phone. Jarvis stops talking when somebody speaks.
 5. Jarvis never sends, pays, deletes or runs anything on its own. Every risky step waits for Hussain's tap.
 
-## 2. ALL PARTS IN ONE TABLE (Part 1 to 116)
+## 2. ALL PARTS IN ONE TABLE (Part 1 to 122)
 
-**How to use this table.** Parts are plain numbers in one sequence. No letters, no groups. A new idea gets the NEXT number at the bottom (now 117). When a Part is built, change its Status and fill in the real lines. A range like `1 to 5` means the old notes did not split them. `*` = new file. `-` = not recorded in the old notes (see R5, R6, R7).
+**How to use this table.** Parts are plain numbers in one sequence. No letters, no groups. A new idea gets the NEXT number at the bottom (now 123). When a Part is built, change its Status and fill in the real lines. A range like `1 to 5` means the old notes did not split them. `*` = new file. `-` = not recorded in the old notes (see R5, R6, R7).
 
-**Honest count (17 Nov 2026).** Code is written for Parts 1 to 86 (about 7,000 lines; Part 67 was dropped, Part 81 has no record). Phone tested: Parts 1 to 17 only (12 to 14 partly). Table A (section 7): 0 of 22 tried. Java has never been fully compiled: GitHub Build APK runs #17 to #21 were green (Parts 48, 49, 64, 65 compile). Not compiled yet: `QuickSet` (alarm, timer, search, media), the WhatsApp part of `CallByName`, `Ears` interrupt, `PaymentGuard`, the deep phone check, the `Privacy` timeline.
+**Honest count (17 Nov 2026).** Code is written for Parts 1 to 87 and Part 117 (about 7,100 lines; Part 67 was dropped, Part 81 has no record). Phone tested: Parts 1 to 17 only (12 to 14 partly). Table A (section 7): 0 of 24 tried. Java has never been fully compiled: GitHub Build APK runs #17 to #21 were green (Parts 48, 49, 64, 65 compile). Not compiled yet: `QuickSet` (alarm, timer, search, media), the WhatsApp part of `CallByName`, `Ears` interrupt, `PaymentGuard`, the deep phone check, the `Privacy` timeline.
 
 | Part | What it does | Files | Lines | New APK? | Status |
 |---|---|---|---|---|---|
@@ -112,7 +112,7 @@
 | 84 | Expense logger, clipboard buttons, reply ideas | `spend.py`, `replyideas.py` | 162 | No | Built, not phone tested |
 | 85 | Home card **next best move**: Do, Why, Later and the source; fixed rules, no AI | `lens.py`*, `app.py`, `index.html` | about 80 | No | Built, not phone tested |
 | 86 | **Now / Next / Later** strip under that card (built together with 85) | `lens.py`, `index.html` | about 43 | No | Built, not phone tested |
-| 87 | **Honest Mission view**: three separate counts, Code built, Phone tested, Verified, read from Table A | `progress.py`, `index.html` | ~70 | No | Planned |
+| 87 | **Honest Mission view**: three separate counts, Code built, Phone tested, Verified (Table A PASS), read from the status column and Table A. Chat word `mission`; Home card `Honest progress`. Plain count, no percentage | `progress.py`, `app.py`, `index.html` | 39 | No | Built, not phone tested |
 | 88 | **Memory Atlas**: memories, people and notes on one page, with delete. Nothing new is saved | `memory.py`, `people.py`, `app.py`, `index.html` | ~110 | No | Planned |
 | 89 | **Search everywhere**: `sab jagah dhundo Bombay` looks in notes, memories, people, lists, reminders (and later decisions, capsules, dreams) and says where each hit came from. Matches words, not meaning | `search.py*`, `app.py`, `index.html` | ~70 | No | Planned |
 | 90 | **Source label** on research answers: `One report` or `N sources agree`, counted from the real search result | `web.py`, `index.html` | ~45 | No | Planned |
@@ -142,28 +142,34 @@
 | 114 | **Place and Bluetooth triggers** (Java): a note shows when you reach a place or a chosen Bluetooth device connects. Jarvis never changes its tone or guesses a mood | `PlaceWatch.java`, `index.html`, `app.py` | ~90 | Yes | Planned |
 | 115 | **Anti-Doomscroll** (Java): one calm line after N minutes in the same app (you set N). Needs Usage Access. Never blocks anything | `UsageWatch.java*`, `MainActivity.java`, manifest, `index.html` | ~110 | Yes | Planned |
 | 116 | **App habit map** (Java): `YouTube ke baad usually Instagram`, a count kept on the phone and shown as a note | `UsageWatch.java`, `index.html` | ~40 | Yes | Planned |
+| 117 | **What's new answers**: `last update`, `kya kya add hua`, `last 5 updates`. Jarvis answers from the zip names in `~/.jarvis_done` (name, time, files inside the zip) plus that Part's row in this README (files, lines, what it does). Fixes the chat saying `I cannot access GitHub`. It only knows what this phone received and pushed, not other commits on GitHub | `whatsnew.py`*, `app.py` | 81 | No | Built, not phone tested |
+| 118 | **Assist mode: guest session core**. `guest session shuru` and `End & erase`. While on: nothing is saved (no memory, people, notes, habits, expenses, mood, chat history), the guest chat lives in RAM only, a badge shows `Guest: temporary / Memory saved: No`. Aadhaar-like 12 digit numbers, phone numbers and card numbers are masked BEFORE the text goes to the AI. The badge says the text still goes to the AI provider | `guest.py`*, `app.py`, `index.html` | ~150 | No | Planned |
+| 119 | **Assist tools** (inside a guest session or for you): **Photo or screenshot helper**: send a form, bill, medicine strip or message as a photo or screenshot; Jarvis translates it, explains it in simple words and answers your follow-up questions about it (reuses `see.py`; photo not saved). Plus Translate, Explain simply, Find reliable info (uses the Part 90 source label), Make a plan, Big-text read-aloud for elders. No emergency guide (Hussain, 17 Nov). Medicine and forms: reads what is printed and says `doctor ya pharmacist se confirm karo`. Reply help already exists in Part 84 | `assist.py`*, `see.py`, `app.py`, `index.html` | ~150 | No | Planned |
+| 120 | **Lens rail** on Home: chips Project, Phone, Life filter the Next best move card and the strip. World and Sports chips wait until a news source exists | `lens.py`, `index.html` | ~60 | No | Planned |
+| 121 | **Glass skin**: the premium glass look (orb, glass cards, gradient buttons) for Home and Assist only, dark only, with a `Reduce effects` switch. CSS from Hussain, about 330 lines. Only after Table A passes | `index.html` | ~380 | No | Planned |
+| 122 | **Bottom bar**: tabs appear as their Parts are built (Home, Talk, Assist, Timeline, Memory, Settings). Needs Parts 88, 109 and 118. Only after Table A passes | `index.html` | ~90 | No | Planned |
 
 ## 3. WHAT HUSSAIN DOES NOW
 
 1. GitHub > Actions > **Build APK** > Run. If it goes red, send a screenshot of the error. That is fixed before anything else.
 2. Install the APK on the phone.
-3. Try the 22 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
-4. Then say **"ok 87"** (or any Part number from section 2). Claude builds one Part at a time.
+3. Try the 24 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
+4. Then say **"ok 88"** (or any Part number from section 2). Claude builds one Part at a time.
 
-Why this order: Parts 18 to 86 are built and none is phone tested. A new feature on top of an untested base only makes bugs harder to find. Parts 112 to 116 (Java) wait longest, because Java is not even compiled yet. This README-only update needs no new APK.
+Why this order: Parts 18 to 87 and Part 117 are built and none is phone tested. A new feature on top of an untested base only makes bugs harder to find. Parts 112 to 116 (Java) wait longest, because Java is not even compiled yet. This README-only update needs no new APK.
 
-## 4. TOTAL PLAN: FILES AND LINES (Parts 87 to 116)
+## 4. TOTAL PLAN: FILES AND LINES (Parts 87 to 122)
 
 | What | Parts | Count | Lines (estimate) |
 |---|---|---|---|
-| Python and page, no new APK | 87 to 111 | 25 Parts | 1830 |
+| Python and page, no new APK | 87 to 111 and 117 to 122 | 31 Parts | 2525 |
 | Java, new APK needed | 112 to 116 | 5 Parts | 440 |
-| **Everything** | 87 to 116 | **30 Parts** | **2270** (expect about 2800 real lines, because the last two rounds ran about 25 percent over) |
+| **Everything** | 87 to 122 | **36 Parts** | **2965** (expect about 2800 real lines, because the last two rounds ran about 25 percent over) |
 
-- **New Python files (13):** `capsule.py`, `debate.py`, `decisions.py`, `dreams.py`, `drift.py`, `events.py`, `ghost.py`, `money.py`, `mood.py`, `redteam.py`, `search.py`, `signs.py`, `touch.py`.
+- **New Python files (16):** `assist.py`, `capsule.py`, `debate.py`, `decisions.py`, `dreams.py`, `drift.py`, `events.py`, `ghost.py`, `guest.py`, `money.py`, `mood.py`, `redteam.py`, `search.py`, `signs.py`, `touch.py`, `whatsnew.py`.
 - **New Java files (3):** `CallNote.java`, `PlaceWatch.java`, `UsageWatch.java`.
 - **Older files that grow:** `MainActivity.java`, `actions.py`, `app.py`, `backup.py`, `brief.py`, `habits.py`, `index.html`, `memory.py`, `modes.py`, `people.py`, `progress.py`, `web.py` and the manifest.
-- **Order:** the table order. Python Parts first, Java Parts last. Parts 85 and 86 are built. Part 98 needs Parts 95 and 97. Part 111 needs Parts 84 and 110. Part 114 needs Part 113. Part 116 needs Part 115.
+- **Order of work (changed 17 Nov):** 87 with 117, then 88, 89, 90, then 118 and 119 (the guest guard needs the list of every store from Part 88), then 91 to 111, then 120, then 121 and 122 (look only, after Table A passes), Java 112 to 116 last. Older text below: the table order. Python Parts first, Java Parts last. Parts 85, 86, 87 and 117 are built. Part 98 needs Parts 95 and 97. Part 111 needs Parts 84 and 110. Part 114 needs Part 113. Part 116 needs Part 115.
 - **Each Part stays under 350 lines** (rule 1). Every Part: no full test suite (Hussain's rule), only a syntax check and a small run; everything else is written as NOT RUN.
 
 ## 5. IDEAS WE WILL NOT BUILD (and why)
@@ -183,7 +189,10 @@ Why this order: Parts 18 to 86 are built and none is phone tested. A new feature
 | Spotting coincidences by reading notifications | NOT PLANNED: Part 104 is a log you type yourself |
 | Moving real money as a penalty | REFUSED: the penalty pot (Part 99) is only a number |
 | Routines that run with no tap | NOT PLANNED on purpose: the one-tap Run is the safety design |
-| Five-tab bottom bar, new colours, orb motion, splitting `index.html` into files | NOT NOW: a cosmetic rewrite of a page that is not phone tested is the biggest regression risk |
+| Splitting `index.html` into files | NOT NOW: a big rewrite of a page that is not phone tested is the biggest regression risk. The look and the bottom bar are Parts 121 and 122, later, after Table A passes |
+| Emergency guide, and medical steps written by the AI | NOT PLANNED (Hussain, 17 Nov): a wrong or misused guide could cause harm. Part 119 only reads and explains what is printed on a form or medicine strip, and says `doctor ya pharmacist se confirm karo` |
+| Saying `Private session` without the AI-provider note | REFUSED: in a guest session Jarvis saves nothing, but the text still goes to the AI provider, so the badge says so |
+| Remembering a guest's voice, name or questions, or keeping guest items in Help history | REFUSED: End & erase wipes the whole guest chat. Only your own use keeps a label and time, never the text |
 | Evidence drawer, trust meter, hologram HUD, weather and stock cards | NOT PLANNED: needs data Jarvis does not have, or is decoration |
 | Weather on Home (Part 67), car mode | DROPPED by Hussain |
 
@@ -195,6 +204,7 @@ Why this order: Parts 18 to 86 are built and none is phone tested. A new feature
 4. Jarvis only suggests. Sending, paying, deleting and running steps still need Hussain's tap.
 5. Every new feature has an OFF word (`mood care off`, `sach sawal off`, `drift off`, `track band karo`, `contract band karo`) and a delete word.
 6. Heavy emotional features (Parts 92, 94, 96, 103, 105) are opt-in, show a clear badge or label, and are never started by Jarvis on its own.
+7. Guest session (Parts 118 and 119): started only by Hussain's tap or words; every save path is skipped while it is on (Part 88 lists them); Aadhaar-like, phone and card numbers are masked before the AI; End & erase also wipes the guest chat in the page.
 
 ## 7. PHONE TESTS (TABLE A)
 
@@ -224,6 +234,8 @@ Nothing below is phone tested yet. Build APK first for the Java rows. Write PASS
 | 20 | Notification summary ON, Home > Notifications > Reply ideas > pick one | 3 short options with Copy buttons; nothing is sent; the chat history shows a placeholder, not the notification text | No (notification access from the older Part) | not tested |
 | 21 | Home tab: look at the Next best move card while a reminder is due in the next hour | The card shows that reminder with Why and Later; Show types `my reminders` in chat; nothing runs by itself | No | not tested |
 | 22 | Home tab: look at the Now / Next / Later strip with a late money item, a habit not done and a reminder for tomorrow | Each item sits in its column (late money and reminders you were not told about are in NOW); with nothing planned the card says `Nothing needs you right now` | No | not tested |
+| 23 | Home tab: look at the Honest progress card, then type `mission` in chat | The card and the chat show the same three counts: Code built, Phone tested, Verified (Table A). With nothing marked PASS yet, Verified says 0 of 24 | No | not tested |
+| 24 | Type `last update`, then `last 3 updates`, then `kya kya add hua` | Last update: the newest zip name, its time, what that Part does, its files and lines, and the files inside the zip. The list shows Part numbers with one line each. No `I cannot access GitHub` | No | not tested |
 
 ## 8. RULES FOR EVERY CLAUDE (always follow)
 1. Each part is under 350 lines of code. New files only when really needed. Update this README after every part.
@@ -245,8 +257,6 @@ Nothing below is phone tested yet. Build APK first for the Java rows. Write PASS
 13. **How to resume (any new Claude):** (1) Read sections 1 to 9. (2) Take the Part Hussain names; if he names none, ask him for the Build APK and Table A result first (section 3). (3) Say first "with tests" or "without tests" and why. (4) Build it, give the changed files with real line counts, keep ONE cumulative zip. (5) Update this README: the Part row in section 2 (real lines, status), the totals in section 4, the new Table A rows in section 7, the Part row in R7 (11.6) and the real-lines line in R6. (6) Never touch `run.sh` or `sync.sh` through a zip.
 14. **Zip name and shape:** `Jarvis_partN.zip` where N is the Part number (underscore, NO letters). A README-only update reuses the last built Part number. Files at the top level with NO `Jarvis-main/` folder. `run.sh` and `sync.sh` pick up only `Jarvis_part*.zip`. A wrongly named zip once left `lang.py` out and the server crashed in a loop.
 15. **Keep this README simple:** a normal person must understand sections 1 to 9. One table (section 2) lists every Part with plain numbers only: never letters like 49a, never separate lists with other codes. New detail goes to the R sections, not to the top. Never paste chat text or other AI's answers into this file.
-16. **Language:** Hussain may speak or dictate in ANY language or script (Hindi, Marathi, Urdu, English...). Always answer him in Roman script (English letters), in simple Hinglish or simple English. Never Devanagari or any other script in replies.
-17. **Plan before, plan after:** BEFORE building a Part say its number, files and lines in a small table (and WITH or WITHOUT tests). AFTER building say the real lines, then the NEXT Part in the same way (number, files, lines). Part numbers are plain numbers from the table in section 2 only.
 16. **Language:** Hussain may speak or dictate in ANY language or script (Hindi, Marathi, Urdu, English...). Always answer him in Roman script (English letters), in simple Hinglish or simple English. Never Devanagari or any other script in replies.
 17. **Plan before, plan after:** BEFORE building a Part say its number, files and lines in a small table (and WITH or WITHOUT tests). AFTER building say the real lines, then the NEXT Part in the same way (number, files, lines). Part numbers are plain numbers from the table in section 2 only.
 
@@ -597,7 +607,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 | Repo after everything | - | - | about 5,400 lines, about 46 files |
 | 85 DONE | Home card next best move: Do, Why, Later and the source, fixed rules | lens.py*, app.py, index.html | ~130 | With | One card tells what matters now |
 | 86 DONE | Now / Next / Later strip under that card | lens.py, index.html | ~60 | With | The day in three columns |
-| 87 | Honest Mission view: three separate counts, Code built, Phone tested, Verified, read from Table A | progress.py, index.html | ~70 | With | Planned, see section 2 |
+| 87 DONE | Honest Mission view: three separate counts, Code built, Phone tested, Verified | progress.py, app.py, index.html | 39 | With | Honest count of what is really done |
 | 88 | Memory Atlas: memories, people and notes on one page, with delete. Nothing new is saved | memory.py, people.py, app.py, index.html | ~110 | With | Planned, see section 2 |
 | 89 | Search everywhere: sab jagah dhundo Bombay looks in notes, memories, people, lists, reminders (and later decis | search.py*, app.py, index.html | ~70 | With | Planned, see section 2 |
 | 90 | Source label on research answers: One report or N sources agree, counted from the real search result | web.py, index.html | ~45 | With | Planned, see section 2 |
@@ -627,10 +637,16 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 114 | Place and Bluetooth triggers (Java): a note shows when you reach a place or a chosen Bluetooth device connects | PlaceWatch.java, index.html, app.py | ~90 | Without | Planned, see section 2 |
 | 115 | Anti-Doomscroll (Java): one calm line after N minutes in the same app (you set N). Needs Usage Access. Never b | UsageWatch.java*, MainActivity.java, manifest, index.html | ~110 | Without | Planned, see section 2 |
 | 116 | App habit map (Java): YouTube ke baad usually Instagram, a count kept on the phone and shown as a note | UsageWatch.java, index.html | ~40 | Without | Planned, see section 2 |
+| 117 DONE | What's new answers: last update, kya kya add hua, from zip names and this README | whatsnew.py*, app.py | 81 | With | Chat can say what was last added and how it helps |
+| 118 | Assist mode guest session: nothing saved, End & erase, numbers masked | guest.py*, app.py, index.html | ~150 | With | Help another person without keeping their data |
+| 119 | Assist tools: photo/screenshot helper, Translate, Explain simply, Reliable info, Plan, Big text | assist.py*, see.py, app.py, index.html | ~150 | With | Family, elders and students get quick help |
+| 120 | Lens rail on Home: Project, Phone, Life chips | lens.py, index.html | ~60 | With | Filter the Home card by topic |
+| 121 | Glass skin: premium look for Home and Assist, Reduce effects switch | index.html | ~380 | With | Look only, after Table A |
+| 122 | Bottom bar with tabs as Parts are built | index.html | ~90 | With | One tap to Home, Talk, Assist, Timeline, Memory |
 Estimates are rough (plus or minus 25 percent). Real numbers go into this table after each Part.
 
 
-**Build order (next first):** 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116.
+**Build order (next first):** 87, 117, 88, 89, 90, 118, 119, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 120, 121, 122, 112, 113, 114, 115, 116.
 First of all comes Build APK and the phone tests of Table A (section 7). Weather is dropped.
 
 ### 11.6b Dual voice personality plan (added 15 Nov 2026; Parts 51, 52 and 53 built 16 Nov 2026; Tony hidden, provider changed to Sarvam)

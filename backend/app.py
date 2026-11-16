@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, autostart, backup, brief, calls, clock, handoff, habits, ledger, lens, lists, memory, modes, notes, people, phone, place, progress, remind, replyideas, screen, see, spend, sysinfo, tasks, tts, voiceengine, web
+import actions, autostart, backup, brief, calls, clock, handoff, habits, ledger, lens, lists, memory, modes, notes, people, phone, place, progress, remind, replyideas, screen, see, spend, sysinfo, tasks, tts, voiceengine, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -326,7 +326,7 @@ class H(BaseHTTPRequestHandler):
             c = db()
             bd = [{"in": k, "text": t, "on": on} for k, t, on in remind.birthdays(c, dev, n, 7)] if n else []  # Part 75: Daily Life Manager = reminders + ledger + birthdays + notes
             nts = [{"id": i, "text": x[:120]} for i, x in c.execute("SELECT id, text FROM notes WHERE device=? ORDER BY id DESC LIMIT 3", (dev,))]
-            return self.send(200, {"reminders": remind.today(c, dev, now), "ledger": led, "birthdays": bd, "notes": nts, "routines": tasks.scheduled(c, dev), "lens": lens.build(c, dev, now, data.get("phone"))})  # Part 85/86: next best move card and Now/Next/Later strip
+            return self.send(200, {"reminders": remind.today(c, dev, now), "ledger": led, "birthdays": bd, "notes": nts, "routines": tasks.scheduled(c, dev), "lens": lens.build(c, dev, now, data.get("phone")), "mission": progress.mission()})  # Part 85/86: next best move card and Now/Next/Later strip
         if self.path == "/snooze":  # Part 82: the 10 min button under a reminder
             try:
                 t2 = remind.snooze(db(), dev, int(data.get("id") or 0), int(data.get("mins") or 10), str(data.get("now", "")))
@@ -470,7 +470,9 @@ class H(BaseHTTPRequestHandler):
                 mem = ledger.handle(c, dev, msg, style == "hindi", ask, now)
             if mem is None:  # reminder: "kal 9 baje chai yaad dilana"
                 mem = remind.handle(c, dev, msg, style == "hindi", ask, now)
-            if mem is None:  # "app ka kaam kahan tak pahuncha": read from the README plan
+            if mem is None:  # Part 117: "last update", "kya kya add hua" (from the zips on this phone and the README, no AI)
+                mem = whatsnew.handle(msg, style == "hindi", sync_note())
+            if mem is None:  # "app ka kaam kahan tak pahuncha" / "mission": three honest counts read from the README (Part 87)
                 mem = progress.handle(msg, style == "hindi")
             action = None
             if mem is None:  # Part 30: "WhatsApp kholo" (only proposes; the app checks the switch and Stop)
