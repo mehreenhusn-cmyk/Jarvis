@@ -15,7 +15,7 @@
 | 4 | Total plan: files and lines | What the planned Parts add up to |
 | 5 | Ideas we will not build | And why |
 | 6 | Safety rules for the new Parts | Every new Part must keep these |
-| 7 | Phone tests (Table A) | 38 things to try on the phone |
+| 7 | Phone tests (Table A) | 41 things to try on the phone |
 | 8 | Rules for every Claude | How we work |
 | 9 | Known limits and fixes | What Jarvis cannot do, honest |
 | R1 to R7 | Reference | How it works, setup, cheat sheet, security, old status, build log, master plan |
@@ -39,10 +39,11 @@ This README is long (about 750 lines). Do NOT read it all. It wastes Hussain's c
 
 | File | Lines | What it does |
 |---|---|---|
-| `app.py` | 550 | Server: all routes (`/chat`, `/tts`, `/today`, `/see`, `/guest`...). The `/chat` handler chain is the heart |
+| `app.py` | 558 | Server: all routes (`/chat`, `/tts`, `/today`, `/see`, `/guest`...). The `/chat` handler chain is the heart |
 | `actions.py` | 595 | Phone commands: open app, call, alarm, timer, WhatsApp. Fixed grammar, never the AI |
 | `tasks.py` | 287 | Multi-step tasks and routines (Chrome kholo aur neeche scroll karo) |
 | `guest.py` | 56 | Guest session: RAM only, number masking (Part 118) |
+| `decisions.py`, `mood.py`, `debate.py` | 83, 68, 38 | Decision debt + unfinished business (93, 94), mood check-in (96), Debate Jarvis with a 10 minute badge (92). All your words only; briefing lines come from `brief.py` |
 | `assist.py`, `redteam.py` | 43, 42 | Assist words: translate, explain simply, make a plan, reliable info (Part 119). Red Team: 3 hard questions from your own numbers (Part 91) |
 | `voiceengine.py`, `tts.py` | 98, 72 | Voice choice (Sarvam Shubh default, Edge backup) and speech making |
 | `memory.py`, `people.py`, `notes.py`, `lists.py`, `habits.py`, `spend.py`, `ledger.py`, `remind.py` | 88, 82, 71, 93, 122, 109, 85, 240 | What Jarvis keeps: memory, people, notes, lists, habits, expenses, money, reminders. The list of every store is `memory.STORES` |
@@ -150,11 +151,11 @@ This README is long (about 750 lines). Do NOT read it all. It wastes Hussain's c
 | 89 | **Search everywhere**: `sab jagah dhundo Bombay` (also `sab jagah Bombay dhundo`, `search everywhere Bombay`) looks in notes, memories, people notes, lists and reminders and says where each hit came from. Matches the same words, not the meaning. Reads only, no AI. Home tools row has a `Search all` button that types the start. Later Parts add their store to `SOURCES` in `search.py` (decisions, capsules, dreams) | `search.py`*, `app.py`, `index.html` | 39 | No | Built, not phone tested |
 | 90 | **Source label** on research answers: one line under `Sources:` from the real list of sites. `One site only: one report, not confirmed.` or `N sites seen; the first was read in full, the others only as short snippets.` It never says `agree`, because seeing a site is not proof that it agrees (changed from the first plan) | `web.py`, `app.py` | 14 | No | Built, not phone tested |
 | 91 | **Red Team**: `red team: yeh phone kharidna hai`. The AI gets only your own Jarvis numbers (this month's spending, habits, memories), asks 3 hard questions and gives 2 counter-points. No invented numbers | `redteam.py`, `app.py`, `index.html` | ~60 | No | Built, not phone tested |
-| 92 | **Debate Jarvis**: `debate ruthless: ...`, `debate spiritual: ...` or `debate opposite: ...`. Jarvis argues that side with a visible badge for 10 minutes, then goes back to normal. Only when you call it | `debate.py*`, `app.py`, `index.html` | ~80 | No | Planned |
-| 93 | **Decision Debt**: `sochenge baad mein: phone lena hai` saves it; `pending decisions` lists them; the briefing shows up to 2 older than 3 days; `decision ho gaya 2` closes one | `decisions.py*`, `brief.py`, `backup.py`, `app.py` | ~90 | No | Planned |
-| 94 | **Unfinished business**: `adhoora: Faisal se baat` shows in the briefing now and then (at most once in 3 days) until `adhoora khatam 2` | `decisions.py`, `app.py` | ~50 | No | Planned |
+| 92 | **Debate Jarvis**: `debate ruthless: ...`, `debate spiritual: ...` or `debate opposite: ...`. Jarvis argues that side with a visible badge for 10 minutes, then goes back to normal. Only when you call it | `debate.py`, `app.py`, `index.html` | ~80 | No | Built, not phone tested |
+| 93 | **Decision Debt**: `sochenge baad mein: phone lena hai` saves it; `pending decisions` lists them; the briefing shows up to 2 older than 3 days; `decision ho gaya 2` closes one | `decisions.py`, `brief.py`, `backup.py`, `app.py` | ~90 | No | Built, not phone tested |
+| 94 | **Unfinished business**: `adhoora: Faisal se baat` shows in the briefing now and then (at most once in 3 days) until `adhoora khatam 2` | `decisions.py`, `app.py` | ~50 | No | Built, not phone tested |
 | 95 | **Last talked**: only people you pick. `ammi track karo`, then `ammi se baat hui`. The briefing says `Ammi se 7 din se baat nahi hui` (days changeable). No call log, no WhatsApp reading | `touch.py*`, `brief.py`, `backup.py`, `app.py` | ~90 | No | Planned |
-| 96 | **Mood check-in**, only when you say it: `mood 3` (1 to 5) or `aaj mood low`; `mood history`. After 4 low days one gentle line in the briefing, only if you switched `mood care on` | `mood.py*`, `brief.py`, `backup.py`, `app.py` | ~80 | No | Planned |
+| 96 | **Mood check-in**, only when you say it: `mood 3` (1 to 5) or `aaj mood low`; `mood history`. After 4 low days one gentle line in the briefing, only if you switched `mood care on` | `mood.py`, `brief.py`, `backup.py`, `app.py` | ~80 | No | Built, not phone tested |
 | 97 | **Time Capsule** (text): `6 mahine baad yeh sunana: ...`. On that day a card appears and Jarvis reads it after your tap | `capsule.py*`, `backup.py`, `app.py`, `index.html` | ~85 | No | Planned |
 | 98 | **Conditional capsule**: show a capsule only when a phrase you chose is typed to Jarvis, or when 30 days pass without talking to a person from Part 95 | `capsule.py`, `touch.py`, `app.py` | ~70 | No | Planned |
 | 99 | **Habit Contract**: `contract gym 7 din penalty 100`. Each day that closes without `aaj gym gaya` adds 100 to a penalty pot shown in `my habits`. The pot is only a number; no real money moves | `habits.py`, `app.py` | ~80 | No | Planned |
@@ -193,8 +194,8 @@ This README is long (about 750 lines). Do NOT read it all. It wastes Hussain's c
 
 1. GitHub > Actions > **Build APK** > Run. If it goes red, send a screenshot of the error. That is fixed before anything else.
 2. Install the APK on the phone.
-3. Try the 38 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
-4. Then say **"ok 92"** (next in order; 119 and 91 are built). Part 129 (look and tap) is optional and last (or 2 or 3 Part numbers together) (or any Part number from section 2). Claude builds one Part at a time.
+3. Try the 41 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
+4. Then say **"ok 95"** (next in order; 119, 91, 92, 93, 94 and 96 are built). Part 95 (last talked) is next. Part 129 (look and tap) is optional and last (or 2 or 3 Part numbers together) (or any Part number from section 2). Claude builds one Part at a time.
 
 Why this order: Parts 18 to 90 and Part 117 are built and none is phone tested. A new feature on top of an untested base only makes bugs harder to find. Parts 112 to 116 (Java) wait longest, because Java is not even compiled yet. This README-only update needs no new APK.
 
@@ -290,6 +291,9 @@ Nothing below is phone tested yet. Build APK first for the Java rows. Write PASS
 | 36 | Say `translate to hindi: where is the bus station`, then `explain simply: this is a prepaid mobile plan`, then `make a plan: learn typing in 2 weeks`, then `reliable info: capital of Australia` | Each gives a short answer. The last one adds `Sources:` and a one line site label. Inside `guest session start` all four also work and nothing is saved | No | not tested |
 | 37 | Tap the camera, send a photo of a bill or a medicine strip with the words `translate`, then type `photo: what is the total?`. Then say `big text` | The photo is read, the follow-up answer comes without a new photo, a medicine answer ends with `doctor ya pharmacist se confirm karo`. Big text makes the letters large and reads the last answer aloud; `big text off` goes back | No | not tested |
 | 38 | Type `red team: yeh phone kharidna hai` | 3 hard questions, 2 counter-points, last line `Decision tumhara hai`. Numbers only from your own spending, habits and memories; none invented. Not available inside a guest session | No | not tested |
+| 39 | Say `sochenge baad mein: phone lena hai`, `adhoora: Faisal se baat`, then `pending decisions`, `adhoora dikhao`, `decision ho gaya 1`, `adhoora khatam 1` | Each is saved or closed with its number. After 3 days the briefing shows the open decision and (once in 3 days) the unfinished item | No | not tested |
+| 40 | Say `mood 3`, `aaj mood low`, `mood history`, `mood care on` | The mood is noted (one per day), history lists the days, care on is confirmed. After 4 low days in a row with care on, the briefing has one gentle line | No | not tested |
+| 41 | Type `debate ruthless: main job chhod du`, then `debate stop` | A badge `Debate: ruthless` shows, the answer argues hard but without insults, `debate stop` removes the badge. After 10 minutes it ends by itself | No | not tested |
 
 ## 8. RULES FOR EVERY CLAUDE (always follow)
 1. Each part is under 350 lines of code. New files only when really needed. Update this README after every part.
@@ -669,11 +673,11 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 89 DONE | Search everywhere: same words in notes, memories, people, lists, reminders | search.py*, app.py, index.html | 39 | With | Find anything you told Jarvis in one go |
 | 90 DONE | Source label: how many sites an internet answer came from, said honestly | web.py, app.py | 14 | With | You see at once if an answer rests on one site |
 | 91 | Red Team: red team: yeh phone kharidna hai. The AI gets only your own Jarvis numbers (this month's spending, h | redteam.py*, app.py, index.html | ~60 | With | BUILT 17 Nov, not phone tested |
-| 92 | Debate Jarvis: debate ruthless: ..., debate spiritual: ... or debate opposite: .... Jarvis argues that side wi | debate.py*, app.py, index.html | ~80 | With | Planned, see section 2 |
-| 93 | Decision Debt: sochenge baad mein: phone lena hai saves it; pending decisions lists them; the briefing shows u | decisions.py*, brief.py, backup.py, app.py | ~90 | With | Planned, see section 2 |
-| 94 | Unfinished business: adhoora: Faisal se baat shows in the briefing now and then (at most once in 3 days) until | decisions.py, app.py | ~50 | With | Planned, see section 2 |
+| 92 DONE | Debate Jarvis: debate ruthless: ..., debate spiritual: ... or debate opposite: .... Jarvis argues that side wi | debate.py*, app.py, index.html | ~80 | With | BUILT 17 Nov, not phone tested |
+| 93 DONE | Decision Debt: sochenge baad mein: phone lena hai saves it; pending decisions lists them; the briefing shows u | decisions.py*, brief.py, backup.py, app.py | ~90 | With | BUILT 17 Nov, not phone tested |
+| 94 DONE | Unfinished business: adhoora: Faisal se baat shows in the briefing now and then (at most once in 3 days) until | decisions.py, app.py | ~50 | With | BUILT 17 Nov, not phone tested |
 | 95 | Last talked: only people you pick. ammi track karo, then ammi se baat hui. The briefing says Ammi se 7 din se | touch.py*, brief.py, backup.py, app.py | ~90 | With | Planned, see section 2 |
-| 96 | Mood check-in, only when you say it: mood 3 (1 to 5) or aaj mood low; mood history. After 4 low days one gentl | mood.py*, brief.py, backup.py, app.py | ~80 | With | Planned, see section 2 |
+| 96 DONE | Mood check-in, only when you say it: mood 3 (1 to 5) or aaj mood low; mood history. After 4 low days one gentl | mood.py*, brief.py, backup.py, app.py | ~80 | With | BUILT 17 Nov, not phone tested |
 | 97 | Time Capsule (text): 6 mahine baad yeh sunana: .... On that day a card appears and Jarvis reads it after your | capsule.py*, backup.py, app.py, index.html | ~85 | With | Planned, see section 2 |
 | 98 | Conditional capsule: show a capsule only when a phrase you chose is typed to Jarvis, or when 30 days pass with | capsule.py, touch.py, app.py | ~70 | With | Planned, see section 2 |
 | 99 | Habit Contract: contract gym 7 din penalty 100. Each day that closes without aaj gym gaya adds 100 to a penalt | habits.py, app.py | ~80 | With | Planned, see section 2 |

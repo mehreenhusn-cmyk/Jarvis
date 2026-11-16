@@ -3,7 +3,7 @@ Part 45: phone calendar ke events (sirf jab aap khud 'briefing' likhein), sujhav
 apne aap nahi, har type alag band ho sakta hai. Settings brief.json mein (restart ke baad bhi rehti hain)."""
 import json, os, re, time
 
-import habits, ledger, phone, remind, spend
+import decisions, habits, ledger, mood, phone, remind, spend
 
 TRIG = re.compile(r"briefing|brief karo|aaj ka plan|aaj kya hai|my plan today|good morning jarvis|ब्रीफिंग|सुप्रभात", re.I)
 FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brief.json")
@@ -138,6 +138,10 @@ def build(c, dev, now, hindi, auto=False, cal=None, ph=None):
     if hb:
         out.append(say("आदतें:", "Habits:"))
         out += hb
+    dl = decisions.lines(c, dev, now, hindi) + mood.line(c, dev, now, hindi)  # Parts 93, 94, 96
+    if dl:
+        out.append(say("खुली बातें:", "Still open:"))
+        out += dl
     if nt:
         out.append(say("ताज़ा नोट्स:", "Latest notes:"))
         out += [f"- {x}" for x in nt]

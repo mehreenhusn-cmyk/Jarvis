@@ -13,7 +13,8 @@ MAGIC = "JARVISBK1"
 T = {"memories": ("text", "text", ""), "notes": ("text,ts", "text", ""), "people": ("name,note", "name,note", ""),
      "reminders": ("text,due,rep", "text,due,rep", "AND sent=0"), "ledger": ("who,amount,dir,due,note,paid", "who,amount,dir,due,note,paid", "AND paid=0"),
      "routines": ("name,phrase,at,days", "name", ""), "messages": ("role,content,ts", "role,content,ts", ""),
-     "listitems": ("list,item", "list,item", ""), "habits": ("name,day", "name,day", ""), "spend": ("amount,what,cat,day", "amount,what,cat,day", "")}  # Part 83: shopping lists, habits and their check-ins; Part 84: spending
+     "listitems": ("list,item", "list,item", ""), "habits": ("name,day", "name,day", ""), "spend": ("amount,what,cat,day", "amount,what,cat,day", ""),
+     "decisions": ("kind,text,day,shown", "kind,text,day", "AND done=0"), "moods": ("day,score", "day", "")}  # Parts 93-96  # Part 83: shopping lists, habits and their check-ins; Part 84: spending
 NAME = re.compile(r"^Jarvis_backup_[0-9A-Za-z_\-]{1,40}\.jbk$")
 PHRASE = "DELETE ALL MY JARVIS DATA"
 ASK = re.compile(r"^\s*(?:delete|erase|wipe)\s+(?:everything|all my (?:jarvis )?data)\s*$", re.I)
@@ -158,7 +159,7 @@ def restore(c, dev, name, pw):
 
 
 def wipe(c, dev):
-    for t in ("memories", "notes", "people", "reminders", "ledger", "routines", "messages", "tasks", "listitems", "habits", "dayreport", "spend"):
+    for t in ("memories", "notes", "people", "reminders", "ledger", "routines", "messages", "tasks", "listitems", "habits", "dayreport", "spend", "decisions", "moods"):
         c.execute(f"DELETE FROM {t} WHERE device=?", (dev,))
     c.commit()
 
