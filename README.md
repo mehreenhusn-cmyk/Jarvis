@@ -49,6 +49,7 @@ This README is long (about 750 lines). Do NOT read it all. It wastes Hussain's c
 | `actions.py` | 595 | Phone commands: open app, call, alarm, timer, WhatsApp. Fixed grammar, never the AI |
 | `tasks.py` | 287 | Multi-step tasks and routines (Chrome kholo aur neeche scroll karo) |
 | `guest.py` | 56 | Guest session: RAM only, number masking (Part 118) |
+| `events.py` | 63 | Life Timeline: one list read from reminders, tasks, notes and expenses (Part 109) |
 | `ghost.py`, `money.py` | 76, 130 | Context Ghost: reason saved with an open command, asked once (Part 107). Income, savings, money picture and what-if (Parts 110, 111). The Recovery card (108) is `away()` in `brief.py` |
 | `drift.py` | 68 | Topic drift: word counts of your own chat, last 30 days vs the 30 before (Part 106) |
 | `dreams.py`, `signs.py` | 74, 53 | Dream journal with a one-dream AI reflection only on request (103); signs log that only counts what you type (104) |
@@ -78,7 +79,7 @@ This README is long (about 750 lines). Do NOT read it all. It wastes Hussain's c
 
 **How to use this table.** Parts are plain numbers in one sequence. No letters, no groups. A new idea gets the NEXT number at the bottom (now 132). When a Part is built, change its Status and fill in the real lines. A range like `1 to 5` means the old notes did not split them. `*` = new file. `-` = not recorded in the old notes (see R5, R6, R7).
 
-**Honest count (17 Nov 2026).** Code is written for Parts 1 to 90, Part 117, Part 118 and Parts 105 to 108, 110, 111 and 123 to 131 (about 7,600 lines; Part 67 was dropped, Part 81 has no record). Phone tested: Parts 1 to 17 only (12 to 14 partly). Table A (section 7): 0 of 35 tried. Java has never been fully compiled: GitHub Build APK runs #17 to #21 were green (Parts 48, 49, 64, 65 compile). Not compiled yet: `QuickSet` (alarm, timer, search, media), the WhatsApp part of `CallByName`, `Ears` interrupt, `PaymentGuard`, the deep phone check, the `Privacy` timeline.
+**Honest count (17 Nov 2026).** Code is written for Parts 1 to 90, Part 117, Part 118 and Parts 105 to 111 and 123 to 131 (about 7,600 lines; Part 67 was dropped, Part 81 has no record). Phone tested: Parts 1 to 17 only (12 to 14 partly). Table A (section 7): 0 of 35 tried. Java has never been fully compiled: GitHub Build APK runs #17 to #21 were green (Parts 48, 49, 64, 65 compile). Not compiled yet: `QuickSet` (alarm, timer, search, media), the WhatsApp part of `CallByName`, `Ears` interrupt, `PaymentGuard`, the deep phone check, the `Privacy` timeline.
 
 | Part | What it does | Files | Lines | New APK? | Status |
 |---|---|---|---|---|---|
@@ -179,7 +180,7 @@ This README is long (about 750 lines). Do NOT read it all. It wastes Hussain's c
 | 106 | **Topic drift**: `drift on`, then `drift dikhao` compares the words you used most last month and this month in your chat history. Word counts, no AI. Says so if there are not 2 months of history yet | `drift.py*`, `app.py` | 68 + 4 = 72 | No | Built, not phone tested. Last 30 days vs the 30 days before, needs 8 messages in each; shows most used, rising and fading words |
 | 107 | **Context Ghost**: `Chrome kholo research ke liye` keeps the reason for 7 days; opening the same app through Jarvis again asks once `Pehle wali research continue karni hai?`. Jarvis does not watch other app use | `ghost.py*`, `app.py`, `index.html` | 76 + 8 + 3 = 87 | No | Built, not phone tested. Works with `Chrome kholo research ke liye` and `open Chrome for research`; the reason is cut from the command, the open runs as usual, the question comes once (Yes / No buttons) the next time the same app is opened through Jarvis. Commands `ghost dikhao`, `ghost bhool jao` |
 | 108 | **Recovery card** `jab tu door tha`: 3 reminders, 1 phone issue, with Review and Dismiss | `brief.py`, `app.py`, `index.html` | 20 + 8 + 12 = 40 | No | Built, not phone tested. Card on Home after 6+ hours without a message from you: up to 3 reminders whose time passed and 1 phone problem (Phone Doctor words). Review opens the briefing; both buttons hide it (flag `away_seen`). Shows nothing when there is nothing to show |
-| 109 | **Life Timeline**: reminder done, routine run, note saved, expense noted, with filters | `events.py*`, `app.py`, `index.html` | ~145 | No | Planned |
+| 109 | **Life Timeline**: reminder done, routine run, note saved, expense noted, with filters | `events.py*`, `app.py`, `index.html` | 63 + 5 + 24 = 92 | No | Built, not phone tested. Reads what Jarvis already keeps (reminders that rang, tasks that ran, notes, expenses); nothing new is stored. New Timeline tab with filters All / Reminders / Tasks / Notes / Expenses and a More button; chat `timeline`, `timeline notes`. An expense has only a day, so it shows no time |
 | 110 | **Money picture**: `kamai 40000 mahina`, `bachat 5000`; `paisa picture` shows income, spending (Part 84) and what is left | `money.py*`, `brief.py`, `backup.py`, `memory.py`, `app.py` | 100 + 5 + 2 + 1 + 4 = 112 | No | Built, not phone tested. `kamai 40000 mahina`, `bachat 2 lakh` (savings in TOTAL; k, hazar, lakh work), `kamai hatao`, `bachat hatao`, `paisa picture`. Left = income minus this month's spending (Part 84) and a per-day number for the days left. One briefing line. Table `money` |
 | 111 | **What-if**: `agar job chhod du`. Plain arithmetic on the numbers from Parts 84 and 110 (months you can manage). It says clearly that it is a simple calculation, not advice | `money.py` | 30 | No | Built, not phone tested. `agar job chhod du`: total savings divided by the spending of the last 30 days = months. Says it leaves out un-noted bills and that it is rough if fewer than 7 days of spending are noted. No page change was needed |
 | 112 | **Note after a call** (Java): after a call ends Jarvis asks `kuch yaad rakhna hai?`. Needs the phone-state permission | `CallNote.java*`, `MainActivity.java`, manifest, `index.html` | ~80 | Yes | Planned |
@@ -208,7 +209,7 @@ This README is long (about 750 lines). Do NOT read it all. It wastes Hussain's c
 1. GitHub > Actions > **Build APK** > Run. If it goes red, send a screenshot of the error. That is fixed before anything else.
 2. Install the APK on the phone.
 3. Try the 51 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
-4. Then say **"ok 105"** (next in order; 103 and 104 are built, so the order is 105, 106, 107 and on). 97 to 104 and 130 are built but not yet tried on the phone.
+4. Then say the next Part number. Planned now: 112 to 116 (Java, new APK), 120, 121, 122, 129. 97 to 111 and 130 to 131 are built but not yet tried on the phone.
 
 Why this order: Parts 18 to 90 and Part 117 are built and none is phone tested. A new feature on top of an untested base only makes bugs harder to find. Parts 112 to 116 (Java) wait longest, because Java is not even compiled yet. This README-only update needs no new APK.
 
@@ -713,7 +714,7 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 106 DONE | Topic drift: drift on, then drift dikhao compares the words you used most last month and this month in your ch | drift.py*, app.py | 72 | With | BUILT 17 Nov, not phone tested |
 | 107 DONE | Context Ghost: Chrome kholo research ke liye keeps the reason for 7 days; opening the same app through Jarvis | ghost.py*, app.py, index.html | 87 | With | BUILT 17 Nov, not phone tested |
 | 108 DONE | Recovery card jab tu door tha: 3 reminders, 1 phone issue, with Review and Dismiss | brief.py, app.py, index.html | 40 | With | BUILT 17 Nov, not phone tested |
-| 109 | Life Timeline: reminder done, routine run, note saved, expense noted, with filters | events.py*, app.py, index.html | ~145 | With | Planned, see section 2 |
+| 109 DONE | Life Timeline: reminder done, routine run, note saved, expense noted, with filters | events.py*, app.py, index.html | 92 | With | BUILT 17 Nov, not phone tested |
 | 110 DONE | Money picture: kamai 40000 mahina, bachat 5000; paisa picture shows income, spending (Part 84) and what is lef | money.py*, brief.py, backup.py, memory.py, app.py | 112 | With | BUILT 17 Nov, not phone tested |
 | 111 DONE | What-if: agar job chhod du. Plain arithmetic on the numbers from Parts 84 and 110 (months you can manage). It | money.py | 30 | With | BUILT 17 Nov, not phone tested |
 | 112 | Note after a call (Java): after a call ends Jarvis asks kuch yaad rakhna hai?. Needs the phone-state permissio | CallNote.java*, MainActivity.java, manifest, index.html | ~80 | Without | Planned, see section 2 |

@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, assist, autostart, backup, brief, calls, capsule, clock, debate, decisions, dreams, drift, ghost, guest, handoff, habits, ledger, lens, lists, memory, modes, money, mood, notes, people, phone, place, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
+import actions, assist, autostart, backup, brief, calls, capsule, clock, debate, decisions, dreams, drift, events, ghost, guest, handoff, habits, ledger, lens, lists, memory, modes, money, mood, notes, people, phone, place, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -354,6 +354,8 @@ class H(BaseHTTPRequestHandler):
             bd = [{"in": k, "text": t, "on": on} for k, t, on in remind.birthdays(c, dev, n, 7)] if n else []  # Part 75: Daily Life Manager = reminders + ledger + birthdays + notes
             nts = [{"id": i, "text": x[:120]} for i, x in c.execute("SELECT id, text FROM notes WHERE device=? ORDER BY id DESC LIMIT 3", (dev,))]
             return self.send(200, {"reminders": remind.today(c, dev, now), "ledger": led, "birthdays": bd, "notes": nts, "routines": tasks.scheduled(c, dev), "lens": lens.build(c, dev, now, data.get("phone")), "mission": progress.mission(), "away": brief.away(c, dev, now, data.get("phone"), False)})  # Part 108: card after 6+ hours away  # Part 85/86: next best move card and Now/Next/Later strip
+        if self.path == "/timeline":  # Part 109: the Timeline tab (filter + "More" with `before`)
+            return self.send(200, {"items": events.items(db(), dev, str(data.get("now", "")), str(data.get("kind", "all")), data.get("before"), 30)})
         if self.path == "/away/dismiss":  # Part 108: Dismiss or Review hides the card until you are away again
             try:
                 memory.setflag(db(), dev, "away_seen", int(data.get("id", 0)))
@@ -550,6 +552,8 @@ class H(BaseHTTPRequestHandler):
                 mem = modes.bd_command(dev, msg, style == "hindi", now)
             if mem is None:  # Part 92: "debate stop" ends it; "debate ruthless: ..." switches it on and the AI answers below
                 mem = debate.command(dev, msg, style == "hindi")
+            if mem is None:  # Part 109: "timeline", "timeline notes" (reads what Jarvis already keeps, no AI)
+                mem = events.handle(c, dev, msg, style == "hindi", now)
             if mem is None:  # Part 107: "ghost dikhao", "ghost bhool jao"
                 mem = ghost.handle(c, dev, msg, style == "hindi")
             if mem is None:  # Part 83: "day report 9 baje" (the time at which the page offers a one-tap day summary)
