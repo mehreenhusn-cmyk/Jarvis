@@ -5,18 +5,26 @@
 cd "$(dirname "$0")" || exit 1
 DL="${JARVIS_DL:-$HOME/storage/downloads}"
 mkdir -p "$HOME/.jarvis_done"
+# Part 131: only ONE run.sh at a time (two of them fought over port 8787: "Address already in use" every 5 seconds)
+LOCK="$HOME/.jarvis_run.pid"
+if [ -f "$LOCK" ] && kill -0 "$(cat "$LOCK" 2>/dev/null)" 2>/dev/null && [ "$(cat "$LOCK")" != "$$" ]; then
+  echo "[run] Jarvis already running (run.sh PID $(cat "$LOCK")). Nothing to do. To restart: pkill -f run.sh; pkill -f backend/app.py; bash run.sh"
+  exit 0
+fi
+echo $$ > "$LOCK"
 termux-wake-lock 2>/dev/null
 PID=""
-start() { python backend/app.py & PID=$!; }
+# Part 131: before every start, stop any old server still holding the port
+start() { pkill -f "backend/app.py" 2>/dev/null; sleep 1; python backend/app.py & PID=$!; }
 stop() { [ -n "$PID" ] && kill "$PID" 2>/dev/null && wait "$PID" 2>/dev/null; PID=""; }
-trap 'stop; exit 0' INT TERM
+trap 'stop; rm -f "$LOCK"; exit 0' INT TERM EXIT
 start
 while :; do
   sleep 5
   if ls "$DL"/Jarvis_part*.zip >/dev/null 2>&1; then
     echo "[run] naya zip mila, update ho raha hai..."
     bash sync.sh once
-    mv "$DL"/Jarvis_part*.zip "$HOME/.jarvis_done/" 2>/dev/null && echo "[run] zip fail hua tha, dobara download karo"
+    mv "$DL"/Jarvis_part*.zip "$HOME/.jarvis_done/" 2>/dev/null || echo "[run] zip fail hua tha, dobara download karo"
     stop; start; echo "[run] server naya chalu ho gaya"
   elif ! kill -0 "$PID" 2>/dev/null; then
     echo "[run] server band mila, dobara chalu"; start

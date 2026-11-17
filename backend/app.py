@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, assist, autostart, backup, brief, calls, capsule, clock, debate, decisions, dreams, guest, handoff, habits, ledger, lens, lists, memory, modes, mood, notes, people, phone, place, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
+import actions, assist, autostart, backup, brief, calls, capsule, clock, debate, decisions, dreams, drift, guest, handoff, habits, ledger, lens, lists, memory, modes, mood, notes, people, phone, place, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -517,6 +517,10 @@ class H(BaseHTTPRequestHandler):
                 mem = assist.handle(msg, style == "hindi", ask, now)
             if mem is None:  # Part 91: "red team: yeh phone kharidna hai" (the AI gets only your own Jarvis numbers)
                 mem = redteam.handle(c, dev, msg, style == "hindi", ask, now)
+            if mem is None:  # Part 105: "sach sawal on", "sach sawal" (one hard question per 14 days; the AI gets only counts and the reply lists them)
+                mem = redteam.honest(c, dev, msg, style == "hindi", ask, now)
+            if mem is None:  # Part 106: "drift on", "drift dikhao" (word counts of your own chat, no AI)
+                mem = drift.handle(c, dev, msg, style == "hindi")
             if mem is None:  # Parts 93 + 94: "sochenge baad mein: ...", "adhoora: ..." (your words only, never sent to the AI)
                 mem = decisions.handle(c, dev, msg, style == "hindi", now)
             if mem is None:  # Part 96: "mood 3", "mood history", "mood care on" (only when you say it)
@@ -592,7 +596,12 @@ if __name__ == "__main__":
     autostart.ensure(os.path.dirname(HERE))
     autostart.refresh_scripts(os.path.dirname(HERE))
     autostart.move_strays(os.path.dirname(HERE))  # Part 119: one-time cleanup of files that older zips left in the repo root
+    try:
+        srv = ThreadingHTTPServer((host, port), H)  # Part 131: bind FIRST, so a busy port stops here with one clear line (no traceback, no new pairing code every 5 seconds)
+    except OSError as e:
+        print(f"[app] port {port} is busy ({e.strerror}): an old Jarvis is still running. run.sh stops it by itself; by hand: pkill -f backend/app.py", flush=True)
+        raise SystemExit(98)
     new_code()
     tasks.restart(db())  # Part 41 restart rule: a task that was RUNNING before this start is FAILED now
     print(f"Jarvis chal raha hai: http://{host}:{port}  provider={','.join(names())}", flush=True)
-    ThreadingHTTPServer((host, port), H).serve_forever()
+    srv.serve_forever()

@@ -10,6 +10,17 @@ UPD = re.compile(r"^\s*(?:sudhaar|sudhar|update memory|सुधार)\s*#?(\d+
 
 def init(c):
     c.execute("CREATE TABLE IF NOT EXISTS memories(id INTEGER PRIMARY KEY, device INT, text TEXT, ts REAL)")
+    c.execute("CREATE TABLE IF NOT EXISTS flags(device INT, name TEXT, val INT, PRIMARY KEY(device, name))")  # Parts 105 + 106: small on/off switches and one number each
+
+
+def flag(c, dev, name):
+    r = c.execute("SELECT val FROM flags WHERE device=? AND name=?", (dev, name)).fetchone()
+    return r[0] if r else 0
+
+
+def setflag(c, dev, name, val):
+    c.execute("INSERT OR REPLACE INTO flags(device, name, val) VALUES(?,?,?)", (dev, name, int(val)))
+    c.commit()
 
 
 def rows(c, dev):
@@ -80,7 +91,7 @@ STORES = [("memories", "Memories", "", "Remove button"), ("people", "People note
           ("decisions", "Decisions and unfinished", " AND done=0", "say: decision ho gaya N / adhoora khatam N"), ("moods", "Mood check-ins", " AND day!='care'", "delete everything"),
           ("touch", "Last talked people", "", "say: ammi track band karo"), ("contracts", "Habit contracts", "", "say: contract hatao gym"), ("capsules", "Time capsules", "", "say: capsule hatao N"), ("dreams", "Dream journal", "", "say: sapna hatao N"), ("signs", "Signs log", "", "say: sign hatao <text>"),
           ("ledger", "Money ledger", "", "delete everything"), ("reminders", "Reminders", "", "delete everything"),
-          ("routines", "Routines", "", "delete everything"), ("tasks", "Task history", "", "delete everything"), ("dayreport", "Day report time", "", "delete everything")]
+          ("routines", "Routines", "", "delete everything"), ("flags", "Switches (honest question, drift)", " AND val=1 AND name IN ('honest','drift')", "say: sach sawal off / drift off"), ("tasks", "Task history", "", "delete everything"), ("dayreport", "Day report time", "", "delete everything")]
 
 
 def atlas(c, dev):
