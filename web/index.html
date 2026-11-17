@@ -210,13 +210,20 @@ body.glass #home .sm{color:#a9b8e0}
 }
 /* Settings > Look card */
 #lookc label{display:flex;align-items:center;gap:10px;cursor:pointer}#lookc input{width:auto}
+/* Part 122: bottom bar (the old top tabs moved down; it hides while you type so the keyboard has room) */
+#tabs{order:99;gap:2px;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);border-bottom:0}
+#tabs button{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;padding:6px 2px;font-size:11px;line-height:1.2}
+#tabs button span{font-size:19px;line-height:1}
+body #tabs button.g:not(.on){background:transparent}
+body.kb #tabs{display:none}
+#tl{flex:1;min-height:0;overflow-y:auto}
 </style>
 </head><body>
 <header><div class="logo">J</div><div><b>JARVIS</b><span id="st">...</span></div><span class="sp"></span><button id="vbtn" title="Voice">🔊</button><button id="gear" title="Settings">⚙</button></header>
 <div id="tbar" hidden><span><b id="tn"></b><br><small>No voice, short replies, reminders as text.</small></span><button type="button" id="tend">End</button></div>
 <div id="dbar" hidden><span><b>Debate: <i id="dn"></i></b> · 10 minutes<br><small>Jarvis is arguing a side on purpose. It is not advice.</small></span><button type="button" id="dend">Stop</button></div>
 <div id="gbar" hidden><span><b>Guest: temporary</b> · Memory saved: No · Session: Private<br><small>Text still goes to the AI provider. Nothing is kept here.</small></span><button type="button" id="gend">End &amp; erase</button></div>
-<div id="tabs" hidden><button type="button" class="g on" data-v="chat">Chat</button><button type="button" class="g" data-v="home">Home</button><button type="button" class="g" data-v="tl">Timeline</button></div>
+<div id="tabs" hidden></div>
 <div id="pair"><h2>Welcome, sir</h2><p>Pair this phone with your Jarvis server:</p><p style="text-align:left;font-size:15px">1. Open the <b>Termux</b> app.<br>2. Find the line <b>PAIRING CODE: 123456</b> (the last one).<br>3. Type those 6 numbers below.<br>The code works for 10 minutes. No code, or too old? Tap the small button, then look in Termux again.</p>
 <input id="code" inputmode="numeric" maxlength="6" placeholder="••••••"><p><button id="go">Pair this phone</button> <button id="nc" class="g">Show code in Termux</button></p><p id="pe" class="bad"></p></div>
 <div id="home" hidden><div id="hg"></div><div id="hq2">What would you like to do today?</div><div id="hd"></div><div id="wave"></div>
@@ -927,10 +934,19 @@ async function brief(){
   try{const {s,d}=await api('/brief',{now:nowS(),style:sty(),auto:true,phone:pinfo()});if(s==200&&d.text){add('bot',d.text);speak(d.text,false,'BRIEFING');}}catch(e){}
 }
 // Part 48: Home dashboard (neon look from the reference pictures). Everything shown here is real data from the server or the phone; nothing is made up.
-function go(v){view=v;const t=!!token;document.body.classList.toggle('hm',v=='home'||v=='chat');$('chat').hidden=!t||v!='chat';$('set').hidden=!t||v!='set';$('home').hidden=!t||v!='home';$('tl').hidden=!t||v!='tl';$('tabs').hidden=!t;
-  $('tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
+function go(v,k){view=v;k=k||v;const t=!!token;document.body.classList.toggle('hm',v=='home'||v=='chat');$('chat').hidden=!t||v!='chat';$('set').hidden=!t||v!='set';$('home').hidden=!t||v!='home';$('tl').hidden=!t||v!='tl';$('tabs').hidden=!t;
+  $('tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v==k));
   if(t&&v=='home')homeLoad(true);if(t&&v=='tl')tlLoad('all');if(t&&v=='set'){nsCard(true);keys();mem();led();ppl();atl();dash();sysCard();bgt();voiceLoad();bkLoad();}}
-$('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>go(b.dataset.v));
+// Part 122: bottom bar. A tab is added only when the page part behind it exists (Home 48, Talk, Assist 119, Timeline 109, Memory 88, Settings).
+const BB=[['home','🏠','Home','home'],['chat','💬','Talk','chat'],['as','🧰','Assist','htl'],['tl','🕘','Timeline','tl'],['mem','🗂️','Memory','al'],['set','⚙️','Settings','set']];
+BB.forEach(([k,i,n,need])=>{if(!$(need))return;const b=el('button','g');b.type='button';b.dataset.v=k;b.append(el('span','',i),n);b.onclick=()=>bb(k);$('tabs').appendChild(b);});
+function bb(k){
+  if(k=='as'){go('home','as');setTimeout(()=>{const h=$('htl').previousElementSibling;if(h)h.scrollIntoView();},250);return;}  // Assist = the AI tools tiles on Home
+  if(k=='mem'||k=='set'){go('set',k);const d=[...document.querySelectorAll('#set details')];d.forEach((x,j)=>x.open=k=='mem'?x.querySelector('summary').textContent.includes('Your Data'):j==0);
+    if(k=='mem'){const m=d.find(x=>x.open);if(m)m.scrollIntoView();}else $('set').scrollTop=0;return;}  // Memory = Settings > Your Data opened
+  go(k);}
+document.addEventListener('focusin',e=>{if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))document.body.classList.add('kb');});
+document.addEventListener('focusout',()=>document.body.classList.remove('kb'));
 const greet=()=>{const h=new Date().getHours();return h<5?'Good night, sir':h<12?'Good morning, sir':h<17?'Good afternoon, sir':'Good evening, sir';};
 let tj=null,homeT=0;
 for(let i=0;i<30;i++){const x=document.createElement('i');x.style.animationDelay=(i%7)*0.12+'s';x.style.height=(5+Math.abs(Math.sin(i/2.2))*17)+'px';$('wave').appendChild(x);}
