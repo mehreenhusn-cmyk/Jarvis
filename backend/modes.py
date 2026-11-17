@@ -94,3 +94,25 @@ def bd_due(dev, now):
 def bd_answer(dev, yes):
     if dev in BD and yes:
         BD[dev]["yes"] += 1
+
+
+# ---- Part 100: Timed modes. `meeting mode 45 minute`, `namaz mode 20 minute`, `sleep mode`, `focus 45 minute`. Same as Quiet (no voice, one short sentence) for that time;
+# reminders come as text only; it ends by itself (the page keeps the clock). `normal mode` ends it sooner.
+TIMED = re.compile(r"^\s*(meeting|namaz|sleep|focus)(?:\s+(?:mode|मोड))?(?:\s+(\d{1,3})\s*(?:minute|minutes|min|mins|मिनट))?\s*$", re.I)
+DEFAULT = {"meeting": 45, "namaz": 20, "sleep": 480, "focus": None}
+
+
+def timed(msg, hindi):
+    """(reply, {"name", "min"}) or None. `focus` needs minutes (plain `focus mode` is the old Part 58 setting)."""
+    g = TIMED.match(msg or "")
+    if not g:
+        return None
+    name = g.group(1).lower()
+    mins = int(g.group(2)) if g.group(2) else DEFAULT[name]
+    if not mins:
+        return None
+    if not 5 <= mins <= 600:
+        return ("सर, 5 से 600 मिनट रखिए।" if hindi else "Sir, choose 5 to 600 minutes."), None
+    n = name.title()
+    return (f"{n} मोड {mins} मिनट के लिए। आवाज़ बंद, जवाब छोटे, रिमाइंडर सिर्फ़ लिखकर। अपने आप खत्म होगा; जल्दी खत्म करने के लिए: normal mode" if hindi else
+            f"{n} mode for {mins} minutes. No voice, short replies, reminders as text. It ends by itself; to end sooner say: normal mode"), {"name": name, "min": mins}

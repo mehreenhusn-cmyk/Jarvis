@@ -241,11 +241,15 @@ def device_cmd(msg):
         return None
     w = _words(m)
     s = set(w)
-    if not w or len(w) > 7 or s & QW:
+    if not w or len(w) > 8 or s & QW:
         return None
     OPENON = {"open", "ओपन", "ओपेन", "kholo", "khol", "खोलो", "खोल"}  # Part 59: "open torch" / "ओपन टॉर्च" means switch it on
-    if s & TORCHW and s <= TORCHW | ONW | OFFW | GO | FILL | OPENW and bool(s & (ONW | OPENON)) != bool(s & OFFW) and s & (TORCHW - {"light", "लाइट"}):
-        on = not (s & OFFW)
+    NOISE = set("main mai मैं मै yaar yar यार abhi अभी bhi भी ye यह wo वो".split())  # Part 130: filler the mic adds
+    extra = [x for x in w if x not in TORCHW | ONW | OFFW | GO | FILL | OPENW | NOISE]  # a misheard "Jarvis" or one stray word must not lose the command
+    strong = TORCHW - {"light", "लाइट", "flash", "फ्लैश"}
+    dirs = [x for x in w if x in ONW or x in OPENON or x in OFFW]
+    if dirs and ((s & (TORCHW - {"light", "लाइट"}) and not extra) or (s & strong and len(extra) == 1)):
+        on = dirs[-1] not in OFFW  # "abhi bhi chalu hai switch off kar": the LAST direction word wins
         return {"type": "torch", "on": on}, ("Switching the flashlight on, sir." if on else "Switching the flashlight off, sir."), ("टॉर्च चालू कर रहा हूँ सर।" if on else "टॉर्च बंद कर रहा हूँ सर।")
     if s & VOLW and s <= VOLW | VUP | VDOWN | GO | FILL | OPENW and bool(s & VUP) != bool(s & VDOWN):
         d = "up" if s & VUP else "down"

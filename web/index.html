@@ -88,10 +88,12 @@ body.hm .sh button{background:rgba(53,120,255,.14);border:1px solid var(--line);
 #vstat{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 14px;font-size:13px;color:var(--mut);background:var(--sf);border-bottom:1px solid var(--line)}#vstat select{padding:4px 8px;font-size:13px;border-radius:10px}
 body.hm #vstat{background:rgba(7,11,26,.92);color:#97a6cc;border-color:rgba(96,140,255,.22)}body.hm #vstat select{background:rgba(255,255,255,.07);color:#eaf0ff;border-color:rgba(96,140,255,.22)}
 #gbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;font-size:13px;background:#3b2a05;color:#ffd98a;border-bottom:1px solid #7a5a12}#gbar[hidden]{display:none}
-#dbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;font-size:13px;background:#0b2a3b;color:#9fe3ff;border-bottom:1px solid #1d6a8a}#dbar[hidden]{display:none}#gbar small{opacity:.85}#gend{padding:8px 12px;border-radius:10px;background:#ffd98a;color:#241800;font-weight:700;white-space:nowrap}
+#dbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;font-size:13px;background:#0b2a3b;color:#9fe3ff;border-bottom:1px solid #1d6a8a}#dbar[hidden]{display:none}
+#tbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;font-size:13px;background:#2a0b3b;color:#e3b8ff;border-bottom:1px solid #6a1d8a}#tbar[hidden]{display:none}#gbar small{opacity:.85}#gend{padding:8px 12px;border-radius:10px;background:#ffd98a;color:#241800;font-weight:700;white-space:nowrap}
 body.big .m{font-size:24px!important;line-height:1.5!important}
 </style></head><body>
 <header><div class="logo">J</div><div><b>JARVIS</b><span id="st">...</span></div><span class="sp"></span><button id="vbtn" title="Voice">🔊</button><button id="gear" title="Settings">⚙</button></header>
+<div id="tbar" hidden><span><b id="tn"></b><br><small>No voice, short replies, reminders as text.</small></span><button type="button" id="tend">End</button></div>
 <div id="dbar" hidden><span><b>Debate: <i id="dn"></i></b> · 10 minutes<br><small>Jarvis is arguing a side on purpose. It is not advice.</small></span><button type="button" id="dend">Stop</button></div>
 <div id="gbar" hidden><span><b>Guest: temporary</b> · Memory saved: No · Session: Private<br><small>Text still goes to the AI provider. Nothing is kept here.</small></span><button type="button" id="gend">End &amp; erase</button></div>
 <div id="tabs" hidden><button type="button" class="g on" data-v="chat">Chat</button><button type="button" class="g" data-v="home">Home</button></div>
@@ -140,6 +142,7 @@ async function api(path,body){
 let lastDay='';  // Part 36: day of the last message shown, so a date line appears when the day changes
 const p2=n=>String(n).padStart(2,'0');
 function dayName(d){const t=new Date(),y=new Date(Date.now()-864e5),k=x=>x.getFullYear()+'-'+x.getMonth()+'-'+x.getDate();return k(d)==k(t)?'Today':k(d)==k(y)?'Yesterday':d.getDate()+' '+d.toLocaleString('en',{month:'short'})+(d.getFullYear()!=t.getFullYear()?' '+d.getFullYear():'');}
+let TIMED=null,TT=0;  // Part 100: the running timed mode {name,end}
 let guestOn=false,lastPic=null;  // Part 119: lastPic = the last photo, kept in this page only (never saved), for follow-up questions
 let dTimer=0;function debateBar(s){clearTimeout(dTimer);$('dbar').hidden=!s;$('dn').textContent=s||'';if(s)dTimer=setTimeout(()=>debateBar(''),600000);}  // Part 92: badge for 10 minutes
 function guestBar(on){guestOn=!!on;$('gbar').hidden=!on;}
@@ -208,7 +211,7 @@ $('f').onsubmit=async e=>{
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
     if(s==200&&'debate' in d)debateBar(d.debate);if(/^\s*debate\s+(?:stop|khatam|band|off)\s*$/i.test(t))debateBar('');
     if(s==200&&'guest' in d){const was=guestOn;guestBar(d.guest);if(!d.guest&&was)guestErase(d.reply);}
-    if(s==200){w.textContent=d.reply;w.title='via '+d.via;if(d.mode)setMode(d.mode);const said=d.action?await doAct(d.action,w):d.reply.split('\n\nSources:')[0].split('\n\nस्रोत:')[0];if(MODE!='quiet')speak(said,vm,d.action?'TASK_CONFIRMATION':'');if(d.remember)askSave(w,d.remember);extras(w,t);sp=MODE!='quiet'&&(vm||$('say').checked);}else{w.className='m err';w.textContent=d.error||'error';}
+    if(s==200){w.textContent=d.reply;w.title='via '+d.via;if(d.mode)setMode(d.mode);if(d.timed)startTimed(d.timed);const said=d.action?await doAct(d.action,w):d.reply.split('\n\nSources:')[0].split('\n\nस्रोत:')[0];if(MODE!='quiet')speak(said,vm,d.action?'TASK_CONFIRMATION':'');if(d.remember)askSave(w,d.remember);extras(w,t);sp=MODE!='quiet'&&(vm||$('say').checked);}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}finally{busy=false;if((wakeOn||convOn)&&!sp)heardBack();}
 };
 let viaMic=false,wakeOn=false,appListening=false,cmdNext=false,convOn=false,convMiss=0,convTurns=0;
@@ -364,7 +367,8 @@ const LT={gu:['ઠીક છે સર, {x} ખોલી રહ્યો છુ�
 const lt=(a,i,x)=>(LT[a.lang]||[])[i]?.replace('{x}',x);
 async function speak(t,force,intent,profile){
   lastSay=t||'';
-  if(!force&&(!$('say').checked||MODE=='quiet'))return;if(wakeOn&&appEars())JarvisApp.stopListen();const v=$('voice').value||'neural:hi-IN-MadhurNeural';
+  if(!force&&(!$('say').checked||MODE=='quiet'))return;if(TIMED&&MODE=='quiet'&&intent=='REMINDER')return;  // Part 100: in a timed mode reminders are text only
+ if(wakeOn&&appEars())JarvisApp.stopListen();const v=$('voice').value||'neural:hi-IN-MadhurNeural';
   const sv=scriptVoice(t);if(sv){try{await neural(t,sv);return;}catch(e){add('err','Voice for this language failed: '+e.message+'. Trying the phone voice.');}}
   const eng=localStorage.getItem('jeng')!='0';  // Part 52: Tony / JARVIS voices are ON unless you switch to the classic voice
   if(eng||v.startsWith('neural:')){
@@ -467,6 +471,7 @@ function askYes(w,a){
 }
 // Part 34: what really happened after a screen step. Words come from the Java result, never from guessing.
 const ACTERR={no_torch:['सर, इस फ़ोन में टॉर्च नहीं मिली।','Sir, I found no flashlight on this phone.'],
+  torch_stuck:['सर, मैंने कोशिश की पर टॉर्च वैसी ही रही। नोटिफिकेशन टाइल से एक बार देख लीजिए।','Sir, I tried but the flashlight did not change. Please check the quick-settings tile.'],
   torch_busy:['सर, Android ने टॉर्च नहीं जलाने दी। शायद कोई और ऐप कैमरा इस्तेमाल कर रहा है।','Sir, Android did not let me switch the flashlight. Maybe another app is using the camera.'],
   no_page:['सर, इस फ़ोन में वह सेटिंग पेज नहीं मिला।','Sir, this phone has no such settings page.'],
   locked:['सर, Jarvis लॉक है। पहले अनलॉक कीजिए।','Sir, Jarvis is locked. Unlock it first.'],
@@ -786,7 +791,7 @@ $('gend').onclick=()=>{$('msg').value='end and erase';$('f').requestSubmit();};
 function ask(t){go('chat');$('msg').value=t;$('f').requestSubmit();}
 function fill(t){go('chat');$('msg').value=t;$('msg').focus();}  // the tool only types the start; you finish the sentence and send
 $('orb').onclick=()=>{go('chat');$('mic').click();};
-[['📝','Summarize',()=>fill('Summarize: ')],['🌐','Translate',()=>fill('Translate to Hindi: ')],['✍️','Write',()=>fill('Write a message: ')],['💡','Explain',()=>fill('Explain simply: ')],['🗓','Plan my day',()=>ask('briefing')],['📤','Handoff',()=>ask('handoff')],['🔎','Search all',()=>fill('sab jagah dhundo ')],['🧑‍🤝‍🧑','Guest session',()=>ask('guest session start')],['🔠','Big text',()=>ask('big text')],['🗺','Make a plan',()=>fill('Make a plan: ')],['✅','Reliable info',()=>fill('Reliable info: ')],['🛡','Red team',()=>fill('Red team: ')],['⚔','Debate',()=>fill('Debate ruthless: ')],['⏳','Decisions',()=>ask('pending decisions')],['🧩','Unfinished',()=>ask('adhoora dikhao')],['🙂','Mood',()=>fill('Mood ')],['📦','Time capsule',()=>fill('1 saal baad yeh sunana: ')],['🧑‍💻','Body double',()=>ask('body double 45 minute')]]
+[['📝','Summarize',()=>fill('Summarize: ')],['🌐','Translate',()=>fill('Translate to Hindi: ')],['✍️','Write',()=>fill('Write a message: ')],['💡','Explain',()=>fill('Explain simply: ')],['🗓','Plan my day',()=>ask('briefing')],['📤','Handoff',()=>ask('handoff')],['🔎','Search all',()=>fill('sab jagah dhundo ')],['🧑‍🤝‍🧑','Guest session',()=>ask('guest session start')],['🔠','Big text',()=>ask('big text')],['🗺','Make a plan',()=>fill('Make a plan: ')],['✅','Reliable info',()=>fill('Reliable info: ')],['🛡','Red team',()=>fill('Red team: ')],['⚔','Debate',()=>fill('Debate ruthless: ')],['⏳','Decisions',()=>ask('pending decisions')],['🧩','Unfinished',()=>ask('adhoora dikhao')],['🙂','Mood',()=>fill('Mood ')],['📦','Time capsule',()=>fill('1 saal baad yeh sunana: ')],['🧑‍💻','Body double',()=>ask('body double 45 minute')],['⏱','Meeting mode',()=>fill('meeting mode 45 minute')]]
   .forEach(([i,n,f])=>{const b=el('button',null);b.type='button';b.append(el('span','',i),n);b.onclick=f;$('htl').appendChild(b);});
 [['☀️','Briefing','Your day in one look','briefing'],['⏰','My reminders','Today and later','my reminders'],['🔁','Routines','Saved task sentences','my routines'],['💰','Money ledger','Who owes what','show ledger'],['🛒','Shopping list','Small things by voice','list dikhao'],['💸','Spending','What I spent','kharcha'],['💪','Habits','Streaks and check-ins','my habits'],['📊','Day report','Today in numbers','aaj ka summary'],['🖥','Explain screen','Read the app on screen','explain this screen'],['📋','Clipboard','Use what you just copied','__clip'],['🔔','Notifications','Summary of the apps you chose','__ns'],['📱','Lost phone help','Steps if the phone is gone','phone kho gaya']]
   .forEach(([i,n,sub,q])=>{const b=el('button','sc');b.type='button';const w=el('span');w.append(n,el('small','',sub));b.append(el('span','',i),w,el('b','','›'));b.onclick=()=>q=='__clip'?clip():q=='__ns'?nsum():ask(q);$('hsc').appendChild(b);});
@@ -863,13 +868,18 @@ setInterval(()=>nsCard(false),3000);
 // Part 58: voice modes and the status line. The line is worked out from what is really happening (mic, server, sound), so it cannot get stuck.
 let MODE=localStorage.getItem('jmode')||'normal',busy=false;
 if(!['normal','research','quiet','focus'].includes(MODE))MODE='normal';
-function setMode(m){if(!['normal','research','quiet','focus'].includes(m))return;MODE=m;localStorage.setItem('jmode',m);$('mode').value=m;if(m=='quiet'){if(aud)aud.pause();if(window.speechSynthesis)speechSynthesis.cancel();}vstat();}
+function showTimed(){const e=new Date(TIMED.end);$('tn').textContent=TIMED.name+' mode · until '+('0'+e.getHours()).slice(-2)+':'+('0'+e.getMinutes()).slice(-2);$('tbar').hidden=false;}
+function startTimed(t){clearTimeout(TT);TIMED={name:t.name,end:Date.now()+t.min*60000};try{localStorage.setItem('jtimed',JSON.stringify(TIMED));}catch(e){}showTimed();TT=setTimeout(()=>endTimed(true),t.min*60000);}  // Part 100
+function endTimed(auto){clearTimeout(TT);const was=TIMED;TIMED=null;try{localStorage.removeItem('jtimed');}catch(e){}$('tbar').hidden=true;if(was){setMode('normal');if(auto===true)add('bot','⏱ '+was.name+' mode is over. Back to normal.');}}
+function setMode(m){if(!['normal','research','quiet','focus'].includes(m))return;if(m!='quiet'&&TIMED){TIMED=null;clearTimeout(TT);try{localStorage.removeItem('jtimed');}catch(e){}$('tbar').hidden=true;}MODE=m;localStorage.setItem('jmode',m);$('mode').value=m;if(m=='quiet'){if(aud)aud.pause();if(window.speechSynthesis)speechSynthesis.cancel();}vstat();}
 function vstat(){
   const talking=(aud&&!aud.paused&&!aud.ended)||(window.speechSynthesis&&speechSynthesis.speaking);
   const st=busy?'Thinking...':talking?'Jarvis is speaking':(appListening||rec)?'Listening':wakeOn?'Waiting for "Hey Jarvis"':'Idle';
   const e=$('vs');if(!e)return;e.textContent=st+(MODE!='normal'?' · '+MODE[0].toUpperCase()+MODE.slice(1)+' mode':'');e.className=busy||talking?'warn':(appListening||rec)?'bad':'';
 }
-$('mode').value=MODE;$('mode').onchange=()=>setMode($('mode').value);setInterval(vstat,400);
+$('mode').value=MODE;$('mode').onchange=()=>setMode($('mode').value);$('tend').onclick=()=>endTimed();
+try{const j=JSON.parse(localStorage.getItem('jtimed')||'null');if(j&&j.end>Date.now()){TIMED=j;setMode('quiet');showTimed();TT=setTimeout(()=>endTimed(true),j.end-Date.now());}else if(j){localStorage.removeItem('jtimed');if(MODE=='quiet')setMode('normal');}}catch(e){}
+setInterval(vstat,400);
 // Part 39: background listening test card (Settings). Numbers only: how often "Jarvis" was heard, with the screen off, with the app closed.
 let bgMsg='';
 const hm=t=>t?new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'-';

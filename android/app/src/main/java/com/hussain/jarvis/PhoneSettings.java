@@ -48,15 +48,30 @@ final class PhoneSettings {
         catch (Exception e) { return r(false, "no_page"); }  // this phone has no such page
     }
 
+    private static volatile int torchNow = -1;  // Part 130: -1 = Android has not told us yet, 0 = off, 1 = on. Read from Android's own callback, never guessed.
+    private static boolean torchWatched = false;
+
+    private static synchronized void watchTorch(CameraManager cm) {
+        if (torchWatched) return;
+        torchWatched = true;
+        cm.registerTorchCallback(new CameraManager.TorchCallback() {
+            @Override public void onTorchModeChanged(String id, boolean enabled) { torchNow = enabled ? 1 : 0; }
+        }, new android.os.Handler(android.os.Looper.getMainLooper()));
+    }
+
     static JSONObject torch(Context c, boolean on) {
         try {
             CameraManager cm = c.getSystemService(CameraManager.class);
+            watchTorch(cm);
             for (String id : cm.getCameraIdList()) {
                 CameraCharacteristics ch = cm.getCameraCharacteristics(id);
                 Boolean flash = ch.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
                 Integer face = ch.get(CameraCharacteristics.LENS_FACING);
                 if (Boolean.TRUE.equals(flash) && face != null && face == CameraCharacteristics.LENS_FACING_BACK) {
                     cm.setTorchMode(id, on);  // needs no permission. Another app using the camera can make this fail.
+                    int want = on ? 1 : 0;
+                    for (int k = 0; k < 10 && torchNow != want; k++) { try { Thread.sleep(60); } catch (InterruptedException e) { break; } }
+                    if (torchNow != -1 && torchNow != want) return r(false, "torch_stuck");  // Android says it did not change: Jarvis says so, it does not pretend
                     return r(true, null).put("on", on);
                 }
             }

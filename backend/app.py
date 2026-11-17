@@ -27,6 +27,8 @@ FILES = {"/": ("index.html", "text/html; charset=utf-8"), "/manifest.webmanifest
          "/icon-192.png": ("icon-192.png", "image/png"), "/icon-512.png": ("icon-512.png", "image/png")}
 BOOT = str(int(time.time()))  # server ka restart pehchanne ke liye: page khud refresh hota hai
 # Part 57: how Jarvis talks when someone sounds sad or stressed (always added). Not a doctor, no diagnosis, nothing about the mood is saved.
+CAN += (" Never write the label '(phone action)'. Never say you switched, opened, turned on or changed something on the phone yourself: only the app does that, and only when the user's words match a command. "
+        "If he asks for such a thing and no action ran, say so plainly and give the exact short words to say, for example: torch chalu karo.")
 MOOD = ("\n\n[If the user sounds sad, stressed or low: first show you understand, do not judge, and ask whether he wants to talk, wants a distraction, or wants a practical fix. "
         "Give at most two small, practical options. Never diagnose, never say you are a doctor or a human. If he speaks of hurting himself or being in danger, stay calm, "
         "tell him to call the emergency number 112 or Tele-MANAS 14416 or a trusted person right now, and ask him to stay with someone.]")
@@ -249,7 +251,7 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, {"providers": [{"name": n, "saved": bool(getkey(n)), "masked": mask(getkey(n)) if getkey(n) else ""} for n in PROVIDERS]})
         if self.path == "/history":
             rows = db().execute("SELECT role, content, ts FROM messages WHERE device=? ORDER BY id DESC LIMIT 50", (dev,)).fetchall()
-            return self.send(200, {"messages": [{"role": r, "content": c, "ts": int(t or 0)} for r, c, t in reversed(rows)]})  # Part 36: ts so the page can show WhatsApp-style times
+            return self.send(200, {"messages": [{"role": r, "content": (c.replace("(phone action) ", "", 1) if r == "assistant" else c), "ts": int(t or 0)} for r, c, t in reversed(rows)]})  # Part 36: ts so the page can show WhatsApp-style times
         if self.path == "/ledger":
             r = ledger.rows(db(), dev)
             dn, ln = ledger.totals(r)
@@ -478,8 +480,20 @@ class H(BaseHTTPRequestHandler):
                 c.commit()
                 return self.send(200, {"reply": "Okay sir, the chat history is deleted. Saved memories, people and reminders are not touched.", "via": "memory"})
             style = str(data.get("style", ""))
+            if re.search(r"[\u0900-\u097F]", msg):
+                style = "hindi"  # Part 130: you spoke Hindi, so local replies (phone actions, notes, lists) answer in Hindi too
+            if len(msg) < 25 and re.match(r"^\s*(?:का|की|के|से|को|पर|में|और|तो)\s+\S+(?:\s+\S+)?\s*$", msg):  # Part 130: a cut-off fragment from the mic gets no AI answer
+                frag = "सर, पूरी बात नहीं सुनी, फिर से बोलिए।"
+                c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", frag, time.time()))
+                c.commit()
+                return self.send(200, {"reply": frag, "via": "memory"})
             mode = str(data.get("mode", "normal"))
             mode = mode if mode in modes.MODES else "normal"
+            tmd = modes.timed(msg, style == "hindi")  # Part 100: "meeting mode 45 minute" (the page keeps the clock)
+            if tmd:
+                c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", tmd[0], time.time()))
+                c.commit()
+                return self.send(200, dict({"reply": tmd[0], "via": "memory"}, **({"mode": "quiet", "timed": tmd[1]} if tmd[1] else {})))
             hit = modes.handle(msg, style == "hindi")  # Part 58: "research mode on" (a setting only, the page keeps it)
             if hit:
                 c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", hit[0], time.time()))
@@ -543,7 +557,7 @@ class H(BaseHTTPRequestHandler):
                 if got:
                     mem, action = got
             if mem is not None:
-                keep = "(call, contact and calendar info was shown, not saved)" if calls.private(msg) else ("(phone action) " + mem if action else mem)
+                keep = "(call, contact and calendar info was shown, not saved)" if calls.private(msg) else mem
                 c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", keep, time.time()))
                 c.commit()
                 return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {})))
