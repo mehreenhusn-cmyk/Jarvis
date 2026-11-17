@@ -157,6 +157,60 @@ body.glass #home .big{background:linear-gradient(90deg,var(--c1),var(--c2));-web
 body.glass #home .bar{background:rgba(255,255,255,.12);box-shadow:inset 0 1px 2px rgba(0,0,0,.4)}
 }
 </style>
+<style id="glass2">
+/* Part 132 (Glass skin 2 of 2): buttons, AI tools tiles (the Assist tools), shortcuts, bars and the calm fallbacks. Needs Part 121. The Reduce effects switch (Settings > Look) removes body.glass, so none of this applies then. */
+@media (prefers-color-scheme:dark){
+/* secondary buttons: clear glass */
+body.glass #home button.g{
+  background:rgba(255,255,255,.1);color:var(--fg);border:1px solid rgba(255,255,255,.2);border-top-color:rgba(255,255,255,.32);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+}
+/* main buttons: a blue to purple gradient with a soft glow */
+body.glass #home .hb button:not(.g),body.glass #home .sh button:not(.g),body.glass #home #aw button:not(.g),body.glass #home #mis button:not(.g){
+  background:linear-gradient(135deg,var(--c1),var(--c2));color:#06102a;border:0;border-radius:14px;
+  box-shadow:0 6px 20px rgba(88,120,255,.45),inset 0 1px 0 rgba(255,255,255,.35);
+}
+body.glass #home button{transition:transform .15s,box-shadow .15s,filter .15s}
+body.glass #home button:active{transform:scale(.96);filter:brightness(1.12)}
+/* AI tools tiles: glass squares with a glowing icon */
+body.glass #home .tools{gap:12px}
+body.glass #home .tools button{
+  padding:15px 4px;border-radius:20px;color:var(--fg);
+  background:linear-gradient(150deg,rgba(255,255,255,.15),rgba(255,255,255,.04));
+  border:1px solid rgba(255,255,255,.16);border-top-color:rgba(255,255,255,.32);
+  box-shadow:0 8px 22px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.22);
+  -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
+}
+body.glass #home .tools span{font-size:25px;filter:drop-shadow(0 0 9px rgba(124,160,255,.75))}
+body.glass #home .tools button:active{box-shadow:0 2px 10px rgba(0,0,0,.4),0 0 22px rgba(88,120,255,.5)}
+/* smart shortcuts and timeline rows */
+body.glass #home .sc{color:var(--fg);transition:transform .15s,box-shadow .15s}
+body.glass #home .sc small{color:#a9b8e0}
+body.glass #home .sc:active{transform:scale(.985);box-shadow:0 0 22px rgba(88,120,255,.4)}
+body.glass #home .tr em{color:var(--c1)}
+/* progress bars glow */
+body.glass #home .bar i{box-shadow:0 0 10px rgba(53,198,255,.6);border-radius:4px}
+body.glass #home .bar i.w{box-shadow:0 0 10px rgba(224,176,74,.6)}
+body.glass #home .bar i.b{box-shadow:0 0 10px rgba(229,101,95,.6)}
+/* the away card and the phone and server card keep a clear edge */
+body.glass #aw{border-left:3px solid var(--c3)}
+body.glass #hs{border-left:3px solid var(--c2)}
+/* small touches */
+body.glass #home .chip{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14)}
+body.glass #home .sm{color:#a9b8e0}
+}
+/* calm mode: the phone asked for less motion, so nothing moves */
+@media (prefers-reduced-motion:reduce){
+  body.glass #orb,body.glass #orb i,body.glass #wave i{animation:none!important}
+  body.glass #home button{transition:none}
+}
+/* an old browser without blur gets plain dark cards instead of see-through ones */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  body.glass #home .card,body.glass #home .sc,body.glass #home .tr,body.glass #home .tools button,body.glass #home .bub{background:rgba(20,28,64,.92)}
+}
+/* Settings > Look card */
+#lookc label{display:flex;align-items:center;gap:10px;cursor:pointer}#lookc input{width:auto}
+</style>
 </head><body>
 <header><div class="logo">J</div><div><b>JARVIS</b><span id="st">...</span></div><span class="sp"></span><button id="vbtn" title="Voice">🔊</button><button id="gear" title="Settings">⚙</button></header>
 <div id="tbar" hidden><span><b id="tn"></b><br><small>No voice, short replies, reminders as text.</small></span><button type="button" id="tend">End</button></div>
@@ -175,6 +229,7 @@ body.glass #home .bar{background:rgba(255,255,255,.12);box-shadow:inset 0 1px 2p
 <h4>Phone and server</h4><div class="card" id="hs"></div><div class="hb" id="hq"></div></div>
 <div id="set" hidden>
 <details class="grp" open><summary>🎙️ Voice &amp; Personality</summary><div class="card" id="vcard"></div></details>
+<details class="grp"><summary>✨ Look</summary><div class="card" id="lookc"></div></details>
 <details class="grp"><summary>🔒 Privacy &amp; Security</summary><div class="card" id="dash"></div><h5>Payment apps</h5><div class="card" id="pay"></div><h5>Backup</h5><div class="card" id="bk"></div><h5>Background listening test</h5><div class="card" id="bgt"></div></details>
 <details class="grp"><summary>🗂️ Your Data (Memory Atlas)</summary><h5>What Jarvis keeps (counts)</h5><div class="card" id="al"></div><h5>People</h5><div class="card" id="pl"></div><h5>Memory</h5><div class="card" id="ml"></div><h5>Notes</h5><div class="card" id="nl"></div><h5>Money ledger</h5><div class="card" id="ll"></div></details>
 <details class="grp"><summary>🔔 Notifications</summary><div class="card" id="nsc"></div></details>
@@ -505,7 +560,9 @@ function btPaired(){try{if(!window.JarvisApp||!JarvisApp.btPaired)return 'Blueto
 // Part 121 (+ 132): Glass skin on Home, dark phones only. `glass off` goes back to the old look, `glass on` brings it back, `reduce effects` is the same as glass off. Saved in this page only.
 let GLASS=(()=>{try{return localStorage.getItem('jglass')!='0';}catch(e){return true;}})();
 const GLQ=/^\s*(glass(?: skin)?|reduce effects)\s*(on|off|chalu|band)?\s*$/i;
-function glassApply(){document.body.classList.toggle('glass',GLASS);try{localStorage.setItem('jglass',GLASS?'1':'0');}catch(e){}}
+function glassApply(){document.body.classList.toggle('glass',GLASS);try{localStorage.setItem('jglass',GLASS?'1':'0');}catch(e){}if($('lookc'))lookCard();}
+// Part 132: Settings > Look card with the Reduce effects switch (the same switch as the words `reduce effects` and `glass off`).
+function lookCard(){const c=$('lookc');c.textContent='';const l=el('label'),cb=el('input');cb.type='checkbox';cb.checked=!GLASS;cb.onchange=()=>{GLASS=!cb.checked;glassApply();};l.append(cb,el('span','','Reduce effects (no glass, blur or glow on Home)'));c.append(l,el('p','sm','The glass look shows on dark phones only. Chat is not changed. You can also say: glass off'));}
 function glassCmd(t){const m=t.match(GLQ),red=/reduce/i.test(m[1]),a=(m[2]||'').toLowerCase(),yes=/^(on|chalu)$/.test(a);
   if(red||a){GLASS=red?!!(a&&!yes):yes;glassApply();}
   return GLASS?'Glass look is ON (dark phones only). Say: glass off, or: reduce effects':'Glass look is OFF (the old look). Say: glass on';}
