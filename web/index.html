@@ -91,7 +91,73 @@ body.hm #vstat{background:rgba(7,11,26,.92);color:#97a6cc;border-color:rgba(96,1
 #dbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;font-size:13px;background:#0b2a3b;color:#9fe3ff;border-bottom:1px solid #1d6a8a}#dbar[hidden]{display:none}
 #tbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;font-size:13px;background:#2a0b3b;color:#e3b8ff;border-bottom:1px solid #6a1d8a}#tbar[hidden]{display:none}#gbar small{opacity:.85}#gend{padding:8px 12px;border-radius:10px;background:#ffd98a;color:#241800;font-weight:700;white-space:nowrap}
 body.big .m{font-size:24px!important;line-height:1.5!important}
-</style></head><body>
+</style>
+<style id="glass1">
+/* Part 121 (Glass skin 1 of 2): the glass base for Home. Dark phones only; the page adds body.glass (say: glass off to go back to the old look). Part 132 does buttons, tiles and the Reduce effects switch. */
+@media (prefers-color-scheme:dark){
+body.glass #home{
+  --gl:rgba(255,255,255,.06);--gl2:rgba(255,255,255,.12);--ge:rgba(255,255,255,.24);--gs:0 8px 30px rgba(0,0,0,.38);
+  background:radial-gradient(120% 55% at 12% -8%,rgba(124,77,255,.36) 0,transparent 56%),radial-gradient(100% 48% at 100% 6%,rgba(53,198,255,.28) 0,transparent 54%),radial-gradient(90% 55% at 50% 112%,rgba(255,95,210,.16) 0,transparent 62%),#050816;
+}
+/* glass cards: frosted, a bright top-left edge, a soft shadow */
+body.glass #home .card,body.glass #home .sc,body.glass #home .tr{
+  background:linear-gradient(145deg,var(--gl2),var(--gl));
+  border:1px solid rgba(255,255,255,.14);border-top-color:var(--ge);border-left-color:var(--ge);
+  box-shadow:var(--gs),inset 0 1px 0 rgba(255,255,255,.18);
+  -webkit-backdrop-filter:blur(18px) saturate(140%);backdrop-filter:blur(18px) saturate(140%);
+}
+body.glass #home .card{border-radius:20px}
+body.glass #home .sc{border-radius:18px}
+body.glass #home .tr{border-left-width:3px;border-left-color:var(--c2)}
+body.glass #home .tr.bad{border-left-color:#e5655f}
+body.glass #home .bub{
+  background:linear-gradient(145deg,rgba(80,130,255,.28),rgba(124,77,255,.16));
+  border:1px solid rgba(255,255,255,.2);box-shadow:0 6px 22px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.2);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+}
+/* headings and greeting: a blue to purple gradient with a thin glow line */
+body.glass #home h4{
+  display:flex;align-items:center;gap:10px;
+  background:linear-gradient(90deg,var(--c1),var(--c2) 70%,var(--c3));-webkit-background-clip:text;background-clip:text;color:transparent;
+}
+body.glass #home h4::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(155,107,255,.55),transparent)}
+body.glass #hg{background:linear-gradient(90deg,#fff,#b9d4ff 55%,#cbb4ff);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none}
+body.glass #hq2{color:#c9b8ff}
+body.glass #hd,body.glass #hs0{color:#a9b8e0}
+/* the orb: a glass ball with a bright highlight, a deep blue body and a purple rim light */
+body.glass #orb{
+  width:164px;height:164px;color:#fff;border:1px solid rgba(255,255,255,.28);
+  background:radial-gradient(circle at 32% 24%,rgba(255,255,255,.6) 0,rgba(255,255,255,.1) 20%,transparent 36%),radial-gradient(circle at 50% 62%,#3d7dff 0,#1b2b8c 46%,#070a26 80%);
+  box-shadow:0 0 0 7px rgba(255,255,255,.04),0 0 58px rgba(88,120,255,.55),0 22px 46px rgba(0,0,0,.5),inset 0 -16px 30px rgba(155,107,255,.38),inset 0 10px 24px rgba(255,255,255,.2);
+  text-shadow:0 0 18px rgba(255,255,255,.75);
+}
+body.glass #orb:active{transform:scale(.97)}
+body.glass #orb i{opacity:.75}
+body.glass #orb.on{box-shadow:0 0 0 7px rgba(53,198,255,.1),0 0 78px rgba(53,198,255,.75),0 22px 46px rgba(0,0,0,.5),inset 0 -16px 30px rgba(155,107,255,.45),inset 0 10px 24px rgba(255,255,255,.22)}
+body.glass #orb.off{
+  background:radial-gradient(circle at 32% 24%,rgba(255,255,255,.4) 0,rgba(255,255,255,.06) 20%,transparent 36%),radial-gradient(circle at 50% 62%,#8a2b2b 0,#3d1015 50%,#12060a 82%);
+  box-shadow:0 0 0 7px rgba(229,101,95,.08),0 0 50px rgba(229,101,95,.5),0 22px 46px rgba(0,0,0,.5),inset 0 -14px 28px rgba(229,101,95,.3);
+}
+body.glass #wave i{background:linear-gradient(var(--c1),var(--c3));opacity:.7}
+/* lens chips: glass pills, the chosen one is a gradient */
+body.glass #lr button{
+  border-radius:20px;padding:6px 14px;font-weight:600;color:var(--fg);
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+}
+body.glass #lr button:not(.g){background:linear-gradient(90deg,var(--c1),var(--c2));color:#06102a;border-color:transparent;box-shadow:0 4px 16px rgba(88,120,255,.45)}
+/* next best move card: a coloured edge and a clearer title */
+body.glass #lc{border-left:3px solid var(--c1)}
+body.glass #lc .lb{color:var(--c1);text-shadow:0 0 12px rgba(53,198,255,.5)}
+body.glass #lc .ld{font-size:18px}
+body.glass #ls>div{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:8px 10px;margin-top:8px}
+/* insights: battery ring and numbers */
+body.glass #home .ring b{background:rgba(8,12,34,.88);box-shadow:inset 0 0 14px rgba(53,198,255,.28),0 0 0 1px rgba(255,255,255,.1)}
+body.glass #home .big{background:linear-gradient(90deg,var(--c1),var(--c2));-webkit-background-clip:text;background-clip:text;color:transparent}
+body.glass #home .bar{background:rgba(255,255,255,.12);box-shadow:inset 0 1px 2px rgba(0,0,0,.4)}
+}
+</style>
+</head><body>
 <header><div class="logo">J</div><div><b>JARVIS</b><span id="st">...</span></div><span class="sp"></span><button id="vbtn" title="Voice">🔊</button><button id="gear" title="Settings">⚙</button></header>
 <div id="tbar" hidden><span><b id="tn"></b><br><small>No voice, short replies, reminders as text.</small></span><button type="button" id="tend">End</button></div>
 <div id="dbar" hidden><span><b>Debate: <i id="dn"></i></b> · 10 minutes<br><small>Jarvis is arguing a side on purpose. It is not advice.</small></span><button type="button" id="dend">Stop</button></div>
@@ -201,6 +267,7 @@ $('f').onsubmit=async e=>{
     try{const {s,d}=await api('/see',{image:lastPic,question:pm[1],style:sty()});if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply,false,'INFORMATION');}else{w.className='m err';w.textContent=d.error||'error';}}catch(e){w.className='m err';w.textContent='Could not send the photo.';}return;}
   if(BTDEV.test(t)){add('user',t);add('bot',btPaired());return;}
   if(CNOTE.test(t)){add('user',t);add('bot',callNoteCmd(t));return;}  // Part 112
+  if(GLQ.test(t)){add('user',t);add('bot',glassCmd(t));return;}  // Part 121
   if(SCRQ.test(t)||MAPQ.test(t)){add('user',t);add('bot',SCRQ.test(t)?scrollCmd(t):mapCmd(t));return;}  // Parts 115 + 116: phone-only, never sent to the server or the AI
   if(BATQ.test(t)&&!BATNO.test(t)&&t.length<70){const ph=pinfo();if(ph&&ph.battery!=null){const hi=sty()=='hindi',vm0=viaMic;viaMic=false;add('user',t);
     const a=hi?`सर, बैटरी ${ph.battery}% है और फ़ोन ${ph.charging?'चार्ज हो रहा है':'चार्ज नहीं हो रहा'}।`:`Battery is at ${ph.battery}% and the phone is ${ph.charging?'charging':'not charging'}, sir.`;
@@ -435,6 +502,14 @@ function pwPush(pw,loud){try{if(!window.JarvisApp||!JarvisApp.placeSet)return;co
 async function pwBoot(){try{const {s,d}=await api('/place/sync',{});if(s==200&&d.pw)pwPush(d.pw,false);}catch(e){}}
 function btPaired(){try{if(!window.JarvisApp||!JarvisApp.btPaired)return 'Bluetooth names are shown only in the Jarvis Android app.';const r=JSON.parse(JarvisApp.btPaired());
   if(r.need)return 'Allow "Nearby devices" for Jarvis when Android asks, then say: bluetooth devices';return r.list&&r.list.length?'Paired Bluetooth devices:\n'+r.list.map(x=>'- '+x).join('\n')+'\nSay: jab <word from the name> bluetooth jude <your note>':'No paired Bluetooth devices found.';}catch(e){return 'Could not read Bluetooth names.';}}
+// Part 121 (+ 132): Glass skin on Home, dark phones only. `glass off` goes back to the old look, `glass on` brings it back, `reduce effects` is the same as glass off. Saved in this page only.
+let GLASS=(()=>{try{return localStorage.getItem('jglass')!='0';}catch(e){return true;}})();
+const GLQ=/^\s*(glass(?: skin)?|reduce effects)\s*(on|off|chalu|band)?\s*$/i;
+function glassApply(){document.body.classList.toggle('glass',GLASS);try{localStorage.setItem('jglass',GLASS?'1':'0');}catch(e){}}
+function glassCmd(t){const m=t.match(GLQ),red=/reduce/i.test(m[1]),a=(m[2]||'').toLowerCase(),yes=/^(on|chalu)$/.test(a);
+  if(red||a){GLASS=red?!!(a&&!yes):yes;glassApply();}
+  return GLASS?'Glass look is ON (dark phones only). Say: glass off, or: reduce effects':'Glass look is OFF (the old look). Say: glass on';}
+glassApply();
 // Part 112: note after a call. Off until you say `call note on`. Jarvis never sees the number or the voice, only that a call of 30 seconds or more ended.
 let CNW=0;const CNOTE=/^\s*call note\s*(on|off|chalu|band)?\s*$/i;
 function callNoteAsk(){go('chat');const b=add('bot','Call ended. Kuch yaad rakhna hai? Type or say your note now.');CNW=Date.now()+5*60000;btns(b,[['Skip',()=>{CNW=0;b.textContent='Okay, no note.';}]]);}
