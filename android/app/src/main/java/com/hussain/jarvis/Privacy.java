@@ -100,11 +100,12 @@ final class Privacy {
             p.put("mic", mic).put("wake", mic).put("bg", mic).put("camera", -1).put("screen", ScreenService.live != null ? 1 : 0)
                 .put("location", has(a, Manifest.permission.ACCESS_FINE_LOCATION)).put("contacts", has(a, Manifest.permission.READ_CONTACTS))
                 .put("calls", has(a, Manifest.permission.READ_CALL_LOG)).put("calendar", has(a, Manifest.permission.READ_CALENDAR)).put("apps", -1)
+                .put("place", has(a, Manifest.permission.ACCESS_FINE_LOCATION)).put("usage", UsageWatch.allowed(a) ? 1 : 0)
                 .put("notify", a.getSystemService(NotificationManager.class).areNotificationsEnabled() ? 1 : 0)
                 .put("battery", a.getSystemService(PowerManager.class).isIgnoringBatteryOptimizations(a.getPackageName()) ? 1 : 0);
             r.put("mic", s.getBoolean("mic")).put("wake", s.getBoolean("wake")).put("camera", s.getBoolean("camera"))
-                .put("screen", s.getBoolean("screen")).put("notify", NotifyService.up).put("bg", s.getBoolean("bg"));
-            for (String id : new String[]{"mic", "wake", "bg", "camera", "screen", "location", "contacts", "calls", "calendar", "notify", "place", "apps"}) l.put(id, sp == null ? 0 : sp.getLong("last_" + id, 0));
+                .put("screen", s.getBoolean("screen")).put("notify", NotifyService.up).put("bg", s.getBoolean("bg")).put("place", PlaceWatch.up).put("usage", UsageWatch.up);
+            for (String id : new String[]{"mic", "wake", "bg", "camera", "screen", "location", "contacts", "calls", "calendar", "notify", "place", "usage", "apps"}) l.put(id, sp == null ? 0 : sp.getLong("last_" + id, 0));
             JSONArray log = new JSONArray();
             for (String line : (sp == null ? "" : sp.getString("plog", "")).split("\n")) {
                 String[] x = line.split("\\|");

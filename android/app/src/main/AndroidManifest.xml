@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
@@ -22,6 +22,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE"/>
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30"/>
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
     <queries>
         <intent><action android:name="android.speech.RecognitionService"/></intent>
         <intent><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent>
@@ -43,6 +45,9 @@
         </service>
         <service android:name=".NotifyService" android:exported="false" android:foregroundServiceType="dataSync"/>
         <service android:name=".PlaceWatch" android:exported="false" android:foregroundServiceType="location|connectedDevice"/>
+        <service android:name=".UsageWatch" android:exported="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Calm reminder after long time in one app and a count of app order, checked on the phone only"/>
+        </service>
         <service android:name=".ListenService" android:exported="false" android:foregroundServiceType="microphone"/>
         <activity android:name=".MainActivity" android:exported="true" android:configChanges="orientation|screenSize|keyboardHidden"
             android:windowSoftInputMode="adjustResize" android:launchMode="singleTask">

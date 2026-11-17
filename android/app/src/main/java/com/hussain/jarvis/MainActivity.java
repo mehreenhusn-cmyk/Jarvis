@@ -153,6 +153,7 @@ public class MainActivity extends Activity {
                 Intent i;
                 if ("acc".equals(w)) i = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
                 else if ("battery".equals(w)) i = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                else if ("usage".equals(w)) i = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);  // Parts 115, 116
                 else if ("notif".equals(w) && Build.VERSION.SDK_INT >= 26) i = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
                 else i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName()));
                 final Intent go = i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -348,6 +349,8 @@ public class MainActivity extends Activity {
             }
             @JavascriptInterface public String placeSet(String json) { if (AppLock.locked()) return "{\"locked\":true}"; return PlaceWatch.set(MainActivity.this, json); }  // Part 113: places and reminders; the position never leaves PlaceWatch
             @JavascriptInterface public String btPaired() { if (AppLock.locked()) return "{\"locked\":true}"; return PlaceWatch.paired(MainActivity.this); }  // Part 114: paired Bluetooth names only
+            @JavascriptInterface public String usageSet(String json) { if (AppLock.locked()) return "{\"locked\":true}"; return UsageWatch.set(MainActivity.this, json); }  // Parts 115 + 116: scroll alert switch, minutes, habit map switch
+            @JavascriptInterface public String usageMap() { if (AppLock.locked()) return "{\"locked\":true}"; return UsageWatch.map(MainActivity.this); }  // Part 116: app A then app B counts (names and numbers only)
             @JavascriptInterface public String phoneInfo() { if (AppLock.locked()) return "{\"locked\":true}"; return PhoneInfo.json(MainActivity.this); }
             @JavascriptInterface public void saveToken(String t) {
                 getSharedPreferences("j", 0).edit().putString("token", t).apply();
@@ -451,6 +454,7 @@ public class MainActivity extends Activity {
         super.onResume();
         visible = true;
         cur = this;
+        UsageWatch.resume(this, false);  // Parts 115, 116: brings the scroll alert back after a restart (does nothing when both switches are off)
         PlaceWatch.resume(this, false);  // Parts 113, 114: brings the watch back after a restart (does nothing when no reminder exists)
         gate();
         if (AppLock.locked()) return;  // nothing is handed to the page while it is locked
