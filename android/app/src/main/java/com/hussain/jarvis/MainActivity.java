@@ -346,6 +346,8 @@ public class MainActivity extends Activity {
                 NotifySummary.clear();
                 return "{\"ok\":true}";
             }
+            @JavascriptInterface public String placeSet(String json) { if (AppLock.locked()) return "{\"locked\":true}"; return PlaceWatch.set(MainActivity.this, json); }  // Part 113: places and reminders; the position never leaves PlaceWatch
+            @JavascriptInterface public String btPaired() { if (AppLock.locked()) return "{\"locked\":true}"; return PlaceWatch.paired(MainActivity.this); }  // Part 114: paired Bluetooth names only
             @JavascriptInterface public String phoneInfo() { if (AppLock.locked()) return "{\"locked\":true}"; return PhoneInfo.json(MainActivity.this); }
             @JavascriptInterface public void saveToken(String t) {
                 getSharedPreferences("j", 0).edit().putString("token", t).apply();
@@ -440,10 +442,16 @@ public class MainActivity extends Activity {
         if (ears != null && ears.on) { ears.stop(); ears.js("onHeardErr", "Hey Jarvis paused because the app went to the background"); }
     }
 
+    @Override public void onRequestPermissionsResult(int code, String[] perms, int[] res) {
+        super.onRequestPermissionsResult(code, perms, res);
+        if ((code == 6 || code == 7) && res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED) PlaceWatch.resume(this, false);  // Parts 113, 114: start the watch as soon as Android says yes
+    }
+
     @Override protected void onResume() {
         super.onResume();
         visible = true;
         cur = this;
+        PlaceWatch.resume(this, false);  // Parts 113, 114: brings the watch back after a restart (does nothing when no reminder exists)
         gate();
         if (AppLock.locked()) return;  // nothing is handed to the page while it is locked
         if (wantListen) {  // Part 38: tile or shortcut. Same as tapping the mic: the page checks Stop itself.

@@ -198,6 +198,7 @@ $('f').onsubmit=async e=>{
   const pm=t.match(/^\s*photo\s*[:\-]\s*(.{2,300})$/i);  // Part 119: a follow-up question about the last photo (the page still holds it)
   if(pm){add('user','📷 '+pm[1]);const w=add('bot','Looking...');if(!lastPic){w.className='m err';w.textContent='Send a photo first (camera button), then type: photo: your question';return;}
     try{const {s,d}=await api('/see',{image:lastPic,question:pm[1],style:sty()});if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply,false,'INFORMATION');}else{w.className='m err';w.textContent=d.error||'error';}}catch(e){w.className='m err';w.textContent='Could not send the photo.';}return;}
+  if(BTDEV.test(t)){add('user',t);add('bot',btPaired());return;}
   if(BATQ.test(t)&&!BATNO.test(t)&&t.length<70){const ph=pinfo();if(ph&&ph.battery!=null){const hi=sty()=='hindi',vm0=viaMic;viaMic=false;add('user',t);
     const a=hi?`सर, बैटरी ${ph.battery}% है और फ़ोन ${ph.charging?'चार्ज हो रहा है':'चार्ज नहीं हो रहा'}।`:`Battery is at ${ph.battery}% and the phone is ${ph.charging?'charging':'not charging'}, sir.`;
     add('bot',a);if(MODE!='quiet')speak(a,vm0,'');return;}}
@@ -207,11 +208,11 @@ $('f').onsubmit=async e=>{
     if(r.perm===false){add('user',t);add('bot','Turn on "Jarvis screen reader" in Accessibility settings (I opened it for you), then ask again.');return;}
     pendingMsg=t;add('bot','Switch to the app you want me to read. I will read it in '+r.wait+' seconds and come back.');return;}
   const sc=screenData;screenData=null;const nf=notifData;notifData=null;const vm=viaMic;viaMic=false;add('user',t);const w=add('bot','...');
-  let sp=false;busy=true;try{const loc=WHERE.test(t)?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:(t.length<=90&&(PHQ.test(t)||/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)))?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,cal:CALQ2.test(t)?bridge('calendar',calSpec(t)):/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)?bridge('calendar','0,1'):null,screen:sc,notif:nf,app:inApp(),control:inApp()&&ctl(),mode:MODE});
+  let sp=false;busy=true;try{const loc=(WHERE.test(t)||PSAVE.test(t))?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:(t.length<=90&&(PHQ.test(t)||/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)))?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,cal:CALQ2.test(t)?bridge('calendar',calSpec(t)):/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)?bridge('calendar','0,1'):null,screen:sc,notif:nf,app:inApp(),control:inApp()&&ctl(),mode:MODE});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
     if(s==200&&'debate' in d)debateBar(d.debate);if(/^\s*debate\s+(?:stop|khatam|band|off)\s*$/i.test(t))debateBar('');
     if(s==200&&'guest' in d){const was=guestOn;guestBar(d.guest);if(!d.guest&&was)guestErase(d.reply);}
-    if(s==200){w.textContent=d.reply;w.title='via '+d.via;if(d.mode)setMode(d.mode);if(d.timed)startTimed(d.timed);const said=d.action?(d.cool?await coolAct(d,w):await doAct(d.action,w)):d.reply.split('\n\nSources:')[0].split('\n\nस्रोत:')[0];if(said&&MODE!='quiet')speak(said,vm,d.action?'TASK_CONFIRMATION':'');if(d.remember)askSave(w,d.remember);if(d.ghost)ghostAsk(d.ghost);extras(w,t);sp=MODE!='quiet'&&(vm||$('say').checked);}else{w.className='m err';w.textContent=d.error||'error';}
+    if(s==200){w.textContent=d.reply;w.title='via '+d.via;if(d.mode)setMode(d.mode);if(d.timed)startTimed(d.timed);const said=d.action?(d.cool?await coolAct(d,w):await doAct(d.action,w)):d.reply.split('\n\nSources:')[0].split('\n\nस्रोत:')[0];if(said&&MODE!='quiet')speak(said,vm,d.action?'TASK_CONFIRMATION':'');if(d.remember)askSave(w,d.remember);if(d.ghost)ghostAsk(d.ghost);if(d.pw)pwPush(d.pw,true);extras(w,t);sp=MODE!='quiet'&&(vm||$('say').checked);}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}finally{busy=false;if((wakeOn||convOn)&&!sp)heardBack();}
 };
 let viaMic=false,wakeOn=false,appListening=false,cmdNext=false,convOn=false,convMiss=0,convTurns=0;
@@ -423,6 +424,14 @@ const sbridge=()=>{try{return window.JarvisApp&&JarvisApp.screen?JSON.parse(Jarv
 window.onScreen=s=>{if(!pendingMsg)return;try{screenData=JSON.parse(s)}catch(e){screenData={error:'could not read the screen'}}$('msg').value=pendingMsg;pendingMsg=null;$('f').requestSubmit();};
 const WHERE=/where am i|my location|near me|nearby|around me|nearest|mere paas|मैं कहाँ हूँ|मेरे पास/i;
 const getLoc=()=>new Promise(ok=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>ok({lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy}),()=>ok(null),{enableHighAccuracy:true,timeout:15000}):ok(null));
+// Parts 113 + 114: place and Bluetooth reminders. The server keeps the list; the Android app watches the position INSIDE the phone (never sent, never saved).
+const PSAVE=/^\s*(?:is jagah ko|yahan ko|yeh jagah|ye jagah|save (?:this place|this spot|here) as)\b/i,BTDEV=/^\s*(?:bluetooth|bt)\s+devices\s*$/i;
+function pwPush(pw,loud){try{if(!window.JarvisApp||!JarvisApp.placeSet)return;const r=JSON.parse(JarvisApp.placeSet(JSON.stringify(pw))||'{}');if(!loud)return;
+  if(r.need=='location')add('bot','📍 Allow location for Jarvis when Android asks ("While using the app" is enough). If you tap Don\'t allow, say: place watch on');
+  else if(r.need=='bluetooth')add('bot','🎧 Allow "Nearby devices" for Jarvis when Android asks. If you tap Don\'t allow, say: place watch on');}catch(e){}}
+async function pwBoot(){try{const {s,d}=await api('/place/sync',{});if(s==200&&d.pw)pwPush(d.pw,false);}catch(e){}}
+function btPaired(){try{if(!window.JarvisApp||!JarvisApp.btPaired)return 'Bluetooth names are shown only in the Jarvis Android app.';const r=JSON.parse(JarvisApp.btPaired());
+  if(r.need)return 'Allow "Nearby devices" for Jarvis when Android asks, then say: bluetooth devices';return r.list&&r.list.length?'Paired Bluetooth devices:\n'+r.list.map(x=>'- '+x).join('\n')+'\nSay: jab <word from the name> bluetooth jude <your note>':'No paired Bluetooth devices found.';}catch(e){return 'Could not read Bluetooth names.';}}
 async function shrink(file){
   const im=await createImageBitmap(file);const k=Math.min(1,1024/Math.max(im.width,im.height));
   const cv=document.createElement('canvas');cv.width=Math.round(im.width*k);cv.height=Math.round(im.height*k);
@@ -606,7 +615,7 @@ async function doAct(a,w){
   else t=say('Android ने ऐप खोलने नहीं दिया सर।','Android did not let me open it, sir.')+(r.why?' ('+r.why+')':'');
   w.textContent=t;if(!r.ok)w.className='m err';return t;
 }
-const DASH=[['mic','Microphone','Voice input, only after you tap the mic','app'],['wake','Hey Jarvis','Wake word, only while the app is open','app'],['bg','Background listening (test)','Hey Jarvis with the app closed. Test only, started by you, notification with Stop, ends after 8 h','app'],['camera','Camera and photos','Android photo picker, only when you tap the camera button',''],['screen','Screen reader','Needs the Jarvis accessibility switch. Reads text only when you ask','acc'],['location','Location','Only when you ask where you are','app'],['contacts','Contacts','Only when you ask for a contact','app'],['calls','Call log','Only when you ask for calls','app'],['calendar','Calendar','Only when you ask for your events. Title, time and place only, never saved','app'],['notify','Reminders and notifications','Reminders show even when the app is closed','notif'],['battery','Battery limit','Android may stop Jarvis in the background to save battery','battery'],['apps','Phone control (apps and screen steps)','Opens an app or does one screen step (press, scroll, type, back) only when you ask and the switch is ON. Never types passwords, OTPs or PINs','']];
+const DASH=[['mic','Microphone','Voice input, only after you tap the mic','app'],['wake','Hey Jarvis','Wake word, only while the app is open','app'],['bg','Background listening (test)','Hey Jarvis with the app closed. Test only, started by you, notification with Stop, ends after 8 h','app'],['camera','Camera and photos','Android photo picker, only when you tap the camera button',''],['screen','Screen reader','Needs the Jarvis accessibility switch. Reads text only when you ask','acc'],['location','Location','Only when you ask where you are','app'],['contacts','Contacts','Only when you ask for a contact','app'],['calls','Call log','Only when you ask for calls','app'],['calendar','Calendar','Only when you ask for your events. Title, time and place only, never saved','app'],['notify','Reminders and notifications','Reminders show even when the app is closed','notif'],['battery','Battery limit','Android may stop Jarvis in the background to save battery','battery'],['place','Place and Bluetooth watch','Checks your position inside the phone only, for the reminders you made (Parts 113, 114). Never saved or sent. Say: place watch off','app'],['apps','Phone control (apps and screen steps)','Opens an app or does one screen step (press, scroll, type, back) only when you ask and the switch is ON. Never types passwords, OTPs or PINs','']];
 const ago=t=>{if(!t)return 'never';const m=Math.round((Date.now()-t)/60000);return m<1?'just now':m<60?m+' min ago':m<1440?Math.floor(m/60)+' h '+(m%60)+' min ago':Math.round(m/1440)+' days ago';};
 function dash(){
   const box=$('dash');let d=null;try{d=window.JarvisApp&&JarvisApp.dashboard?JSON.parse(JarvisApp.dashboard()):null}catch(e){}
@@ -946,5 +955,5 @@ function bgt(){
 }
 if(window.JarvisApp&&token)JarvisApp.saveToken(token);
 pv();
-show();ping();setInterval(ping,5000);setInterval(()=>{if(token)checkDue();},10000);if(token)history().then(brief);
+show();ping();setInterval(ping,5000);setInterval(()=>{if(token)checkDue();},10000);if(token){history().then(brief);pwBoot();}
 </script></body></html>

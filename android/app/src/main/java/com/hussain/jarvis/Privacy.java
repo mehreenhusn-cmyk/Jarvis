@@ -104,7 +104,7 @@ final class Privacy {
                 .put("battery", a.getSystemService(PowerManager.class).isIgnoringBatteryOptimizations(a.getPackageName()) ? 1 : 0);
             r.put("mic", s.getBoolean("mic")).put("wake", s.getBoolean("wake")).put("camera", s.getBoolean("camera"))
                 .put("screen", s.getBoolean("screen")).put("notify", NotifyService.up).put("bg", s.getBoolean("bg"));
-            for (String id : new String[]{"mic", "wake", "bg", "camera", "screen", "location", "contacts", "calls", "calendar", "notify", "apps"}) l.put(id, sp == null ? 0 : sp.getLong("last_" + id, 0));
+            for (String id : new String[]{"mic", "wake", "bg", "camera", "screen", "location", "contacts", "calls", "calendar", "notify", "place", "apps"}) l.put(id, sp == null ? 0 : sp.getLong("last_" + id, 0));
             JSONArray log = new JSONArray();
             for (String line : (sp == null ? "" : sp.getString("plog", "")).split("\n")) {
                 String[] x = line.split("\\|");

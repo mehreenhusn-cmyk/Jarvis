@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, assist, autostart, backup, brief, calls, capsule, clock, debate, decisions, dreams, drift, events, ghost, guest, handoff, habits, ledger, lens, lists, memory, modes, money, mood, notes, people, phone, place, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
+import actions, assist, autostart, backup, brief, calls, capsule, clock, debate, decisions, dreams, drift, events, ghost, guest, handoff, habits, ledger, lens, lists, memory, modes, money, mood, notes, people, phone, place, placenote, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -57,6 +57,7 @@ def db():
     decisions.init(c)  # Parts 93 + 94
     mood.init(c)  # Part 96
     touch.init(c)  # Part 95
+    placenote.init(c)  # Parts 113 + 114
     capsule.init(c)  # Part 97
     dreams.init(c)  # Part 103
     signs.init(c)  # Part 104
@@ -328,6 +329,10 @@ class H(BaseHTTPRequestHandler):
             except ValueError:
                 t = None
             return self.send(200 if t else 404, {"text": t} if t else {"error": "not ready"})
+        if self.path == "/place/sync":  # Parts 113 + 114: the page hands this copy to the Android app (places and reminders only, never a position)
+            return self.send(200, {"pw": placenote.sync(db(), dev)})
+        if self.path == "/place/fired":  # Part 113: the app showed a once-only reminder, so remove it
+            return self.send(200, {"ok": placenote.fired(db(), dev, int(data.get("id") or 0))})
         if self.path == "/bd/answer":  # Part 101: Haan / Nahi under the check-in
             modes.bd_answer(dev, data.get("yes") is True)
             return self.send(200, {"ok": True})
@@ -540,6 +545,8 @@ class H(BaseHTTPRequestHandler):
                 mem = mood.handle(c, dev, msg, style == "hindi", now)
             if mem is None:  # Part 95: "ammi track karo", "ammi se baat hui" (only people you pick)
                 mem = touch.handle(c, dev, msg, style == "hindi", now)
+            if mem is None:  # Parts 113 + 114: "is jagah ko ghar naam do", "jab ghar pahunchu doodh lena", "jab JBL bluetooth jude ..." (your words only, never sent to the AI; the position stays in the app)
+                mem = placenote.handle(c, dev, msg, style == "hindi", data.get("loc"))
             if mem is None:  # Part 102: "thanda karo" (then the WhatsApp command waits 20 seconds with a Continue button)
                 mem = actions.cool_cmd(dev, msg, style == "hindi")
             if mem is None:  # Part 97: "6 mahine baad yeh sunana: ...", "my capsules", "open capsule 3" (your words only, never sent to the AI)
@@ -593,7 +600,7 @@ class H(BaseHTTPRequestHandler):
                 c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", keep, time.time()))
                 c.commit()
                 cl = actions.cool_take(dev, action)  # Part 102: asked once, because it uses the switch up
-                return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {}), **({"cool": cl} if cl else {}), **({"ghost": gq} if gq else {})))
+                return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {}), **({"cool": cl} if cl else {}), **({"ghost": gq} if gq else {}), **({"pw": pwc} if (pwc := placenote.take(c, dev)) else {})))
             rows = c.execute("SELECT role, content, ts FROM messages WHERE device=? ORDER BY id DESC LIMIT 20", (dev,)).fetchall()  # Part 126: 20 turns, not 10
             tctx = clock.context([(r, t) for r, _, t in reversed(rows)], prev_ts)
             wtxt, srcs = web.lookup(msg, now, mode == "research" and len(msg) >= 8 and not screen.used(data.get("screen")))  # Part 57: in Research mode every question is searched
