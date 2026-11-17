@@ -211,7 +211,7 @@ $('f').onsubmit=async e=>{
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
     if(s==200&&'debate' in d)debateBar(d.debate);if(/^\s*debate\s+(?:stop|khatam|band|off)\s*$/i.test(t))debateBar('');
     if(s==200&&'guest' in d){const was=guestOn;guestBar(d.guest);if(!d.guest&&was)guestErase(d.reply);}
-    if(s==200){w.textContent=d.reply;w.title='via '+d.via;if(d.mode)setMode(d.mode);if(d.timed)startTimed(d.timed);const said=d.action?await doAct(d.action,w):d.reply.split('\n\nSources:')[0].split('\n\nस्रोत:')[0];if(MODE!='quiet')speak(said,vm,d.action?'TASK_CONFIRMATION':'');if(d.remember)askSave(w,d.remember);extras(w,t);sp=MODE!='quiet'&&(vm||$('say').checked);}else{w.className='m err';w.textContent=d.error||'error';}
+    if(s==200){w.textContent=d.reply;w.title='via '+d.via;if(d.mode)setMode(d.mode);if(d.timed)startTimed(d.timed);const said=d.action?(d.cool?await coolAct(d,w):await doAct(d.action,w)):d.reply.split('\n\nSources:')[0].split('\n\nस्रोत:')[0];if(said&&MODE!='quiet')speak(said,vm,d.action?'TASK_CONFIRMATION':'');if(d.remember)askSave(w,d.remember);extras(w,t);sp=MODE!='quiet'&&(vm||$('say').checked);}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}finally{busy=false;if((wakeOn||convOn)&&!sp)heardBack();}
 };
 let viaMic=false,wakeOn=false,appListening=false,cmdNext=false,convOn=false,convMiss=0,convTurns=0;
@@ -799,6 +799,11 @@ $('orb').onclick=()=>{go('chat');$('mic').click();};
   .forEach(([n,f])=>{const b=el('button','g',n);b.type='button';b.onclick=f;$('hq').appendChild(b);});
 // Part 48: Share to Jarvis (text from another app), handoff summary (copy or share), lost-phone links. Nothing leaves the phone until you tap.
 const HAND_Q=/^\s*(?:handoff|hand off|hand-off)(?:\s+summary)?\s*$|summary for (?:claude|chatgpt|gemini)|chat summary for|handoff summary/i,LOST_Q=/phone (?:kho|gum|chori|lost|stolen)|(?:kho|gum) gaya|lost (?:my )?phone|phone (?:khoya|chura)|mera phone chori|stolen phone|lost phone/i;
+function coolAct(d,w){  // Part 102: your text, a 20 second wait, then Continue. Nothing opens before you tap Continue.
+  const a=d.action;let n=d.cool;const t0='🧊 Cool-down. '+(a.text?'Your message to '+(a.said||a.name)+':\n"'+a.text+'"':'Chat with '+(a.said||a.name)+' (no text yet).');w.textContent=t0+'\nWait '+n+' seconds and read it once more.';
+  return new Promise(res=>{let iv=0;btns(w,[['Continue',async()=>{clearInterval(iv);w.querySelector('.sh').remove();res(await doAct(a,w));}],['Cancel',()=>{clearInterval(iv);w.textContent='🧊 Cancelled. Nothing was opened.';res(null);}]]);
+    const go=w.querySelector('.sh button');go.disabled=true;
+    iv=setInterval(()=>{n--;w.firstChild.textContent=n>0?t0+'\nWait '+n+' seconds and read it once more.':t0+'\nYou can continue now.';if(n<=0){clearInterval(iv);go.disabled=false;}},1000);});}
 function btns(w,list){const r=el('div','sh');list.forEach(([n,f])=>{const b=el('button','g',n);b.type='button';b.onclick=f;r.appendChild(b);});w.appendChild(r);}
 function copyText(t,w){const ok=()=>{w.dataset.c='1';};if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(ok,()=>add('err','Copy did not work. Use Share instead.'));else add('err','Copy is not available here. Use Share instead.');}
 function extras(w,t){

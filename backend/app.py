@@ -521,6 +521,8 @@ class H(BaseHTTPRequestHandler):
                 mem = mood.handle(c, dev, msg, style == "hindi", now)
             if mem is None:  # Part 95: "ammi track karo", "ammi se baat hui" (only people you pick)
                 mem = touch.handle(c, dev, msg, style == "hindi", now)
+            if mem is None:  # Part 102: "thanda karo" (then the WhatsApp command waits 20 seconds with a Continue button)
+                mem = actions.cool_cmd(dev, msg, style == "hindi")
             if mem is None:  # Part 97: "6 mahine baad yeh sunana: ...", "my capsules", "open capsule 3" (your words only, never sent to the AI)
                 mem = capsule.handle(c, dev, msg, style == "hindi", now)
             if mem is None:  # Part 101: "body double 45 minute" / "body double stop"
@@ -560,7 +562,8 @@ class H(BaseHTTPRequestHandler):
                 keep = "(call, contact and calendar info was shown, not saved)" if calls.private(msg) else mem
                 c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", keep, time.time()))
                 c.commit()
-                return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {})))
+                cl = actions.cool_take(dev, action)  # Part 102: asked once, because it uses the switch up
+                return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {}), **({"cool": cl} if cl else {})))
             rows = c.execute("SELECT role, content, ts FROM messages WHERE device=? ORDER BY id DESC LIMIT 20", (dev,)).fetchall()  # Part 126: 20 turns, not 10
             tctx = clock.context([(r, t) for r, _, t in reversed(rows)], prev_ts)
             wtxt, srcs = web.lookup(msg, now, mode == "research" and len(msg) >= 8 and not screen.used(data.get("screen")))  # Part 57: in Research mode every question is searched

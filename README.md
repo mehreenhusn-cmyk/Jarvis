@@ -15,7 +15,7 @@
 | 4 | Total plan: files and lines | What the planned Parts add up to |
 | 5 | Ideas we will not build | And why |
 | 6 | Safety rules for the new Parts | Every new Part must keep these |
-| 7 | Phone tests (Table A) | 47 things to try on the phone |
+| 7 | Phone tests (Table A) | 49 things to try on the phone |
 | 8 | Rules for every Claude | How we work |
 | 9 | Known limits and fixes | What Jarvis cannot do, honest |
 | R1 to R7 | Reference | How it works, setup, cheat sheet, security, old status, build log, master plan |
@@ -39,11 +39,11 @@ This README is long (about 750 lines). Do NOT read it all. It wastes Hussain's c
 
 | File | Lines | What it does |
 |---|---|---|
-| `app.py` | 589 | Server: all routes (`/chat`, `/tts`, `/today`, `/see`, `/guest`...). The `/chat` handler chain is the heart |
+| `app.py` | 592 | Server: all routes (`/chat`, `/tts`, `/today`, `/see`, `/guest`...). The `/chat` handler chain is the heart |
 | `actions.py` | 595 | Phone commands: open app, call, alarm, timer, WhatsApp. Fixed grammar, never the AI |
 | `tasks.py` | 287 | Multi-step tasks and routines (Chrome kholo aur neeche scroll karo) |
 | `guest.py` | 56 | Guest session: RAM only, number masking (Part 118) |
-| `capsule.py` | 99 | Time capsule: sealed text, one card on the day, text only after your tap (97). Body Double (101) lives at the end of `modes.py` (RAM only, page polls `/due`) |
+| `capsule.py` | 165 | Time capsule: sealed text, one card on the day, text only after your tap (97). Body Double (101) lives at the end of `modes.py` (RAM only, page polls `/due`) |
 | `touch.py` | 78 | Last talked: people you pick, `ammi se baat hui`, briefing line after N days (Part 95). Part 99 (habit contract, penalty pot as a number) lives in `habits.py` |
 | `decisions.py`, `mood.py`, `debate.py` | 83, 68, 38 | Decision debt + unfinished business (93, 94), mood check-in (96), Debate Jarvis with a 10 minute badge (92). All your words only; briefing lines come from `brief.py` |
 | `assist.py`, `redteam.py` | 43, 42 | Assist words: translate, explain simply, make a plan, reliable info (Part 119). Red Team: 3 hard questions from your own numbers (Part 91) |
@@ -159,11 +159,11 @@ This README is long (about 750 lines). Do NOT read it all. It wastes Hussain's c
 | 95 | **Last talked**: only people you pick. `ammi track karo`, then `ammi se baat hui`. The briefing says `Ammi se 7 din se baat nahi hui` (days changeable). No call log, no WhatsApp reading | `touch.py`, `brief.py`, `backup.py`, `app.py` | ~90 | No | Built, not phone tested |
 | 96 | **Mood check-in**, only when you say it: `mood 3` (1 to 5) or `aaj mood low`; `mood history`. After 4 low days one gentle line in the briefing, only if you switched `mood care on` | `mood.py`, `brief.py`, `backup.py`, `app.py` | ~80 | No | Built, not phone tested |
 | 97 | **Time Capsule** (text): `6 mahine baad yeh sunana: ...`. On that day a card appears and Jarvis reads it after your tap | `capsule.py`, `backup.py`, `app.py`, `index.html` | ~85 | No | Built, not phone tested |
-| 98 | **Conditional capsule**: show a capsule only when a phrase you chose is typed to Jarvis, or when 30 days pass without talking to a person from Part 95 | `capsule.py`, `touch.py`, `app.py` | ~70 | No | Planned |
+| 98 | **Conditional capsule**: show a capsule only when a phrase you chose is typed to Jarvis, or when 30 days pass without talking to a person from Part 95 | `capsule.py`, `touch.py`, `app.py` | ~70 | No | Built, not phone tested |
 | 99 | **Habit Contract**: `contract gym 7 din penalty 100`. Each day that closes without `aaj gym gaya` adds 100 to a penalty pot shown in `my habits`. The pot is only a number; no real money moves | `habits.py`, `app.py` | ~80 | No | Built, not phone tested |
 | 100 | **Timed modes**: `meeting mode 45 minute`, `namaz mode 20 minute`, `sleep mode`, `focus 45 minute`. No voice, short replies, reminders as text; ends by itself | `modes.py`, `index.html` | ~70 | No | Built, not phone tested |
 | 101 | **Body Double**: `body double 45 minute`. Every 15 minutes a text check-in `abhi bhi kaam par?` with Haan / Nahi; a count at the end. It does not watch the screen and does not block apps | `modes.py`, `index.html` | ~60 | No | Built, not phone tested |
-| 102 | **Cool-down** before a message: say `thanda karo` first, then the WhatsApp command. A 20 second countdown shows your text and a Continue button. Only when you ask for it | `actions.py`, `index.html` | ~60 | No | Planned |
+| 102 | **Cool-down** before a message: say `thanda karo` first, then the WhatsApp command. A 20 second countdown shows your text and a Continue button. Only when you ask for it | `actions.py`, `index.html` | ~60 | No | Built, not phone tested |
 | 103 | **Dream journal**: `sapna: ...` saves your words as they are; `sapne dikhao`; `sapno me Ammi kitni baar` counts a word. An AI explanation only if you ask `sapne ka matlab` (sends only that dream) | `dreams.py*`, `backup.py`, `app.py`, `index.html` | ~90 | No | Planned |
 | 104 | **Signs log**: `sign: 11:11 dekha`; `signs dikhao` counts repeats. Only what you type; nothing is detected by itself | `signs.py*`, `backup.py`, `app.py` | ~40 | No | Planned |
 | 105 | **One honest question**: `sach sawal on` lets Jarvis ask at most ONE hard question every 14 days. The AI gets only counts from your decisions, unfinished business, habits and mood, and the reply says what was sent. `sach sawal off` stops it | `redteam.py`, `brief.py`, `app.py` | ~60 | No | Planned |
@@ -187,7 +187,7 @@ This README is long (about 750 lines). Do NOT read it all. It wastes Hussain's c
 | 123 | **Mic keeps going** (fix round, 17 Nov screenshots). `speech error 2` is a phone network error and `I did not hear anything` is silence; today both end Conversation mode. Fix: network errors 1 and 2 retry up to 3 times with a pause, silent rounds 2 to 4, and the stop message says why. **Also scroll fix:** `scroll` now picks the BIGGEST scroll area (not the first), and when nothing scrolls or nothing changed it does one plain swipe by itself (YouTube, charts, web pages), no extra Yes | `Ears.java`, `ScreenService.java`, `index.html` | 17 + 22 + 4 = 43 | Yes | Built, not phone tested |
 | 124 | **One default voice**: Sarvam `Shubh` for Hindi and English; the voice list in Settings shows only Shubh. Edge stays as a hidden backup, so when the Sarvam key or credit ends Jarvis still speaks (the Edge error `NoAudioReceived` is fixed by `pip install -U edge-tts` in Termux) | `voiceengine.py`, `index.html` | 3 + 4 = 7 | No | Built, not phone tested |
 | 125 | **Call by name, dictation tolerant**: `call ammi at anyhow last mein 5895` fails because the word `last` blocks the call rule and the sentence goes to the AI, which then says `main call nahi kar sakta`. Fix: take the name right after the call word, ignore filler and digits, ask which contact if two match | `actions.py` | 2 | No | Built, not phone tested |
-| 126 | **Better context and word match**: the AI gets only the last 10 messages and is not told what Jarvis can do, so it says `I cannot open your watch list` or `I cannot call`. Fix: last 20 turns, a short fixed list of what Jarvis CAN do, and follow-up words (`usko`, `wahi`) kept with the last topic | `app.py` | 589 | No | Built, not phone tested |
+| 126 | **Better context and word match**: the AI gets only the last 10 messages and is not told what Jarvis can do, so it says `I cannot open your watch list` or `I cannot call`. Fix: last 20 turns, a short fixed list of what Jarvis CAN do, and follow-up words (`usko`, `wahi`) kept with the last topic | `app.py` | 592 | No | Built, not phone tested |
 | 127 | **Click by number**: `ooper se teesra video kholo`, `3rd item kholo`. Numbers the visible tappable items top to bottom and taps the Nth. Works where the app shows real text items (YouTube list, watch list rows, settings). Does NOT work inside a drawn chart (a chart is a picture, Android shows no items in it) | `ScreenService.java` 42, `actions.py` about 14, `index.html` 1, `MainActivity.java` 1 | 58 | Yes | Built, not phone tested |
 | 128 | **Keep going words**: `thoda aur scroll karo`, `aur neeche`, `upar jao`, `ek baar aur` repeat the last scroll with the same direction | `actions.py` about 5, `index.html` 2 | 7 | No | Built, not phone tested |
 | 129 | **Look and tap** (hard, last): Jarvis takes ONE screenshot of the open app, a vision AI says where the thing is (for example the chart you named), Jarvis shows a number on it and taps only after your real finger tap on Yes. Needs Android 11 or newer. Slow and not always right, so it is the last step | `ScreenService.java`, `see.py`, `app.py`, `index.html` | ~150 | Yes | Planned |
@@ -197,8 +197,8 @@ This README is long (about 750 lines). Do NOT read it all. It wastes Hussain's c
 
 1. GitHub > Actions > **Build APK** > Run. If it goes red, send a screenshot of the error. That is fixed before anything else.
 2. Install the APK on the phone.
-3. Try the 47 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
-4. Then say **"ok 102"** (next in order; 100 and 130 are built, so the order is 102, 103 and on). The 17 Nov screenshots (torch, wrong name, wrong language) are fixed in Part 130 and need a NEW APK.
+3. Try the 49 rows of Table A (section 7). For each row write PASS or FAIL. For a FAIL send a screenshot.
+4. Then say **"ok 103"** (next in order; 98 and 102 are built, so the order is 103, 104, 105 and on). 97, 98, 100, 101, 102 and 130 are built but not yet tried on the phone.
 
 Why this order: Parts 18 to 90 and Part 117 are built and none is phone tested. A new feature on top of an untested base only makes bugs harder to find. Parts 112 to 116 (Java) wait longest, because Java is not even compiled yet. This README-only update needs no new APK.
 
@@ -303,6 +303,8 @@ Nothing below is phone tested yet. Build APK first for the Java rows. Write PASS
 | 45 | Say `body double 15 minute` and wait | After 15 minutes the chat shows `abhi bhi kaam par?` with Haan / Nahi (text only, no voice). Right after that the end card shows `15 minutes, N of 1 check-ins on task`. `body double stop` ends it early and shows the count | No | not tested |
 | 46 | Say `meeting mode 2 minute` is too short (min 5), so say `meeting mode 5 minute`. Then a reminder in that time, then wait | A purple bar `meeting mode, until HH:MM` shows. No voice, one short sentence, the reminder is text only. After 5 minutes the bar goes and `Back to normal` shows. `normal mode` or the End button ends it sooner. Also try `sleep mode`, `namaz mode`, `focus 45 minute` | No | not tested |
 | 47 | Say `main torch chalu kar`, `torch band kar yaar`, then `torch chalu karo` while another app holds the camera. Speak in Hindi and watch the language of the reply | The torch really switches (check the quick-settings tile). Extra words like `main` or a misheard `Jarvis` no longer lose the command. If Android says the torch did not change, Jarvis says so instead of `torch is off`. Hindi words get Hindi replies. A cut-off `का करियर` gets `phir se boliye` | Yes | not tested |
+| 48 | Say `phrase capsule himmat chahiye: tu kar lega`, then `ammi track karo`, then `ammi se 30 din baat na ho to yeh sunana: ab call kar`, then `my capsules` | `my capsules` lists both with their condition and NO text. Typing a message with `himmat chahiye` opens the first one (shown as the reply). The second shows its card once, after 30 days without `ammi se baat hui`; `open capsule N` is refused before the condition is met | No | not tested |
+| 49 | Say `thanda karo`, then `Ammi ko whatsapp pe hello bhejo` | A card shows `Your message to Ammi: "hello"` and a 20 second wait; Continue is greyed until it ends; Cancel opens nothing. Only after Continue does WhatsApp open (you still press send yourself). Without `thanda karo` the command works as before | No | not tested |
 
 ## 8. RULES FOR EVERY CLAUDE (always follow)
 1. Each part is under 350 lines of code. New files only when really needed. Update this README after every part.
@@ -688,11 +690,11 @@ Phone brand and Android version are NOT known yet (decision D4).
 | 95 DONE | Last talked: only people you pick. ammi track karo, then ammi se baat hui. The briefing says Ammi se 7 din se | touch.py*, brief.py, backup.py, app.py | ~90 | With | BUILT 17 Nov, not phone tested |
 | 96 DONE | Mood check-in, only when you say it: mood 3 (1 to 5) or aaj mood low; mood history. After 4 low days one gentl | mood.py*, brief.py, backup.py, app.py | ~80 | With | BUILT 17 Nov, not phone tested |
 | 97 DONE | Time Capsule (text): 6 mahine baad yeh sunana: .... On that day a card appears and Jarvis reads it after your | capsule.py*, backup.py, app.py, index.html | ~85 | With | BUILT 17 Nov, not phone tested |
-| 98 | Conditional capsule: show a capsule only when a phrase you chose is typed to Jarvis, or when 30 days pass with | capsule.py, touch.py, app.py | ~70 | With | Planned, see section 2 |
+| 98 DONE | Conditional capsule: show a capsule only when a phrase you chose is typed to Jarvis, or when 30 days pass with | capsule.py, touch.py, app.py | ~70 | With | BUILT 17 Nov, not phone tested |
 | 99 DONE | Habit Contract: contract gym 7 din penalty 100. Each day that closes without aaj gym gaya adds 100 to a penalt | habits.py, app.py | ~80 | With | BUILT 17 Nov, not phone tested |
 | 100 DONE | Timed modes: meeting mode 45 minute, namaz mode 20 minute, sleep mode, focus 45 minute. No voice, short replie | modes.py, index.html | ~70 | With | BUILT 17 Nov, not phone tested |
 | 101 DONE | Body Double: body double 45 minute. Every 15 minutes a text check-in abhi bhi kaam par? with Haan / Nahi; a co | modes.py, index.html | ~60 | With | BUILT 17 Nov, not phone tested |
-| 102 | Cool-down before a message: say thanda karo first, then the WhatsApp command. A 20 second countdown shows your | actions.py, index.html | ~60 | With | Planned, see section 2 |
+| 102 DONE | Cool-down before a message: say thanda karo first, then the WhatsApp command. A 20 second countdown shows your | actions.py, index.html | ~60 | With | BUILT 17 Nov, not phone tested |
 | 103 | Dream journal: sapna: ... saves your words as they are; sapne dikhao; sapno me Ammi kitni baar counts a word. | dreams.py*, backup.py, app.py, index.html | ~90 | With | Planned, see section 2 |
 | 104 | Signs log: sign: 11:11 dekha; signs dikhao counts repeats. Only what you type; nothing is detected by itself | signs.py*, backup.py, app.py | ~40 | With | Planned, see section 2 |
 | 105 | One honest question: sach sawal on lets Jarvis ask at most ONE hard question every 14 days. The AI gets only c | redteam.py, brief.py, app.py | ~60 | With | Planned, see section 2 |

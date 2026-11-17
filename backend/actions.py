@@ -614,3 +614,32 @@ def handle(msg, hindi, control, in_app, ask):
     if code in lang.NAMES:
         act["lang"] = code
     return say(f"ठीक है सर, {label} खोल रहा हूँ।", f"Opening {label}, sir."), act
+
+
+
+# ---- Part 102: Cool-down before a message. `thanda karo` first, then the WhatsApp command. The page shows your text with a 20 second countdown and a Continue button.
+# Only when you ask for it, only for the next WhatsApp message (or 5 minutes), nothing is sent by Jarvis. RAM only.
+import time as _time
+
+COOL_ON = re.compile(r"^\s*(?:thanda\s+karo|thanda\s+ho\s+jao|cool\s*down(?:\s+on)?|ठंडा\s+करो)\s*[.!]?\s*$", re.I)
+COOL_OFF = re.compile(r"^\s*(?:thanda\s+band|cool\s*down\s+off|ठंडा\s+बंद)\s*$", re.I)
+COOL = {}  # device -> until (time.time())
+
+
+def cool_cmd(dev, msg, hindi):
+    if COOL_OFF.match(msg):
+        COOL.pop(dev, None)
+        return "ठीक है, कूल-डाउन बंद।" if hindi else "Okay, cool-down is off."
+    if COOL_ON.match(msg):
+        COOL[dev] = _time.time() + 300
+        return ("ठीक है। अगला WhatsApp कमांड बोलिए, जैसे: Ammi ko whatsapp pe hello bhejo। मैं 20 सेकंड रुककर आपका टेक्स्ट दिखाऊँगा, फिर Continue दबाइए।" if hindi else
+                "Okay. Now say the WhatsApp command, for example: Ammi ko whatsapp pe hello bhejo. I will show your text with a 20 second wait, then tap Continue. This lasts for the next message or 5 minutes.")
+    return None
+
+
+def cool_take(dev, action):
+    """20 (seconds) once, if cool-down is on and the action opens a WhatsApp chat; the switch is used up. Else 0."""
+    if isinstance(action, dict) and action.get("via") == "whatsapp" and COOL.get(dev, 0) > _time.time():
+        COOL.pop(dev, None)
+        return 20
+    return 0
