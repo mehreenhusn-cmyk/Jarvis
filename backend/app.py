@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, assist, autostart, backup, brief, calls, capsule, clock, debate, decisions, guest, handoff, habits, ledger, lens, lists, memory, modes, mood, notes, people, phone, place, progress, redteam, remind, replyideas, screen, search, see, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
+import actions, assist, autostart, backup, brief, calls, capsule, clock, debate, decisions, dreams, guest, handoff, habits, ledger, lens, lists, memory, modes, mood, notes, people, phone, place, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -27,8 +27,6 @@ FILES = {"/": ("index.html", "text/html; charset=utf-8"), "/manifest.webmanifest
          "/icon-192.png": ("icon-192.png", "image/png"), "/icon-512.png": ("icon-512.png", "image/png")}
 BOOT = str(int(time.time()))  # server ka restart pehchanne ke liye: page khud refresh hota hai
 # Part 57: how Jarvis talks when someone sounds sad or stressed (always added). Not a doctor, no diagnosis, nothing about the mood is saved.
-CAN += (" Never write the label '(phone action)'. Never say you switched, opened, turned on or changed something on the phone yourself: only the app does that, and only when the user's words match a command. "
-        "If he asks for such a thing and no action ran, say so plainly and give the exact short words to say, for example: torch chalu karo.")
 MOOD = ("\n\n[If the user sounds sad, stressed or low: first show you understand, do not judge, and ask whether he wants to talk, wants a distraction, or wants a practical fix. "
         "Give at most two small, practical options. Never diagnose, never say you are a doctor or a human. If he speaks of hurting himself or being in danger, stay calm, "
         "tell him to call the emergency number 112 or Tele-MANAS 14416 or a trusted person right now, and ask him to stay with someone.]")
@@ -60,6 +58,8 @@ def db():
     mood.init(c)  # Part 96
     touch.init(c)  # Part 95
     capsule.init(c)  # Part 97
+    dreams.init(c)  # Part 103
+    signs.init(c)  # Part 104
     tasks.init(c)  # Part 41: tracked multi-step tasks
     return c
 
@@ -140,6 +140,8 @@ CAN = ("\n\nWHAT JARVIS CAN DO (the app does these when Hussain's words fit, not
        "WHAT IT CANNOT DO: see inside another app's private data (like a trading watch list) unless it is on the screen, send a message or pay without his tap, or guess news. "
        "If he asks for something from the CAN list, never say you cannot: tell him the exact short words to say, for example: Ammi ko call karo, or: Chrome kholo aur neeche scroll karo. "
        "Use the earlier messages to understand words like usko, wahi, isko, that, it.")  # Part 126
+CAN += (" Never write the label '(phone action)'. Never say you switched, opened, turned on or changed something on the phone yourself: only the app does that, and only when the user's words match a command. "
+        "If he asks for such a thing and no action ran, say so plainly and give the exact short words to say, for example: torch chalu karo.")
 
 
 def ask(history, style="english", extra=""):
@@ -525,6 +527,10 @@ class H(BaseHTTPRequestHandler):
                 mem = actions.cool_cmd(dev, msg, style == "hindi")
             if mem is None:  # Part 97: "6 mahine baad yeh sunana: ...", "my capsules", "open capsule 3" (your words only, never sent to the AI)
                 mem = capsule.handle(c, dev, msg, style == "hindi", now)
+            if mem is None:  # Part 103: "sapna: ...", "sapne dikhao", "sapne ka matlab" (only that one dream goes to the AI, and only when you ask)
+                mem = dreams.handle(c, dev, msg, style == "hindi", now, ask)
+            if mem is None:  # Part 104: "sign: 11:11 dekha", "signs dikhao" (only counts what you type)
+                mem = signs.handle(c, dev, msg, style == "hindi", now)
             if mem is None:  # Part 101: "body double 45 minute" / "body double stop"
                 mem = modes.bd_command(dev, msg, style == "hindi", now)
             if mem is None:  # Part 92: "debate stop" ends it; "debate ruthless: ..." switches it on and the AI answers below

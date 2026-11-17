@@ -16,7 +16,8 @@ T = {"memories": ("text", "text", ""), "notes": ("text,ts", "text", ""), "people
      "listitems": ("list,item", "list,item", ""), "habits": ("name,day", "name,day", ""), "spend": ("amount,what,cat,day", "amount,what,cat,day", ""),
      "decisions": ("kind,text,day,shown", "kind,text,day", "AND done=0"), "moods": ("day,score", "day", ""),
      "touch": ("name,last,every", "name", ""), "contracts": ("name,start,days,penalty", "name", ""),
-     "capsules": ("text,due,made,opened,kind,trig", "text,due", "")}  # Parts 93-96  # Part 83: shopping lists, habits and their check-ins; Part 84: spending
+     "capsules": ("text,due,made,opened,kind,trig", "text,due", ""),
+     "dreams": ("text,day,made", "text,day", ""), "signs": ("text,day,made", "text,day", "")}  # Parts 93-96  # Part 83: shopping lists, habits and their check-ins; Part 84: spending
 NAME = re.compile(r"^Jarvis_backup_[0-9A-Za-z_\-]{1,40}\.jbk$")
 PHRASE = "DELETE ALL MY JARVIS DATA"
 ASK = re.compile(r"^\s*(?:delete|erase|wipe)\s+(?:everything|all my (?:jarvis )?data)\s*$", re.I)
@@ -161,7 +162,7 @@ def restore(c, dev, name, pw):
 
 
 def wipe(c, dev):
-    for t in ("memories", "notes", "people", "reminders", "ledger", "routines", "messages", "tasks", "listitems", "habits", "dayreport", "spend", "decisions", "moods", "touch", "contracts", "capsules"):
+    for t in ("memories", "notes", "people", "reminders", "ledger", "routines", "messages", "tasks", "listitems", "habits", "dayreport", "spend", "decisions", "moods", "touch", "contracts", "capsules", "dreams", "signs"):
         c.execute(f"DELETE FROM {t} WHERE device=?", (dev,))
     c.commit()
 
