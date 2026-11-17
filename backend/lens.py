@@ -3,10 +3,11 @@ Everything comes from Jarvis's own tables (reminders, routines, money ledger, bi
 Nothing is saved and nothing is run: the Show button only types a command you could say yourself, and you tap it."""
 import time
 
-import habits, ledger, remind
+import habits, ledger, progress, remind
 
 SOON = 60  # minutes: "now" means late or inside the next hour
-SRC = {"rem": "Reminder", "rou": "Routine", "led": "Money", "bd": "Birthday", "hab": "Habit", "ph": "Phone"}
+SRC = {"rem": "Reminder", "rou": "Routine", "led": "Money", "bd": "Birthday", "hab": "Habit", "ph": "Phone", "proj": "Project"}
+LENSES = ("all", "project", "phone", "life")  # Part 120: the chips on Home. all = Phone + Life (old behaviour); Project is shown only when you pick it
 
 
 def _hm(t):
@@ -85,7 +86,23 @@ def _phone(ph):
     return [_item("ph", 45, "now", f"Battery is {b:.0f}%, plug in the charger", "It is not charging", "battery settings kholo")]
 
 
-def build(c, dev, now, ph=None):
+def _project():
+    """Part 120: Project lens. Two honest counts from the README (Part 87 numbers), nothing invented. Only shown with the Project chip."""
+    m = progress.mission()
+    if not m:
+        return []
+    out, tried = [], m.get("ok", 0) + m.get("fail", 0)
+    if m.get("tests", 0) > tried:
+        out.append(_item("proj", 20, "now", f"{m['tests'] - tried} of {m['tests']} phone tests not tried yet", "Built is not the same as tested", "mission"))
+    left = m.get("built", 0) - m.get("tested", 0) - m.get("partly", 0)
+    if left > 0:
+        out.append(_item("proj", 60, "next", f"{left} built Parts are not tried on the phone", "Table A in the README lists the steps", "mission"))
+    if m.get("planned", 0):
+        out.append(_item("proj", 150, "later", f"{m['planned']} Parts are still planned", "The next one is in the README", "mission"))
+    return out
+
+
+def build(c, dev, now, ph=None, lens="all"):
     """{"card": {...} or None, "strip": {"now": [...], "next": [...], "later": [...]}}. Lower score = more urgent."""
     empty = {"card": None, "strip": {"now": [], "next": [], "later": []}}
     try:
@@ -94,8 +111,10 @@ def build(c, dev, now, ph=None):
         return empty
     start, day = n - n % 86400, str(now)[:10]
     soon = time.strftime("%Y-%m-%d", time.gmtime(n + 2 * 86400))
-    items = (_phone(ph) + _reminders(c, dev, n, start) + _routines(c, dev, n, start) + _money(c, dev, day, soon)
-             + _people(c, dev, n) + _habits(c, dev, now, n % 86400 >= 18 * 3600))
+    lens = lens if lens in LENSES else "all"
+    life = (_reminders(c, dev, n, start) + _routines(c, dev, n, start) + _money(c, dev, day, soon)
+            + _people(c, dev, n) + _habits(c, dev, now, n % 86400 >= 18 * 3600))
+    items = {"all": _phone(ph) + life, "phone": _phone(ph), "life": life, "project": _project()}[lens]  # Part 120: the chip filters the card AND the strip
     items.sort(key=lambda x: x["score"])
     if not items:
         return empty

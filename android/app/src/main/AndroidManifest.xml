@@ -11,6 +11,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-feature android:name="android.hardware.telephony" android:required="false"/>
     <uses-permission android:name="android.permission.READ_CALENDAR"/>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
@@ -48,6 +49,7 @@
         <service android:name=".UsageWatch" android:exported="false" android:foregroundServiceType="specialUse">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Calm reminder after long time in one app and a count of app order, checked on the phone only"/>
         </service>
+        <receiver android:name=".CallNote" android:exported="true"><intent-filter><action android:name="android.intent.action.PHONE_STATE"/></intent-filter></receiver>
         <service android:name=".ListenService" android:exported="false" android:foregroundServiceType="microphone"/>
         <activity android:name=".MainActivity" android:exported="true" android:configChanges="orientation|screenSize|keyboardHidden"
             android:windowSoftInputMode="adjustResize" android:launchMode="singleTask">

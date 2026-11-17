@@ -358,7 +358,7 @@ class H(BaseHTTPRequestHandler):
             c = db()
             bd = [{"in": k, "text": t, "on": on} for k, t, on in remind.birthdays(c, dev, n, 7)] if n else []  # Part 75: Daily Life Manager = reminders + ledger + birthdays + notes
             nts = [{"id": i, "text": x[:120]} for i, x in c.execute("SELECT id, text FROM notes WHERE device=? ORDER BY id DESC LIMIT 3", (dev,))]
-            return self.send(200, {"reminders": remind.today(c, dev, now), "ledger": led, "birthdays": bd, "notes": nts, "routines": tasks.scheduled(c, dev), "lens": lens.build(c, dev, now, data.get("phone")), "mission": progress.mission(), "away": brief.away(c, dev, now, data.get("phone"), False)})  # Part 108: card after 6+ hours away  # Part 85/86: next best move card and Now/Next/Later strip
+            return self.send(200, {"reminders": remind.today(c, dev, now), "ledger": led, "birthdays": bd, "notes": nts, "routines": tasks.scheduled(c, dev), "lens": lens.build(c, dev, now, data.get("phone"), str(data.get("lens") or "all")), "mission": progress.mission(), "away": brief.away(c, dev, now, data.get("phone"), False)})  # Part 108: card after 6+ hours away  # Part 85/86: next best move card and Now/Next/Later strip
         if self.path == "/timeline":  # Part 109: the Timeline tab (filter + "More" with `before`)
             return self.send(200, {"items": events.items(db(), dev, str(data.get("now", "")), str(data.get("kind", "all")), data.get("before"), 30)})
         if self.path == "/away/dismiss":  # Part 108: Dismiss or Review hides the card until you are away again

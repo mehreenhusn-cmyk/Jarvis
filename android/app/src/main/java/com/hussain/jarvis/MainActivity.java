@@ -32,7 +32,7 @@ import android.webkit.WebViewClient;
 public class MainActivity extends Activity {
     static final String URL = "http://127.0.0.1:8787";
     static final String LISTEN = "com.hussain.jarvis.LISTEN";  // Part 38: sent by the Quick Settings tile and the icon shortcut
-    boolean wantListen;
+    boolean wantListen, wantNote;  // wantNote (Part 112): the call-note notification was tapped
     WebView web;
     Ears ears;
     ValueCallback<Uri[]> picker;
@@ -349,6 +349,7 @@ public class MainActivity extends Activity {
             }
             @JavascriptInterface public String placeSet(String json) { if (AppLock.locked()) return "{\"locked\":true}"; return PlaceWatch.set(MainActivity.this, json); }  // Part 113: places and reminders; the position never leaves PlaceWatch
             @JavascriptInterface public String btPaired() { if (AppLock.locked()) return "{\"locked\":true}"; return PlaceWatch.paired(MainActivity.this); }  // Part 114: paired Bluetooth names only
+            @JavascriptInterface public String callNoteSet(int v) { if (AppLock.locked()) return "{\"locked\":true}"; return CallNote.set(MainActivity.this, v); }  // Part 112: -1 read, 0 off, 1 on
             @JavascriptInterface public String usageSet(String json) { if (AppLock.locked()) return "{\"locked\":true}"; return UsageWatch.set(MainActivity.this, json); }  // Parts 115 + 116: scroll alert switch, minutes, habit map switch
             @JavascriptInterface public String usageMap() { if (AppLock.locked()) return "{\"locked\":true}"; return UsageWatch.map(MainActivity.this); }  // Part 116: app A then app B counts (names and numbers only)
             @JavascriptInterface public String phoneInfo() { if (AppLock.locked()) return "{\"locked\":true}"; return PhoneInfo.json(MainActivity.this); }
@@ -363,6 +364,7 @@ public class MainActivity extends Activity {
             }
         }, "JarvisApp");
         wantListen = LISTEN.equals(getIntent().getAction());
+        wantNote = getIntent().getBooleanExtra("callnote", false);
         takeShare(getIntent());
         if (TaskRunner.CANCEL.equals(getIntent().getAction())) TaskRunner.cancel = true;
         web.loadUrl(URL);
@@ -372,6 +374,7 @@ public class MainActivity extends Activity {
         super.onNewIntent(i);
         setIntent(i);
         wantListen = LISTEN.equals(i.getAction());  // handled in onResume, after the app lock
+        wantNote = i.getBooleanExtra("callnote", false);
         takeShare(i);
         if (TaskRunner.CANCEL.equals(i.getAction())) TaskRunner.cancel = true;  // Part 42: the Cancel button of the task notification
     }
@@ -461,6 +464,11 @@ public class MainActivity extends Activity {
         if (wantListen) {  // Part 38: tile or shortcut. Same as tapping the mic: the page checks Stop itself.
             wantListen = false;
             web.postDelayed(() -> web.evaluateJavascript("window.go&&go('chat');document.getElementById('mic')&&document.getElementById('mic').click()", null), 900);
+        }
+        if (wantNote) {  // Part 112: after the app lock, the page asks "kuch yaad rakhna hai?" and saves the next words as a note
+            wantNote = false;
+            getSystemService(NotificationManager.class).cancel(112);
+            web.postDelayed(() -> web.evaluateJavascript("window.callNoteAsk&&callNoteAsk()", null), 900);
         }
         if (pendingAct != null && web != null) {
             String q = pendingAct; pendingAct = null;
