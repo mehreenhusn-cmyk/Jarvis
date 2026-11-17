@@ -101,7 +101,7 @@ body.big .m{font-size:24px!important;line-height:1.5!important}
 <input id="code" inputmode="numeric" maxlength="6" placeholder="••••••"><p><button id="go">Pair this phone</button> <button id="nc" class="g">Show code in Termux</button></p><p id="pe" class="bad"></p></div>
 <div id="home" hidden><div id="hg"></div><div id="hq2">What would you like to do today?</div><div id="hd"></div><div id="wave"></div>
 <div class="hero"><div id="orb" role="button" aria-label="Talk to Jarvis"><i class="r1"></i><i class="r2"></i><i class="r3"></i>J</div><div id="hs0"></div><div class="bub" id="bub"></div></div>
-<h4>Next best move</h4><div class="card" id="lc">...</div><div id="ls"></div><h4>Honest progress</h4><div class="card" id="mis">...</div>
+<div class="card" id="aw" hidden></div><h4>Next best move</h4><div class="card" id="lc">...</div><div id="ls"></div><h4>Honest progress</h4><div class="card" id="mis">...</div>
 <h4>AI tools</h4><div class="tools" id="htl"></div>
 <h4>Today's schedule</h4><div class="card" id="ht">...</div>
 <h4>Insights</h4><div class="two"><div class="card" style="text-align:center"><div class="sm">Phone battery</div><div class="ring" id="hr" style="--p:0"><b id="hrt">-</b></div><div class="sm" id="hrs"></div></div><div class="card"><div class="sm">Reminders today</div><div class="big" id="hn1">-</div><div class="sm" style="margin-top:8px">Money due or late</div><div class="big" id="hn2">-</div></div></div>
@@ -211,7 +211,7 @@ $('f').onsubmit=async e=>{
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
     if(s==200&&'debate' in d)debateBar(d.debate);if(/^\s*debate\s+(?:stop|khatam|band|off)\s*$/i.test(t))debateBar('');
     if(s==200&&'guest' in d){const was=guestOn;guestBar(d.guest);if(!d.guest&&was)guestErase(d.reply);}
-    if(s==200){w.textContent=d.reply;w.title='via '+d.via;if(d.mode)setMode(d.mode);if(d.timed)startTimed(d.timed);const said=d.action?(d.cool?await coolAct(d,w):await doAct(d.action,w)):d.reply.split('\n\nSources:')[0].split('\n\nस्रोत:')[0];if(said&&MODE!='quiet')speak(said,vm,d.action?'TASK_CONFIRMATION':'');if(d.remember)askSave(w,d.remember);extras(w,t);sp=MODE!='quiet'&&(vm||$('say').checked);}else{w.className='m err';w.textContent=d.error||'error';}
+    if(s==200){w.textContent=d.reply;w.title='via '+d.via;if(d.mode)setMode(d.mode);if(d.timed)startTimed(d.timed);const said=d.action?(d.cool?await coolAct(d,w):await doAct(d.action,w)):d.reply.split('\n\nSources:')[0].split('\n\nस्रोत:')[0];if(said&&MODE!='quiet')speak(said,vm,d.action?'TASK_CONFIRMATION':'');if(d.remember)askSave(w,d.remember);if(d.ghost)ghostAsk(d.ghost);extras(w,t);sp=MODE!='quiet'&&(vm||$('say').checked);}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}finally{busy=false;if((wakeOn||convOn)&&!sp)heardBack();}
 };
 let viaMic=false,wakeOn=false,appListening=false,cmdNext=false,convOn=false,convMiss=0,convTurns=0;
@@ -771,8 +771,16 @@ async function homeLoad(force){
   $('bub').textContent=priv?'Jarvis is stopped. Open Chat and tap "Turn mic on" when you want me back.':greet()+'. How can I help you?';
   const ph=pinfo();if(ph&&ph.battery!=null){$('hr').style.setProperty('--p',ph.battery);$('hrt').textContent=ph.battery+'%';$('hrs').textContent=ph.charging?'charging':'';}else{$('hrt').textContent='-';$('hrs').textContent='app only';}
   if(force||Date.now()-homeT>20000){homeT=Date.now();sysCard($('hs'));
-    try{const {s,d}=await api('/today',{now:nowS(),phone:pinfo()});tj=s==200?d:null;}catch(e){tj=null;}todayCard();lensCard();missionCard();}
+    try{const {s,d}=await api('/today',{now:nowS(),phone:pinfo()});tj=s==200?d:null;}catch(e){tj=null;}todayCard();awayCard();lensCard();missionCard();}
 }
+// Part 107: Context Ghost. The saved reason is asked once after you open the same app again. Text only; No sends the command `ghost bhool jao`.
+function ghostAsk(g){const b=add('bot','Continue what you were doing in '+g.app+' before: "'+g.reason+'"?');btns(b,[['Yes, continue',()=>{b.textContent='Okay, continuing: '+g.reason+'.';}],['No, forget it',()=>ask('ghost bhool jao')]]);}
+// Part 108: card shown after 6+ hours away: up to 3 missed reminders and 1 phone issue. Review opens the briefing; both buttons hide the card.
+function awayCard(){const b=$('aw');b.textContent='';const a=tj&&tj.away;if(!a){b.hidden=true;return;}b.hidden=false;
+  const n=a.reminders.length;b.append(el('div','lb','WHILE YOU WERE AWAY'),el('div','ld',(n?n+' reminder'+(n==1?'':'s')+' passed':'')+(n&&a.phone.length?' and ':'')+(a.phone.length?'1 phone issue':'')+' (away about '+a.hours+' h)'));
+  a.reminders.concat(a.phone).forEach(t=>b.appendChild(el('p','',t)));
+  const hide=async()=>{try{await api('/away/dismiss',{id:a.id});}catch(e){}if(tj)tj.away=null;awayCard();};
+  const r=el('button','g','Review');r.type='button';r.onclick=async()=>{await hide();ask('briefing');};const d=el('button','g','Dismiss');d.type='button';d.onclick=hide;b.append(r,d);}
 // Part 85/86: Next best move card and Now / Next / Later strip. Text only (textContent), the Show button just types a command and you tap it.
 function lensCard(){const b=$('lc'),w=$('ls');b.textContent='';w.textContent='';
   if(!tj||!tj.lens){b.textContent='Server offline: nothing to show.';return;}

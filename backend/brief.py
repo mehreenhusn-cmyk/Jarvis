@@ -3,7 +3,7 @@ Part 45: phone calendar ke events (sirf jab aap khud 'briefing' likhein), sujhav
 apne aap nahi, har type alag band ho sakta hai. Settings brief.json mein (restart ke baad bhi rehti hain)."""
 import json, os, re, time
 
-import decisions, habits, ledger, mood, phone, redteam, remind, spend, touch
+import decisions, habits, ledger, memory, money, mood, phone, redteam, remind, spend, touch
 
 TRIG = re.compile(r"briefing|brief karo|aaj ka plan|aaj kya hai|my plan today|good morning jarvis|ब्रीफिंग|सुप्रभात", re.I)
 FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brief.json")
@@ -138,6 +138,10 @@ def build(c, dev, now, hindi, auto=False, cal=None, ph=None):
     if hb:
         out.append(say("आदतें:", "Habits:"))
         out += hb
+    mn = money.line(c, dev, now, hindi)  # Part 110: one line, only when you gave an income
+    if mn:
+        out.append(say("पैसा:", "Money:"))
+        out += mn
     dl = decisions.lines(c, dev, now, hindi) + mood.line(c, dev, now, hindi) + touch.lines(c, dev, now, hindi) + redteam.line(c, dev, now, hindi)  # Parts 93, 94, 95, 96, 105
     if dl:
         out.append(say("खुली बातें:", "Still open:"))
@@ -154,6 +158,27 @@ def build(c, dev, now, hindi, auto=False, cal=None, ph=None):
         out.append(say("सुझाव:", "Suggestions:"))
         out += ["- " + x for x in sug]
     return "\n".join(out)
+
+
+AWAY = 6 * 3600
+
+
+def away(c, dev, now, ph, hindi):
+    """Part 108: card `while you were away`. After 6+ hours without a message from you: up to 3 reminders whose time passed meanwhile and 1 phone problem.
+    Numbers and your own reminder texts only. Dismiss or Review (flag away_seen) hides it until you are away again. None when there is nothing to show."""
+    try:
+        n = remind.tm(now)
+    except ValueError:
+        return None
+    last = c.execute("SELECT MAX(ts) FROM messages WHERE device=? AND role='user'", (dev,)).fetchone()[0]
+    if not last or time.time() - last < AWAY or int(last) <= memory.flag(c, dev, "away_seen"):
+        return None
+    lo = last + (n - time.time())  # reminders use the phone's own clock
+    rem = [t for (t,) in c.execute("SELECT text FROM reminders WHERE device=? AND due>? AND due<=? ORDER BY due DESC LIMIT 3", (dev, lo, n))]
+    iss = [f"{x} {y}" for x, y in phone.analyze(ph, hindi)[:1]] if isinstance(ph, dict) else []
+    if not rem and not iss:
+        return None
+    return {"id": int(last), "reminders": rem, "phone": iss, "hours": int((time.time() - last) // 3600)}
 
 
 def weekly(c, dev, now, hindi):

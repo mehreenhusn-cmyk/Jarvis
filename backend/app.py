@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, assist, autostart, backup, brief, calls, capsule, clock, debate, decisions, dreams, drift, guest, handoff, habits, ledger, lens, lists, memory, modes, mood, notes, people, phone, place, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
+import actions, assist, autostart, backup, brief, calls, capsule, clock, debate, decisions, dreams, drift, ghost, guest, handoff, habits, ledger, lens, lists, memory, modes, money, mood, notes, people, phone, place, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -60,6 +60,8 @@ def db():
     capsule.init(c)  # Part 97
     dreams.init(c)  # Part 103
     signs.init(c)  # Part 104
+    ghost.init(c)  # Part 107
+    money.init(c)  # Part 110
     tasks.init(c)  # Part 41: tracked multi-step tasks
     return c
 
@@ -351,7 +353,13 @@ class H(BaseHTTPRequestHandler):
             c = db()
             bd = [{"in": k, "text": t, "on": on} for k, t, on in remind.birthdays(c, dev, n, 7)] if n else []  # Part 75: Daily Life Manager = reminders + ledger + birthdays + notes
             nts = [{"id": i, "text": x[:120]} for i, x in c.execute("SELECT id, text FROM notes WHERE device=? ORDER BY id DESC LIMIT 3", (dev,))]
-            return self.send(200, {"reminders": remind.today(c, dev, now), "ledger": led, "birthdays": bd, "notes": nts, "routines": tasks.scheduled(c, dev), "lens": lens.build(c, dev, now, data.get("phone")), "mission": progress.mission()})  # Part 85/86: next best move card and Now/Next/Later strip
+            return self.send(200, {"reminders": remind.today(c, dev, now), "ledger": led, "birthdays": bd, "notes": nts, "routines": tasks.scheduled(c, dev), "lens": lens.build(c, dev, now, data.get("phone")), "mission": progress.mission(), "away": brief.away(c, dev, now, data.get("phone"), False)})  # Part 108: card after 6+ hours away  # Part 85/86: next best move card and Now/Next/Later strip
+        if self.path == "/away/dismiss":  # Part 108: Dismiss or Review hides the card until you are away again
+            try:
+                memory.setflag(db(), dev, "away_seen", int(data.get("id", 0)))
+            except (TypeError, ValueError):
+                return self.send(400, {"error": "bad id"})
+            return self.send(200, {"ok": True})
         if self.path == "/guest":  # Part 118: is a guest session on (the page shows the badge after a reload)
             return self.send(200, {"on": guest.on(dev)})
         if self.path == "/snooze":  # Part 82: the 10 min button under a reminder
@@ -501,6 +509,7 @@ class H(BaseHTTPRequestHandler):
                 c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", hit[0], time.time()))
                 c.commit()
                 return self.send(200, {"reply": hit[0], "via": "memory", "mode": hit[1]})
+            msg, gnote, gapp = ghost.pre(c, dev, msg, style == "hindi")  # Part 107: "Chrome kholo research ke liye" keeps the reason; the open command goes on without it
             mem = memory.handle(c, dev, msg, style == "hindi")  # yaad rakho / bhool jao / kya yaad hai
             now = str(data.get("now", ""))
             if mem is None:  # Part 89: "sab jagah dhundo Bombay" (same words in notes, memories, people, lists, reminders; reads only, no AI)
@@ -511,6 +520,8 @@ class H(BaseHTTPRequestHandler):
                 mem = lists.handle(c, dev, msg, style == "hindi")
             if mem is None:  # Part 83: "habit banao gym", "aaj gym gaya", "my habits" (only habits you made)
                 mem = habits.handle(c, dev, msg, style == "hindi", now)
+            if mem is None:  # Parts 110 + 111: "kamai 40000 mahina", "bachat 50000", "paisa picture", "agar job chhod du" (your numbers, plain arithmetic, no AI). Before the expense logger.
+                mem = money.handle(c, dev, msg, style == "hindi", now)
             if mem is None:  # Part 84: "200 coffee", "kharcha" (what you spent; not the owe/get ledger)
                 mem = spend.handle(c, dev, msg, style == "hindi", now)
             if mem is None:  # Part 119: "translate to hindi: ...", "explain simply: ...", "make a plan: ...", "reliable info: ..." (fixed words only)
@@ -539,6 +550,8 @@ class H(BaseHTTPRequestHandler):
                 mem = modes.bd_command(dev, msg, style == "hindi", now)
             if mem is None:  # Part 92: "debate stop" ends it; "debate ruthless: ..." switches it on and the AI answers below
                 mem = debate.command(dev, msg, style == "hindi")
+            if mem is None:  # Part 107: "ghost dikhao", "ghost bhool jao"
+                mem = ghost.handle(c, dev, msg, style == "hindi")
             if mem is None:  # Part 83: "day report 9 baje" (the time at which the page offers a one-tap day summary)
                 mem = tasks.report(c, dev, msg, style == "hindi")
             if mem is None:  # Part 47: "backup", "delete everything" (typed phrase). Never takes a passphrase
@@ -568,12 +581,15 @@ class H(BaseHTTPRequestHandler):
                 got = tasks.routine(c, dev, msg, style == "hindi", data.get("control") is True, data.get("app") is True) or tasks.make(c, dev, msg, style == "hindi", data.get("control") is True, data.get("app") is True) or actions.handle(msg, style == "hindi", data.get("control") is True, data.get("app") is True, ask)  # Part 41: several steps in one sentence become one task
                 if got:
                     mem, action = got
+            gq = ghost.ask(c, dev, action, gapp) if mem is not None else None  # Part 107: the saved reason, asked once
+            if mem is not None and gnote and action:
+                mem += "\n" + gnote
             if mem is not None:
                 keep = "(call, contact and calendar info was shown, not saved)" if calls.private(msg) else mem
                 c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", keep, time.time()))
                 c.commit()
                 cl = actions.cool_take(dev, action)  # Part 102: asked once, because it uses the switch up
-                return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {}), **({"cool": cl} if cl else {})))
+                return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {}), **({"cool": cl} if cl else {}), **({"ghost": gq} if gq else {})))
             rows = c.execute("SELECT role, content, ts FROM messages WHERE device=? ORDER BY id DESC LIMIT 20", (dev,)).fetchall()  # Part 126: 20 turns, not 10
             tctx = clock.context([(r, t) for r, _, t in reversed(rows)], prev_ts)
             wtxt, srcs = web.lookup(msg, now, mode == "research" and len(msg) >= 8 and not screen.used(data.get("screen")))  # Part 57: in Research mode every question is searched

@@ -91,7 +91,7 @@ STORES = [("memories", "Memories", "", "Remove button"), ("people", "People note
           ("decisions", "Decisions and unfinished", " AND done=0", "say: decision ho gaya N / adhoora khatam N"), ("moods", "Mood check-ins", " AND day!='care'", "delete everything"),
           ("touch", "Last talked people", "", "say: ammi track band karo"), ("contracts", "Habit contracts", "", "say: contract hatao gym"), ("capsules", "Time capsules", "", "say: capsule hatao N"), ("dreams", "Dream journal", "", "say: sapna hatao N"), ("signs", "Signs log", "", "say: sign hatao <text>"),
           ("ledger", "Money ledger", "", "delete everything"), ("reminders", "Reminders", "", "delete everything"),
-          ("routines", "Routines", "", "delete everything"), ("flags", "Switches (honest question, drift)", " AND val=1 AND name IN ('honest','drift')", "say: sach sawal off / drift off"), ("tasks", "Task history", "", "delete everything"), ("dayreport", "Day report time", "", "delete everything")]
+          ("routines", "Routines", "", "delete everything"), ("flags", "Switches (honest question, drift)", " AND val=1 AND name IN ('honest','drift')", "say: sach sawal off / drift off"), ("money", "Income and savings numbers", "", "say: kamai hatao / bachat hatao"), ("ghost", "Context Ghost reasons", "", "say: ghost bhool jao"), ("tasks", "Task history", "", "delete everything"), ("dayreport", "Day report time", "", "delete everything")]
 
 
 def atlas(c, dev):
