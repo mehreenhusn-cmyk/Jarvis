@@ -95,7 +95,7 @@ def _unit():
     ok("35: unlock, app lock, sawaal par lock nahi", all((a(m) or (0, None))[1] != {"type": "lock"} for m in ("unlock phone", "app lock lagao", "how to lock my phone?", "lock kar do")))
     ok("35: switch OFF par lock nahi, OFF bataya", "OFF" in a("phone lock kar do", False)[0] and a("phone lock kar do", False)[1] is None)
     pr = PG.handle("bhai app ka kaam kahan tak pahuncha", False)
-    ok("34: progress README se aata hai (done, baaki, next)", "built" in pr and "34" in pr and "Next:" in pr and PG.handle("my fitness progress", False) is None)
+    ok("34: progress README se aata hai (done, baaki, next)", "built" in pr and "Code built" in pr and "Next:" in pr and PG.handle("my fitness progress", False) is None)
 _unit()
 
 PORT = "8799"

@@ -8,24 +8,24 @@ ABOUT = re.compile(r"\bapp\b|jarvis|\bparts?\b|kaam|काम|ऐप|एप|प�
 
 
 def plan():
-    """(done set, {part: short name}, build order list, optional list) read from README.md, or None if the file is missing."""
+    """(done set, {part: short name}, build order list, optional list) read from README.md section 2 and the Build order line, or None if the file is missing."""
     try:
         t = open(README, encoding="utf-8").read()
     except OSError:
         return None
-    sec = t.split("### 11.6 ", 1)[-1].split("### 11.6b", 1)[0]
+    sec = t.split("## 2. ", 1)[-1].split("\n## 3. ", 1)[0]
     done, names = set(), {}
-    for m in re.finditer(r"^\| (\d+)( DONE)? \| ([^|]+?) \|", sec, re.M):
+    for m in re.finditer(r"^\| (\d+) \| ([^|]+?) \|.*\| ([^|]+) \|\s*$", sec, re.M):
         n = int(m.group(1))
-        nm = re.split(r"[:.(,]", m.group(3))[0].strip()
+        nm = re.split(r"[:.(,]", re.sub(r"[*`]", "", m.group(2)))[0].strip()
         w = (nm if len(nm) <= 40 else nm[:40].rsplit(" ", 1)[0]).split()
         while len(w) > 2 and w[-1].lower() in ("with", "the", "real", "a", "of", "and", "for", "to"):
             w.pop()
         names[n] = " ".join(w)
-        if m.group(2):
+        if m.group(3).strip().lower().startswith("built"):
             done.add(n)
     o = re.search(r"\*\*Build order[^:]*:\*\*\s*([^\n]+)", t)
-    order = [int(x) for x in re.findall(r"\d+", o.group(1).split("Optional")[0])] if o else sorted(n for n in names if n not in done)
+    order = [int(x) for x in re.findall(r"\d+", o.group(1).split("Optional")[0])] if o else sorted(n for n in names if n not in done and n > 0)
     opt = [int(x) for x in re.findall(r"\d+", o.group(1).split("Optional", 1)[1])] if o and "Optional" in o.group(1) else []
     return done, names, order, opt
 
