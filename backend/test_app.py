@@ -96,6 +96,42 @@ def _unit():
     ok("35: switch OFF par lock nahi, OFF bataya", "OFF" in a("phone lock kar do", False)[0] and a("phone lock kar do", False)[1] is None)
     pr = PG.handle("bhai app ka kaam kahan tak pahuncha", False)
     ok("34: progress README se aata hai (done, baaki, next)", "built" in pr and "Code built" in pr and "Next:" in pr and PG.handle("my fitness progress", False) is None)
+    # Part 138: no fake "done", and the chat belongs to the owner, not to one pairing
+    ok("138: AI says it switched the torch off -> replaced, nothing was done", "did nothing" in A.honest("(phone action) Switching the flashlight off", "english") and "कुछ नहीं" in A.honest("ठीक है सर, होम स्क्रीन पर जा रहा हूँ।", "hindi"))
+    ok("138: normal answers stay as they are (long, or no phone word)", A.honest("Paris is the capital of France.", "english") == "Paris is the capital of France." and A.honest("To use the torch, say: torch chalu karo.", "english") == "To use the torch, say: torch chalu karo." and A.honest("I opened with a joke. " + "x" * 300, "english").startswith("I opened"))
+    import sqlite3 as _s3
+    _d = tempfile.mkdtemp()
+    _f = os.path.join(_d, "t.db")
+    _c = _s3.connect(_f)
+    _c.execute("CREATE TABLE devices(id INTEGER PRIMARY KEY, name TEXT, token_hash TEXT UNIQUE, ts REAL)")
+    _c.execute("CREATE TABLE messages(id INTEGER PRIMARY KEY, device INT, role TEXT, content TEXT, ts REAL)")
+    _c.executemany("INSERT INTO devices(name, token_hash, ts) VALUES(?,?,?)", [("a", "h1", 1), ("b", "h2", 2)])
+    _c.executemany("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", [(1, "user", "old chat", 1), (2, "user", "chat after re-pair", 2)])
+    _c.commit()
+    _c.close()
+    _old, A.DB = A.DB, _f
+    try:
+        _c = A.db()
+        ok("138: after the update both old chats sit under one owner", [r[0] for r in _c.execute("SELECT content FROM messages WHERE device=1 ORDER BY id")] == ["old chat", "chat after re-pair"] and _c.execute("SELECT COUNT(*) FROM devices WHERE owner=1").fetchone()[0] == 2)
+        _c.execute("INSERT INTO devices(name, token_hash, ts, owner) VALUES('c','h3',3,(SELECT MIN(COALESCE(owner,id)) FROM devices))")
+        ok("138: a new pairing gets the owner id, chat is not empty", _c.execute("SELECT COALESCE(owner,id) FROM devices WHERE token_hash='h3'").fetchone()[0] == 1)
+        A.db()
+        ok("138: running the update twice changes nothing", _c.execute("SELECT COUNT(*) FROM messages WHERE device=1").fetchone()[0] == 2)
+    finally:
+        A.DB = _old
+    # Part 149: sentences that failed in Hussain's screenshots stay as tests. KNOWN-FAIL = still broken, Part 139 fixes it (it never stops the run)
+    kf = lambda n, c: print(("PASS " if c else "KNOWN-FAIL (Part 139) ") + n)
+    h = lambda m: AC.handle(m, True, True, True, lambda hh, s, e: ("x", "y"))
+    ok("149: torch sentences with extra words (मैं ... कर, यार ... please)", all((h(m) or (0, {}))[1] == {"type": "torch", "on": on} for m, on in (("मैं टॉर्च चालू कर", True), ("मैं टॉर्च चालू करो", True), ("यार टॉर्च बंद कर please", False), ("torch band kar do", False))))
+    ok("149: torch is never an app name", all((h(m) or (0, {}))[1].get("name") != "मैं टॉर्च" for m in ("मैं टॉर्च चालू कर", "मैं टॉर्च")))
+    ok("149: call Ammi, scroll down, back, home still work", h("ammi ko call karo")[1] == {"type": "call", "name": "Ammi"} and h("neeche scroll karo")[1] == {"type": "scroll", "dir": "down"} and h("peeche jao")[1] == {"type": "back"} and h("होम जाओ")[1] == {"type": "home"})
+    import whatsnew as WN
+    ok("149: last update question is answered from the header, not by the AI", WN.handle("last part kaun sa update hua", False, "Update: Jarvis_part133.zip") is not None)
+    kf("149: होम स्क्रीन पर जाओ -> home", (h("होम स्क्रीन पर जाओ") or (0, {}))[1] == {"type": "home"})
+    kf("149: home screen par jao -> home", (h("home screen par jao") or (0, {}))[1] == {"type": "home"})
+    kf("149: go to home screen -> home", (h("go to home screen") or (0, {}))[1] == {"type": "home"})
+    kf("149: मैं अम्मी को कॉल कर -> call Ammi (not 'main ammi')", (h("मैं अम्मी को कॉल कर") or (0, {}))[1].get("name", "").lower() == "ammi")
+    kf("149: usko open karo -> no app called usko", (h("usko open karo") or (0, {}))[1].get("name") != "usko")
 _unit()
 
 PORT = "8799"

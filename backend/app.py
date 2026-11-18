@@ -42,6 +42,28 @@ def load_env():
                 os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 
+def own(c):
+    """Part 138: chat and data belong to the owner, not to one pairing. Old extra devices are folded into the oldest one once."""
+    if "owner" in [r[1] for r in c.execute("PRAGMA table_info(devices)")]:
+        return
+    try:
+        c.execute("ALTER TABLE devices ADD COLUMN owner INT")
+    except sqlite3.OperationalError:
+        return  # another request just did it
+    ids = [r[0] for r in c.execute("SELECT id FROM devices ORDER BY id")]
+    if ids:
+        for (t,) in c.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall():
+            if "device" not in [r[1] for r in c.execute(f'PRAGMA table_info("{t}")')]:
+                continue
+            for old in ids[1:]:
+                try:
+                    c.execute(f'UPDATE "{t}" SET device=? WHERE device=?', (ids[0], old))
+                except sqlite3.Error:
+                    pass  # a table with one row per device keeps the older row
+        c.execute("UPDATE devices SET owner=?", (ids[0],))
+    c.commit()
+
+
 def db():
     c = sqlite3.connect(DB)
     c.execute("CREATE TABLE IF NOT EXISTS devices(id INTEGER PRIMARY KEY, name TEXT, token_hash TEXT UNIQUE, ts REAL)")
@@ -64,6 +86,7 @@ def db():
     ghost.init(c)  # Part 107
     money.init(c)  # Part 110
     tasks.init(c)  # Part 41: tracked multi-step tasks
+    own(c)  # Part 138
     return c
 
 
@@ -147,6 +170,19 @@ CAN += (" Never write the label '(phone action)'. Never say you switched, opened
         "If he asks for such a thing and no action ran, say so plainly and give the exact short words to say, for example: torch chalu karo.")
 
 
+FAKE = re.compile(r"\(phone action\)|\b(?:switch|turn|open|launch|call|dial|scroll|click)(?:ed|ing)\b|\bgoing to\b|kar diya|kar di\b|khol diya|ja raha|jaa raha|कर दिया|कर दी|खोल दिया|खोल रहा|जा रहा|कर रहा", re.I)
+THING = re.compile(r"torch|flash ?light|wi-?fi|bluetooth|volume|brightness|alarm|timer|home|screen|chrome|youtube|whatsapp|\bapp\b|\bcall|scroll|टॉर्च|वाईफाई|ब्लूटूथ|वॉल्यूम|अलार्म|टाइमर|होम|स्क्रीन|ऐप|कॉल|स्क्रॉल", re.I)
+
+
+def honest(reply, style):
+    """Part 138: this runs only when NO phone action ran. A short AI answer that says it did a phone thing is a lie, so it is replaced."""
+    if len(reply) > 240 or not (FAKE.search(reply) and (THING.search(reply) or "(phone action)" in reply)):
+        return reply
+    if style == "hindi":
+        return "सर, मैंने फ़ोन पर कुछ नहीं किया, कोई एक्शन चला ही नहीं। छोटे शब्द बोलिए, जैसे: टॉर्च चालू करो, होम जाओ, क्रोम खोलो।"
+    return "Sir, I did nothing on the phone: no action ran. Say the short words, for example: torch chalu karo, home jao, or Chrome kholo."
+
+
 def ask(history, style="english", extra=""):
     """PROVIDER=groq,openrouter,... : pehla jo chale uska jawab. Return (jawab, provider)."""
     errs = []
@@ -206,7 +242,7 @@ class H(BaseHTTPRequestHandler):
         m = re.match(r"Bearer (\S+)$", self.headers.get("Authorization", ""))
         if not m:
             return None
-        row = db().execute("SELECT id FROM devices WHERE token_hash=?",
+        row = db().execute("SELECT COALESCE(owner, id) FROM devices WHERE token_hash=?",
                            (hashlib.sha256(m.group(1).encode()).hexdigest(),)).fetchone()
         return row[0] if row else None
 
@@ -295,8 +331,9 @@ class H(BaseHTTPRequestHandler):
                 return self.send(403, {"error": "code galat ya expire"})
             token = secrets.token_urlsafe(32)
             c = db()
-            c.execute("INSERT INTO devices(name, token_hash, ts) VALUES(?,?,?)",
-                      (str(data.get("name", "phone"))[:40], hashlib.sha256(token.encode()).hexdigest(), time.time()))
+            first = c.execute("SELECT MIN(COALESCE(owner, id)) FROM devices").fetchone()[0]  # Part 138: a new pairing joins the owner, so the chat is not empty again
+            c.execute("INSERT INTO devices(name, token_hash, ts, owner) VALUES(?,?,?,?)",
+                      (str(data.get("name", "phone"))[:40], hashlib.sha256(token.encode()).hexdigest(), time.time(), first))
             c.commit()
             new_code()
             return self.send(200, {"token": token})
@@ -491,6 +528,7 @@ class H(BaseHTTPRequestHandler):
                     reply, via = ask(guest.add(dev, "user", guest.mask(msg)), str(data.get("style", "")), guest.RULE)
                 except RuntimeError as e:
                     return self.send(502, {"error": str(e)})
+                reply = honest(reply, str(data.get("style", "")))  # Part 138
                 guest.add(dev, "assistant", reply)
                 return self.send(200, {"reply": reply, "via": via, "guest": True})
             c = db()
@@ -608,12 +646,14 @@ class H(BaseHTTPRequestHandler):
                 cl = actions.cool_take(dev, action)  # Part 102: asked once, because it uses the switch up
                 return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {}), **({"cool": cl} if cl else {}), **({"ghost": gq} if gq else {}), **({"pw": pwc} if (pwc := placenote.take(c, dev)) else {})))
             rows = c.execute("SELECT role, content, ts FROM messages WHERE device=? ORDER BY id DESC LIMIT 20", (dev,)).fetchall()  # Part 126: 20 turns, not 10
+            rows = [x for x in rows if not (x[0] == "assistant" and x[1].startswith("(phone action)"))]  # Part 138: the AI must not copy an old fake label
             tctx = clock.context([(r, t) for r, _, t in reversed(rows)], prev_ts)
             wtxt, srcs = web.lookup(msg, now, mode == "research" and len(msg) >= 8 and not screen.used(data.get("screen")))  # Part 57: in Research mode every question is searched
             try:
                 reply, via = ask([{"role": r, "content": t} for r, t, _ in reversed(rows)], style, CAN + tctx + memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + replyideas.context(data.get("notif")) + wtxt + MOOD + debate.extra(dev) + modes.extra(mode))
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
+            reply = honest(reply, style)  # Part 138: no action ran on this path, so "done" from the AI is replaced
             if srcs:  # the list of sites comes from the real search result, not from the AI
                 reply += ("\n\nस्रोत: " if style == "hindi" else "\n\nSources: ") + ", ".join(srcs) + "\n" + web.label(srcs, style == "hindi")  # Part 90
             c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", "(answer about your screen was shown, not saved)" if screen.used(data.get("screen")) else "(reply ideas were shown, not saved)" if replyideas.used(data.get("notif")) else reply, time.time()))
