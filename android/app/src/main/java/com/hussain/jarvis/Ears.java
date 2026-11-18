@@ -88,10 +88,10 @@ class Ears implements RecognitionListener {
         if (wake && quiet) { again(e == SpeechRecognizer.ERROR_RECOGNIZER_BUSY ? 1500 : 300); return; }
         boolean net = e == SpeechRecognizer.ERROR_NETWORK || e == SpeechRecognizer.ERROR_NETWORK_TIMEOUT || e == SpeechRecognizer.ERROR_SERVER;  // Part 123: 1, 2, 4 = no internet for the phone speech service: try again, do not give up
         boolean soft = net || e == 11 || e == 10 || e == SpeechRecognizer.ERROR_CLIENT;  // 11 = speech service disconnected, 10 = too many requests, 5 = client
-        if (soft && fails < (net ? 6 : 4)) {  // a fresh recognizer after a short, growing pause; Jarvis shows nothing unless it keeps failing
+        if (soft && fails < (net ? 8 : 4)) {  // Part 134: error 2 (no internet for the speech service) gets 8 tries, the pause grows up to 6 seconds  // a fresh recognizer after a short, growing pause; Jarvis shows nothing unless it keeps failing
             fails++;
             if (sr != null) { try { sr.destroy(); } catch (Exception x) { /* gone already */ } sr = null; }
-            again(1200L * fails);
+            again(Math.min(1200L * fails, 6000L));
             return;
         }
         on = false;

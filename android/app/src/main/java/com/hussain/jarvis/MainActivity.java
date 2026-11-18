@@ -498,6 +498,7 @@ public class MainActivity extends Activity {
         if (cur == this) cur = null;
         AppLock.left();  // Android does not let apps listen from the background, so Hey Jarvis pauses here
         if (ears != null && ears.on) { ears.stop(); ears.js("onHeardErr", "Hey Jarvis paused because the app went to the background"); }
+        web.evaluateJavascript("window.onAppAway&&onAppAway()", null);  // Part 134: Conversation mode pauses here (it does not end) and continues when you return
     }
 
     @Override public void onRequestPermissionsResult(int code, String[] perms, int[] res) {
@@ -513,6 +514,7 @@ public class MainActivity extends Activity {
         PlaceWatch.resume(this, false);  // Parts 113, 114: brings the watch back after a restart (does nothing when no reminder exists)
         gate();
         if (AppLock.locked()) return;  // nothing is handed to the page while it is locked
+        web.postDelayed(() -> web.evaluateJavascript("window.onAppBack&&onAppBack()", null), 300);  // Part 134: the page continues a paused Conversation
         if (wantListen) {  // Part 38: tile or shortcut. Same as tapping the mic: the page checks Stop itself.
             wantListen = false;
             web.postDelayed(() -> web.evaluateJavascript("window.go&&go('chat');document.getElementById('mic')&&document.getElementById('mic').click()", null), 900);

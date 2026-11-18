@@ -172,14 +172,14 @@ One row per Part, plain numbers only. Keep each row to ONE line. A new idea gets
 | 129 | Look and tap | ScreenService.java, MainActivity.java, see.py, actions.py, app.py, index.html | 253 | Yes | Built, not phone tested |
 | 130 | Voice fixes from the 17 Nov screenshots | `actions.py`, `MainActivity.java`, `index.html` | ~60 | Yes | Built, not phone tested |
 | 131 | Port busy fix | `run.sh`, `app.py` | 9 + 6 = 15 | No | Built, not phone tested |
-| 134 | Conversation pauses, not ends: resumes when you return, retries speech error 2, ignores Jarvis's own voice | `index.html`, `MainActivity.java` | ~60 | Yes | Planned |
+| 134 | Conversation pauses, not ends: after 4 silent rounds or when you leave the app it pauses and continues when you return or tap the mic or Jarvis; speech error 2 gets more tries and then a retry every few seconds; its own sentence is ignored. | `index.html`, `MainActivity.java`, `Ears.java` | 49 | Yes | Built, not phone tested |
 | 135 | Wake word to Conversation: tap the `Jarvis heard you` notification and Conversation starts (needs Parts 39 and 40 phone tested) | `MainActivity.java`, `index.html` | ~45 | Yes | Planned |
 | 136 | Table A runner: `table a next`, tap PASS / FAIL / Skip, saved with date and note; feeds the Verified count | `*phonetest.py`, `app.py`, `progress.py`, `index.html` | ~130 | No | Planned |
 | 137 | Quiet mode exceptions: `quiet mode 2 hours except namaz, Ammi` | `modes.py`, `index.html` | ~100 | No | Planned |
 | 138 | Chat never lost, no fake done: every new pairing joins the oldest device, so chat and data survive a re-pair (old devices merged once); a short AI answer that claims a phone action is replaced by "I did nothing"; old `(phone action)` lines are not sent to the AI | `app.py`, `test_app.py` | 66 | No | Built, not phone tested |
 | 139 | Loose commands, round two: home, back and scroll work with filler words and one stray word (`होम स्क्रीन पर जाओ`, `open home screen`); `मैं अम्मी को कॉल कर` and `call ammi at anyhow` call Ammi; `usko open karo` asks which app; volume accepts filler. Click, type, send, pay, delete stay as before | `actions.py`, `test_app.py` | 51 | No | Built, not phone tested |
-| 140 | One Voice mode: Off / Hey Jarvis / Conversation instead of three switches; Interrupt becomes automatic | `index.html` | ~50 | No | Planned |
-| 141 | Talk on Home: tap Jarvis on Home and it listens and answers there, no jump to Chat | `index.html` | ~50 | No | Planned |
+| 140 | One Voice mode: Off / Hey Jarvis / Conversation instead of three switches; Interrupt is automatic (starts only when earphones are connected). Voice sheet is solid and tidy | `index.html` | 24 | No | Built, not phone tested |
+| 141 | Talk on Home: tap Jarvis on Home and it listens and answers there (reply bubble, `Thinking` and `Speaking` status), no jump to Chat; the chat still keeps the messages | `index.html` | 18 | No | Built, not phone tested |
 | 142 | Simple screens: fewer cards on Home and Settings, the rest under More (needs Hussain's Home screenshots) | `index.html` | ~80 | No | Planned |
 | 143 | What Jarvis learned: daily routine from his own data (counts only), a card to edit or delete, suggestions only | `*learn.py`, `app.py`, `index.html` | ~150 | No | Planned |
 | 144 | Know people by voice: Vosk speaker model (about 13 MB); Jarvis asks aloud and saves only after a yes; greets and remembers the last talk | `*SpeakerId.java`, `*voices.py`, `MainActivity.java`, `app.py`, `index.html` | ~250 | Yes | Planned |
@@ -197,7 +197,7 @@ One row per Part, plain numbers only. Keep each row to ONE line. A new idea gets
 4. Try Table A (section 7). Write PASS or FAIL for each row.
 5. Then name the next Part from the plan (section 4).
 
-**Done 19 Nov: 138, 149, 148, 139 (built, not phone tested; 148 is Java, so the APK must be built). Next in the order below: start at 134.**
+**Done 19 Nov: 138, 149, 148, 139, 134, 140, 141 (built, not phone tested; 148 and 134 are Java, so the APK must be built). Next in the order below: start at 142.**
 
 **Build order (18 Nov):** 138, 149, 148, 139, 134, 140, 141, 142, 143, 135, 136, 137, 145, 146, 147, 144.
 
@@ -329,6 +329,9 @@ Nothing here is phone tested unless the Result says PASS. Build the APK first fo
 | 62 | On a phone in dark mode open Home. Then say `glass off`, look again, then `glass on` | Home shows frosted glass cards, a glass orb and gradient headings; `glass off` gives the old flat look; `glass on` brings the glass back. The orb still turns red when Jarvis is stopped and blue when listening. A phone in light mode keeps the old look | No (Part 121) | not tested |
 | 63 | On Home look at the AI tools tiles, the buttons and the progress bars. Then open Settings > Look and tick `Reduce effects` | Tiles are glass squares with a glowing icon, main buttons are blue to purple, bars glow. After ticking Reduce effects Home goes back to the old flat look; unticking brings the glass back. `glass off` and the tick stay in sync. Phone setting `Remove animations` stops the orb from moving | No (Part 132) | not tested |
 | 64 | Turn Phone control ON. Open any app (not a bank app). Say `look and tap the search button` (or `dekh ke dabao <a button name>`) | The app goes back, Jarvis comes to the front with a notification, shows a small picture of that screen with a red number 1 and asks `should I tap the red number 1?` with Yes and No. Yes taps once and the chat says if the screen changed; No or 60 seconds taps nothing. On a screen with a password box, or a bank/payment app, Jarvis says it took no picture. Nothing is saved. Android 10 or older says it needs Android 11 | Yes | not tested |
+| 65 | Settings > Voice settings: look at the sheet. Pick `Conversation` in Voice mode, talk to Jarvis, then press Home and open another app for 20 seconds, then come back | One Voice mode choice (Off / Hey Jarvis / Conversation), no Hey Jarvis, Conversation or Interrupt buttons. The sheet is solid. Leaving the app shows `Conversation paused`; coming back continues listening by itself | Yes (Part 134) | not tested |
+| 66 | In Conversation mode stay silent for 4 rounds, then tap the mic. Also turn Wi-Fi and data off for 10 seconds while it listens, then turn them on | After 4 silent rounds it says it paused (it does not turn off) and one tap continues. With no internet it waits and tries again by itself; Jarvis's own sentence is not answered | Yes (Part 134) | not tested |
+| 67 | On Home tap Jarvis (the orb) and say `what is the time`. Then say it again with `Conversation` on | The page stays on Home, the bubble shows `You: ...` and the answer, status shows Listening, Thinking, Speaking. Chat has the same messages | No (Part 141) | not tested |
 
 ## 8. RULES FOR EVERY CLAUDE
 
