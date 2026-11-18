@@ -221,6 +221,33 @@ body #tabs button.g:not(.on){background:transparent}
 body.kb #tabs{display:none}
 #tl{flex:1;min-height:0;overflow-y:auto}
 </style>
+<style id="holo151">
+/* Part 151: Home hologram. A light disc under the orb, a beam up to it, three tilted rings turning around it, scan lines and a small flicker. Dark phones only. Settings > Look > No hologram (or say: no hologram) turns it off. */
+#hw{position:relative}#holo{display:none}
+@media (prefers-color-scheme:dark){
+body.holo #hw{padding-bottom:50px;perspective:760px}
+body.holo #holo{display:block;position:absolute;inset:0;pointer-events:none}
+#holo .hb{position:absolute;z-index:1;left:50%;bottom:6px;width:196px;height:38px;margin-left:-98px;border-radius:50%;background:radial-gradient(ellipse,rgba(53,198,255,.8) 0,rgba(53,198,255,.28) 46%,transparent 72%);border:1px solid rgba(53,198,255,.65);box-shadow:0 0 28px rgba(53,198,255,.6),inset 0 0 12px rgba(53,198,255,.5)}
+#holo .hc{position:absolute;z-index:1;left:50%;bottom:26px;width:176px;height:120px;margin-left:-88px;background:linear-gradient(to top,rgba(53,198,255,.42),rgba(155,107,255,.08) 80%,transparent);clip-path:polygon(24% 100%,76% 100%,100% 0,0 0)}
+#holo .rg{position:absolute;z-index:3;left:50%;top:90px;width:0;height:0;transform-style:preserve-3d}
+#holo .rg i{position:absolute;border-radius:50%;border:1.5px solid rgba(53,198,255,.7);box-shadow:0 0 10px rgba(53,198,255,.55)}
+#holo .q1{width:232px;height:232px;margin:-116px;animation:hq1 9s linear infinite}
+#holo .q2{width:206px;height:206px;margin:-103px;border-color:rgba(255,92,200,.65);box-shadow:0 0 10px rgba(255,92,200,.5);animation:hq2 12s linear infinite}
+#holo .q3{width:178px;height:178px;margin:-89px;border-style:dashed;border-color:rgba(155,107,255,.75);animation:hq3 7s linear infinite reverse}
+@keyframes hq1{from{transform:rotateX(74deg) rotateZ(0)}to{transform:rotateX(74deg) rotateZ(360deg)}}
+@keyframes hq2{from{transform:rotateY(72deg) rotateZ(0)}to{transform:rotateY(72deg) rotateZ(360deg)}}
+@keyframes hq3{from{transform:rotateX(58deg) rotateY(40deg) rotateZ(0)}to{transform:rotateX(58deg) rotateY(40deg) rotateZ(360deg)}}
+body.holo #hf{position:relative;z-index:2;animation:hfl 4.2s ease-in-out infinite,hfk 6s steps(1) infinite}
+@keyframes hfl{50%{transform:translateY(-9px)}}
+@keyframes hfk{0%,91%,95%,100%{opacity:1}92%{opacity:.78}93%{opacity:1}94%{opacity:.86}}
+body.holo #orb{overflow:hidden;text-shadow:0 0 18px #7fe3ff}
+body.holo #orb::after{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(120,220,255,.16) 0 1px,transparent 1px 4px);animation:hsc 2.4s linear infinite}
+@keyframes hsc{to{background-position:0 16px}}
+#hw.on .rg i{animation-duration:3.5s}
+#hw.off #holo{filter:hue-rotate(165deg) saturate(1.3)}
+}
+@media (prefers-reduced-motion:reduce){body.holo #hf,body.holo #orb::after,#holo .rg i{animation:none!important}}
+</style>
 </head><body>
 <header><div class="logo">J</div><div><b>JARVIS</b><span id="st">...</span></div><span class="sp"></span><button id="vbtn" title="Voice">🔊</button><button id="gear" title="Settings">⚙</button></header>
 <div id="tbar" hidden><span><b id="tn"></b><br><small>No voice, short replies, reminders as text.</small></span><button type="button" id="tend">End</button></div>
@@ -230,7 +257,7 @@ body.kb #tabs{display:none}
 <div id="pair"><h2>Welcome, sir</h2><p>Pair this phone with your Jarvis server:</p><p style="text-align:left;font-size:15px">1. Open the <b>Termux</b> app.<br>2. Find the line <b>PAIRING CODE: 123456</b> (the last one).<br>3. Type those 6 numbers below.<br>The code works for 10 minutes. No code, or too old? Tap the small button, then look in Termux again.</p>
 <input id="code" inputmode="numeric" maxlength="6" placeholder="••••••"><p><button id="go">Pair this phone</button> <button id="nc" class="g">Show code in Termux</button></p><p id="pe" class="bad"></p></div>
 <div id="home" hidden><div id="hg"></div><div id="hq2">What would you like to do today?</div><div id="hd"></div><div id="wave"></div>
-<div class="hero"><div id="orb" role="button" aria-label="Talk to Jarvis"><i class="r1"></i><i class="r2"></i><i class="r3"></i>J</div><div id="hs0"></div><div class="bub" id="bub"></div></div>
+<div class="hero"><div id="hw"><div id="holo" aria-hidden="true"><b class="hc"></b><b class="hb"></b><s class="rg"><i class="q1"></i><i class="q2"></i><i class="q3"></i></s></div><div id="hf"><div id="orb" role="button" aria-label="Talk to Jarvis"><i class="r1"></i><i class="r2"></i><i class="r3"></i>J</div></div></div><div id="hs0"></div><div class="bub" id="bub"></div></div>
 <div class="card" id="aw" hidden></div><div class="card" id="lsg" hidden></div><h4>Next best move</h4><div id="lr"></div><div class="card" id="lc">...</div><div id="ls"></div>
 <h4>AI tools</h4><div class="tools" id="htl"></div>
 <h4>Today's schedule</h4><div class="card" id="ht">...</div>
@@ -340,6 +367,7 @@ $('f').onsubmit=async e=>{
   if(BTDEV.test(t)){add('user',t);add('bot',btPaired());return;}
   if(CNOTE.test(t)){add('user',t);add('bot',callNoteCmd(t));return;}  // Part 112
   if(GLQ.test(t)){add('user',t);add('bot',glassCmd(t));return;}  // Part 121
+  if(HLQ.test(t)){add('user',t);add('bot',holoCmd(t));return;}  // Part 151
   if(SCRQ.test(t)||MAPQ.test(t)){add('user',t);add('bot',SCRQ.test(t)?scrollCmd(t):mapCmd(t));return;}  // Parts 115 + 116: phone-only, never sent to the server or the AI
   if(BATQ.test(t)&&!BATNO.test(t)&&t.length<70){const ph=pinfo();if(ph&&ph.battery!=null){const hi=sty()=='hindi',vm0=viaMic;viaMic=false;add('user',t);
     const a=hi?`सर, बैटरी ${ph.battery}% है और फ़ोन ${ph.charging?'चार्ज हो रहा है':'चार्ज नहीं हो रहा'}।`:`Battery is at ${ph.battery}% and the phone is ${ph.charging?'charging':'not charging'}, sir.`;
@@ -617,16 +645,24 @@ function pwPush(pw,loud){try{if(!window.JarvisApp||!JarvisApp.placeSet)return;co
 async function pwBoot(){try{const {s,d}=await api('/place/sync',{});if(s==200&&d.pw)pwPush(d.pw,false);}catch(e){}}
 function btPaired(){try{if(!window.JarvisApp||!JarvisApp.btPaired)return 'Bluetooth names are shown only in the Jarvis Android app.';const r=JSON.parse(JarvisApp.btPaired());
   if(r.need)return 'Allow "Nearby devices" for Jarvis when Android asks, then say: bluetooth devices';return r.list&&r.list.length?'Paired Bluetooth devices:\n'+r.list.map(x=>'- '+x).join('\n')+'\nSay: jab <word from the name> bluetooth jude <your note>':'No paired Bluetooth devices found.';}catch(e){return 'Could not read Bluetooth names.';}}
+let HOLO=(()=>{try{return localStorage.getItem('jholo')!='0';}catch(e){return true;}})();  // Part 151: declared first because the Look card (Part 132) reads it
 // Part 121 (+ 132): Glass skin on Home, dark phones only. `glass off` goes back to the old look, `glass on` brings it back, `reduce effects` is the same as glass off. Saved in this page only.
 let GLASS=(()=>{try{return localStorage.getItem('jglass')!='0';}catch(e){return true;}})();
 const GLQ=/^\s*(glass(?: skin)?|reduce effects)\s*(on|off|chalu|band)?\s*$/i;
 function glassApply(){document.body.classList.toggle('glass',GLASS);try{localStorage.setItem('jglass',GLASS?'1':'0');}catch(e){}if($('lookc'))lookCard();}
 // Part 132: Settings > Look card with the Reduce effects switch (the same switch as the words `reduce effects` and `glass off`).
-function lookCard(){const c=$('lookc');c.textContent='';const l=el('label'),cb=el('input');cb.type='checkbox';cb.checked=!GLASS;cb.onchange=()=>{GLASS=!cb.checked;glassApply();};l.append(cb,el('span','','Reduce effects (no glass, blur or glow on Home)'));c.append(l,el('p','sm','The glass look shows on dark phones only. Chat is not changed. You can also say: glass off'));}
+function lookCard(){const c=$('lookc');c.textContent='';const l=el('label'),cb=el('input');cb.type='checkbox';cb.checked=!GLASS;cb.onchange=()=>{GLASS=!cb.checked;glassApply();};l.append(cb,el('span','','Reduce effects (no glass, blur or glow on Home)'));const l2=el('label'),c2=el('input');c2.type='checkbox';c2.checked=!HOLO;c2.onchange=()=>{HOLO=!c2.checked;holoApply();};l2.append(c2,el('span','','No hologram (the light rings and beam under the orb)'));
+  c.append(l,l2,el('p','sm','The glass look and the hologram show on dark phones only. Chat is not changed. You can also say: glass off, or: no hologram'));}
 function glassCmd(t){const m=t.match(GLQ),red=/reduce/i.test(m[1]),a=(m[2]||'').toLowerCase(),yes=/^(on|chalu)$/.test(a);
   if(red||a){GLASS=red?!!(a&&!yes):yes;glassApply();}
   return GLASS?'Glass look is ON (dark phones only). Say: glass off, or: reduce effects':'Glass look is OFF (the old look). Say: glass on';}
 glassApply();
+// Part 151: Home hologram. On by default (dark phones). `no hologram` or Settings > Look turns it off, `hologram on` brings it back. Saved in this page only.
+const HLQ=/^\s*(?:(no hologram)|hologram\s*(on|off|chalu|band)?)\s*$/i;
+function holoApply(){document.body.classList.toggle('holo',HOLO);try{localStorage.setItem('jholo',HOLO?'1':'0');}catch(e){}if($('lookc'))lookCard();}
+function holoCmd(t){const m=t.match(HLQ);if(m[1])HOLO=false;else if(m[2])HOLO=/^(on|chalu)$/i.test(m[2]);holoApply();
+  return HOLO?'Hologram is ON (dark phones only). Say: no hologram':'Hologram is OFF. Say: hologram on';}
+holoApply();
 // Part 112: note after a call. Off until you say `call note on`. Jarvis never sees the number or the voice, only that a call of 30 seconds or more ended.
 let CNW=0;const CNOTE=/^\s*call note\s*(on|off|chalu|band)?\s*$/i;
 function callNoteAsk(){go('chat');const b=add('bot','Call ended. Kuch yaad rakhna hai? Type or say your note now.');CNW=Date.now()+5*60000;btns(b,[['Skip',()=>{CNW=0;b.textContent='Okay, no note.';}]]);}
@@ -905,13 +941,6 @@ function dash(){
   pc.appendChild(el('span','chip '+(d.control?'warn':''),d.control?'ON':'OFF'));
   const cb=el('button','g',d.control?'Turn off':'Turn on');cb.onclick=()=>{let r={};try{r=JSON.parse(JarvisApp.setControl(!d.control))}catch(e){}if(!r.ok)add('err','Phone control did not change. Tap the button with your finger, and Jarvis must not be stopped.');setTimeout(dash,300);};
   pc.appendChild(cb);box.appendChild(pc);
-  if(window.JarvisApp&&JarvisApp.lockState){  // Part 36: app lock with Android's own prompt
-    let ls={};try{ls=JSON.parse(JarvisApp.lockState())}catch(e){}
-    const al=el('div','dr');al.appendChild(el('b','','App lock'));al.appendChild(el('small','','Asks for your fingerprint, face or phone PIN when you open Jarvis, but not again for 5 minutes after you leave. It is OFF by default. Jarvis keeps no PIN of its own. Needs a screen lock on the phone.'));
-    al.appendChild(el('span','chip '+(ls.on?'ok':''),ls.on?'ON':'OFF'));
-    const ab=el('button','g',ls.on?'Turn off':'Turn on');ab.onclick=()=>{let r={};try{r=JSON.parse(JarvisApp.appLock(!ls.on))}catch(e){}
-      if(r.err=='nolock')add('err','Set a screen lock (PIN, pattern or fingerprint) in Android settings first, then try again.');else if(!r.ok)add('err','App lock did not change.');setTimeout(dash,500);};
-    al.appendChild(ab);box.appendChild(al);}
   const nm={};
   DASH.forEach(([id,name,why,go])=>{nm[id]=name;const p=d.perm[id],r=el('div','dr');r.appendChild(el('b','',name));r.appendChild(el('small','',why));
     const L=id=='battery'?['Limited by Android','Not limited']:id=='screen'?['Accessibility OFF','Accessibility ON']:['Not allowed','Allowed'];
@@ -1061,7 +1090,7 @@ async function homeLoad(force){
   if($('home').hidden)return;
   const live=appListening||wakeOn||convOn||!!rec;
   $('hg').textContent=greet();$('hd').textContent=new Date().toLocaleDateString('en',{weekday:'long',day:'numeric',month:'long'});
-  $('orb').className=priv?'off':live?'on':'';$('wave').className=live?'on':'';
+  $('orb').className=$('hw').className=priv?'off':live?'on':'';$('wave').className=live?'on':'';
   $('hs0').textContent=(srvUp?'● Server online':'● Server offline')+' · '+(priv?'🔒 Stopped':live?'🎙 Listening...':convPause?'⏸ Conversation paused · tap the orb':busy?'… Thinking':((aud&&!aud.paused&&!aud.ended)||(window.speechSynthesis&&speechSynthesis.speaking))?'🔊 Speaking...':'Tap the orb to speak');
   $('bub').textContent=priv?'Jarvis is stopped. Open Chat and tap "Turn mic on" when you want me back.':(hb.a&&Date.now()<hb.u)?(hb.q?'You: '+hb.q+'\n':'')+hb.a:greet()+'. How can I help you?';
   const ph=pinfo();if(ph&&ph.battery!=null){$('hr').style.setProperty('--p',ph.battery);$('hrt').textContent=ph.battery+'%';$('hrs').textContent=ph.charging?'charging':'';}else{$('hrt').textContent='-';$('hrs').textContent='app only';}

@@ -5,46 +5,43 @@ import android.app.KeyguardManager;
 import android.content.Context;
 import android.content.Intent;
 
-/** Part 36: lock the Jarvis app with Android's own screen lock prompt (fingerprint, face, PIN, pattern). Jarvis never keeps its own PIN. */
+/** Part 36 made this; Part 150 switched it OFF for good: Jarvis never asks for a fingerprint, face or PIN any more. The methods stay so the other files compile. */
 final class AppLock {
     static final int ASK = 9, TURN_OFF = 10;
-    static final long GRACE = 300_000;  // Part 48: leaving the app for less than 5 minutes does not ask again (was 1 minute)
-    private static boolean on;
-    private static long okUntil;  // the app is open until this time
+    static final long GRACE = 300_000;
+    private static boolean on;  // Part 150: always false
+    private static long okUntil;
     private static boolean loaded;
 
     private AppLock() {}
 
+    /** Part 150: also clears an old "ON" saved by an earlier APK, so the prompt never comes back. */
     static void init(Context c) {
         if (loaded) return;
         loaded = true;
-        android.content.SharedPreferences p = c.getSharedPreferences("j", 0);
-        if (!p.getBoolean("lock48", false)) p.edit().putBoolean("lock48", true).putBoolean("applock", false).apply();  // Part 48: Hussain does not want the prompt on every open. One time reset to OFF; he can turn it on again in Settings
-        on = p.getBoolean("applock", false);
+        on = false;
+        c.getSharedPreferences("j", 0).edit().putBoolean("applock", false).apply();
     }
 
-    /** True if the phone has a screen lock. Without one Android cannot ask for anything. */
     static boolean available(Context c) {
         KeyguardManager k = c.getSystemService(KeyguardManager.class);
         return k != null && k.isDeviceSecure();
     }
 
-    static boolean enabled() { return on; }
+    static boolean enabled() { return false; }
 
-    /** True while the lock is on and the app was not opened in the last minute. The bridge and the page both obey this. */
-    static boolean locked() { return on && System.currentTimeMillis() > okUntil; }
+    static boolean locked() { return false; }
 
     static void opened() { okUntil = System.currentTimeMillis() + GRACE; }
 
-    static void left() { if (on && System.currentTimeMillis() < okUntil) okUntil = System.currentTimeMillis() + GRACE; }
+    static void left() { }
 
+    /** Part 150: ignored. The lock cannot be turned on. */
     static void set(Context c, boolean v) {
-        on = v;
-        c.getSharedPreferences("j", 0).edit().putBoolean("applock", v).apply();
-        if (v) opened();
+        on = false;
+        c.getSharedPreferences("j", 0).edit().putBoolean("applock", false).apply();
     }
 
-    /** Opens Android's own prompt. Returns false if the phone has no screen lock. */
     static boolean ask(Activity a, int code, String why) {
         KeyguardManager k = a.getSystemService(KeyguardManager.class);
         Intent i = k == null ? null : k.createConfirmDeviceCredentialIntent("Jarvis", why);
@@ -53,6 +50,6 @@ final class AppLock {
     }
 
     static String state(Context c) {
-        return "{\"on\":" + on + ",\"available\":" + available(c) + ",\"locked\":" + locked() + "}";
+        return "{\"on\":false,\"available\":" + available(c) + ",\"locked\":false}";
     }
 }

@@ -44,9 +44,9 @@
 4. Voice: Sarvam `Shubh` (Hindi and English), Edge as backup. Speech to text: the phone's recognizer (one language at a time).
 5. Privacy: no cloud sync, no silent recording, every feature has an OFF word.
 
-## 2. ALL PARTS IN ONE TABLE (Part 1 to 149)
+## 2. ALL PARTS IN ONE TABLE (Part 1 to 151)
 
-One row per Part, plain numbers only. Keep each row to ONE line. A new idea gets the NEXT number (now 150). When a Part is built, fill the real lines and change the status. Status words are read by `mission`: `Built, not phone tested`, `Built, phone tested`, `Built, partly tested`, `Planned`. `*` = new file. A range like `1 to 5` means the old notes did not split them.
+One row per Part, plain numbers only. Keep each row to ONE line. A new idea gets the NEXT number (now 152). When a Part is built, fill the real lines and change the status. Status words are read by `mission`: `Built, not phone tested`, `Built, phone tested`, `Built, partly tested`, `Planned`. `*` = new file. A range like `1 to 5` means the old notes did not split them.
 
 | Part | What it does | Files | Lines | New APK? | Status |
 |---|---|---|---|---|---|
@@ -188,6 +188,8 @@ One row per Part, plain numbers only. Keep each row to ONE line. A new idea gets
 | 147 | Real tick: a tick or cross after a phone action only when the phone's own result says so | `index.html`, `app.py` | ~40 | No | Planned |
 | 148 | More Jarvis mishearings: जरवेस, जरवेश, जर्वेस, जरविस, हिसारिस्ट, jar vis, jarvice and more count as the wake word (page, ListenService, WakeEngine) | `ListenService.java`, `WakeEngine.java`, `index.html` | 6 | Yes | Built, not phone tested |
 | 149 | Screenshot sentences as tests: torch, call Ammi, scroll, back, home, last update. The 5 that failed before are fixed by Part 139 and now PASS | `test_app.py` | 13 | No | Built, not phone tested |
+| 150 | No more fingerprint: the app lock (Part 36) is OFF for good. Jarvis never asks for a fingerprint, face or PIN. An old ON saved by an older APK is cleared at start. The App lock card is gone from Settings > Privacy | `AppLock.java`, `index.html` | 55 + 7 removed | Yes | Built, not phone tested |
+| 151 | Home hologram: a light disc and beam under the orb, three tilted rings turning around it, scan lines, a small float and flicker. Faster when listening, red when stopped. Dark phones only. OFF: Settings > Look > `No hologram`, or say `no hologram` (`hologram on` brings it back) | `index.html` | 39 added + 3 changed | No | Built, not phone tested |
 
 ## 3. WHAT HUSSAIN DOES NOW
 
@@ -197,7 +199,7 @@ One row per Part, plain numbers only. Keep each row to ONE line. A new idea gets
 4. Try Table A (section 7). Write PASS or FAIL for each row.
 5. Then name the next Part from the plan (section 4).
 
-**Done 19 Nov: 138, 149, 148, 139, 134, 140, 141, 142, 143, 135, 136, 137, 145 (built, not phone tested; 148, 134 and 135 are Java, so the APK must be built). Next in the order below: start at 146.**
+**Done 19 Nov: 150, 151, 138, 149, 148, 139, 134, 140, 141, 142, 143, 135, 136, 137, 145 (built, not phone tested; 148, 134 and 135 are Java, so the APK must be built). Next in the order below: start at 146.**
 
 **Build order (18 Nov):** 138, 149, 148, 139, 134, 140, 141, 142, 143, 135, 136, 137, 145, 146, 147, 144.
 
@@ -338,6 +340,8 @@ Nothing here is phone tested unless the Result says PASS. Build the APK first fo
 | 71 | Type `table a next`. Tap PASS (or FAIL) under the row. Then type `table a status`, `table a fails`, `mission` | The next unanswered row shows with Try, Expect and APK, plus PASS / FAIL / Skip buttons. After a tap it says `test N: PASS saved`, shows the count and the next row. `status` shows PASS, FAIL, skipped and not done; `fails` lists failed rows with notes; `mission` Verified goes up by the PASS you tapped. After a new zip the answers are still there | No (Part 136) | not tested |
 | 72 | Say `quiet mode 2 hours except namaz, Ammi`. Set a reminder 2 minutes ahead that says `namaz`, and another that says `chai`. Wait for both with the page open | The top bar says `quiet mode until HH:MM, except namaz, ammi`. The namaz reminder is read aloud; the chai reminder is text only. Normal replies stay silent. `normal mode` ends it | No (Part 137) | not tested |
 | 73 | Type `samjha: open youtube`, then `samjha: message bhejo`, `samjha: kal 9 baje chai yaad dilana`, `samjha: होम स्क्रीन पर जाओ` | Each answer shows Language, Understood as, and the phone command (or `not a phone command`); `message bhejo` says it waits for your Yes. Nothing opens, nothing is sent or saved, and the end line says `Nothing was run` | No (Part 145) | not tested |
+| 74 | Install the new APK. Open Jarvis, close it, wait 6 minutes, open it again. Look in Settings > Privacy | No fingerprint, face or PIN prompt at any time. The `App lock` row is not in Privacy any more | Yes (Part 150) | not tested |
+| 75 | On Home (dark phone) look at the orb. Then Settings > Look > tick `No hologram`. Then say `hologram on`. Tap the orb and talk | The orb floats over a light disc with a beam and 3 turning rings. Tick `No hologram`: the rings, beam and disc vanish and the orb is as before. `hologram on` brings them back. While listening the rings turn faster; when Jarvis is stopped the hologram turns red. Phone setting `Remove animations` makes it still | No (Part 151) | not tested |
 
 ## 8. RULES FOR EVERY CLAUDE
 
