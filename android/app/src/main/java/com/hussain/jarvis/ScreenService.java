@@ -252,6 +252,81 @@ public class ScreenService extends AccessibilityService {
         }, 900);
     }
 
+    // ---- Part 129: look and tap. ONE screenshot of the open app (Android 11+), kept only in memory and sent only to the vision AI after your request.
+    //      A screen with a password box, or a payment app, is never photographed. The tap needs your real finger tap on Yes, in the same app, within 2 minutes. ----
+    static volatile String shotPkg;  // the app that was open when the picture was taken
+    static volatile long shotAt;
+    static volatile int shotW, shotH;  // real screen pixels of that picture (the tap spot is a fraction of these)
+
+    static boolean hasPassword(AccessibilityNodeInfo n, int d) {
+        if (n == null || d > 25) return false;
+        if (n.isVisibleToUser() && n.isPassword()) return true;
+        for (int i = 0; i < n.getChildCount(); i++) if (hasPassword(n.getChild(i), d + 1)) return true;
+        return false;
+    }
+
+    /** Takes the picture. Result: {ok, w, h, image: data URL} or {ok:false, err}. The caller has already checked Stop, the master switch and the app lock. */
+    static void shot(Done cb) {
+        final ScreenService s = live;
+        if (s == null) { cb.got(r(false, "perm")); return; }
+        if (Build.VERSION.SDK_INT < 30) { cb.got(r(false, "old_shot")); return; }
+        AccessibilityNodeInfo root = s.getRootInActiveWindow();
+        if (root == null || String.valueOf(root.getPackageName()).equals(s.getPackageName())) { cb.got(r(false, "no_app")); return; }
+        final String pkg = String.valueOf(root.getPackageName());
+        if (PaymentGuard.isPaymentApp(s.getSharedPreferences("j", 0), pkg) || hasPassword(root, 0)) { cb.got(r(false, "secret_screen")); return; }
+        s.takeScreenshot(android.view.Display.DEFAULT_DISPLAY, s.getMainExecutor(), new AccessibilityService.TakeScreenshotCallback() {
+            @Override public void onSuccess(AccessibilityService.ScreenshotResult res) {
+                try {
+                    android.hardware.HardwareBuffer hb = res.getHardwareBuffer();
+                    android.graphics.Bitmap hw = android.graphics.Bitmap.wrapHardwareBuffer(hb, res.getColorSpace());
+                    android.graphics.Bitmap bmp = hw == null ? null : hw.copy(android.graphics.Bitmap.Config.ARGB_8888, false);
+                    if (hw != null) hw.recycle();
+                    hb.close();
+                    if (bmp == null) { cb.got(r(false, "shot_failed")); return; }
+                    int w = bmp.getWidth(), h = bmp.getHeight();
+                    float k = Math.min(1f, 720f / w);  // a small picture is enough to point at a button, and it is quicker and cheaper
+                    android.graphics.Bitmap sm = k < 1f ? android.graphics.Bitmap.createScaledBitmap(bmp, Math.round(w * k), Math.round(h * k), true) : bmp;
+                    java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+                    sm.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, bo);
+                    if (sm != bmp) sm.recycle();
+                    bmp.recycle();
+                    String b64 = android.util.Base64.encodeToString(bo.toByteArray(), android.util.Base64.NO_WRAP);
+                    if (b64.length() > 1300000) { cb.got(r(false, "shot_failed")); return; }
+                    shotPkg = pkg; shotAt = System.currentTimeMillis(); shotW = w; shotH = h;
+                    JSONObject o = r(true, null);
+                    o.put("w", w); o.put("h", h); o.put("image", "data:image/jpeg;base64," + b64);
+                    cb.got(o);
+                } catch (Exception e) { cb.got(r(false, "shot_failed")); }
+            }
+            @Override public void onFailure(int code) { cb.got(r(false, code == 2 ? "perm_shot" : code == 3 ? "too_fast" : "shot_failed")); }
+        });
+    }
+
+    /** ONE tap at the spot (fx, fy = fractions of the picture). Needs sure (your real finger tap on Yes). Refuses if another app is open now. Never claims success when nothing changed. */
+    static void tapAt(JSONObject a, boolean sure, Done cb) {
+        ScreenService s = live;
+        if (s == null) { cb.got(r(false, "perm")); return; }
+        if (!sure) { cb.got(r(false, "need_yes")); return; }
+        double fx = a.optDouble("fx", -1), fy = a.optDouble("fy", -1);
+        if (Build.VERSION.SDK_INT < 24 || !(fx >= 0 && fx <= 1 && fy >= 0 && fy <= 1) || shotW <= 0 || shotH <= 0) { cb.got(r(false, "unknown")); return; }
+        if (SECRET.matcher(a.optString("label")).find()) { cb.got(r(false, "secret_field")); return; }
+        AccessibilityNodeInfo root = s.getRootInActiveWindow();
+        String want = shotPkg;
+        shotPkg = null;  // one picture, one tap
+        if (root == null || want == null || !want.equals(String.valueOf(root.getPackageName())) || System.currentTimeMillis() - shotAt > 120000) { cb.got(r(false, "screen_changed")); return; }
+        if (hasPassword(root, 0)) { cb.got(r(false, "secret_screen")); return; }
+        final int was = sig(root);
+        Path p = new Path();
+        p.moveTo((float) (fx * shotW), (float) (fy * shotH));
+        if (!s.dispatchGesture(new GestureDescription.Builder().addStroke(new GestureDescription.StrokeDescription(p, 0, 60)).build(), null, null)) { cb.got(r(false, "refused")); return; }
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            AccessibilityNodeInfo now = live == null ? null : live.getRootInActiveWindow();
+            JSONObject o = r(true, null);
+            try { o.put("changed", now != null && sig(now) != was); } catch (Exception e) { /* send what we have */ }
+            cb.got(o);
+        }, 1000);
+    }
+
     /** Part 127: big tappable cards and rows (not small buttons), outermost only, top to bottom. A drawn chart has none: Android shows no items inside a picture. */
     static ArrayList<AccessibilityNodeInfo> items(AccessibilityNodeInfo root, android.util.DisplayMetrics m) {
         ArrayList<AccessibilityNodeInfo> all = new ArrayList<>(), out = new ArrayList<>();

@@ -23,6 +23,10 @@ def _unit():
     ok("33: paise bhejo -> pay confirm", a("paise bhejo Faisal ko")[1] == {"type": "confirm", "risk": "pay"})
     ok("33: delete / buy / install / logout -> confirm", all((a(m) or (0, {}))[1].get("type") == "confirm" for m in ("delete this chat", "buy shoes", "install Telegram", "logout karo")))
     ok("33: switch OFF par confirm nahi, chat chalti hai", a("delete this chat", False) is None)
+    import see as SE
+    ok("129: look and tap -> look action", a("look and tap the chart")[1] == {"type": "look", "target": "the chart"} and a("dekh ke dabao subscribe")[1]["type"] == "look")
+    ok("129: switch OFF, password target, question are not look", a("look and tap chart", False)[1] is None and a("look and tap password box")[1] is None and a("what does look and tap do?") is None)
+    ok("129: AI answer parser: good, out of range, garbage", SE.parse_loc('{"found":true,"x":500,"y":250,"label":"Chart"}') == {"found": True, "x": 0.5, "y": 0.25, "label": "Chart"} and SE.parse_loc('{"found":true,"x":1500,"y":5}') == {"found": False} and SE.parse_loc("no") == {"found": False})
     import clock as CK
     ok("66: subah 6 baje alarm -> 6:00 AM", a("subah 6 baje alarm laga")[1] == {"type": "alarm", "hour": 6, "minute": 0})
     ok("66: bina AM/PM ke 6 baje -> Java agla wala chunta hai", a("alarm laga do 6:30 baje")[1] == {"type": "alarm", "hour": 6, "minute": 30, "ambiguous": True})

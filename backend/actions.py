@@ -5,7 +5,7 @@ from difflib import get_close_matches
 import lang
 
 ACTIONS = {"open_app"}  # what the AI fallback may return. Only open_app, nothing else.
-SCREEN = {"click", "click_nth", "scroll", "swipe", "type", "back", "home", "current_app", "lock", "settings", "torch", "volume"}  # Part 34: only the user's own words can make these; the AI fallback never can.
+SCREEN = {"click", "click_nth", "scroll", "swipe", "type", "back", "home", "current_app", "lock", "settings", "torch", "volume", "look", "tap"}  # Part 129 adds look and tap. Part 34: only the user's own words can make these; the AI fallback never can.
 SAFE = {"open_app"}  # Part 33: these run after the master switch. Anything else needs a preview and Hussain's own tap on Yes, every single time.
 EN = {"open", "launch", "start", "run", "ओपन", "ओपेन", "ओप्पण", "लॉन्च", "लांच", "स्टार्ट", "रन"}  # Part 59: Hindi-script spellings of the English words (phone dictation writes "open" as "ओपन")
 HI = {"उघड", "उघडा", "उघडणे", "तिर", "तिरक्क", "तिरक्कवुम", "तिरक्कुम", "तेरुवु", "तेरवंडि", "तेरे", "तेरयिरि", "तुरक्कुक", "तुरक्कू", "खोल्हो", "खोल्हें", "kholo", "khol", "kholna", "kholiye", "kholiyega", "kholen", "chalao", "chala", "chalu", "shuru", "खोलो", "खोल", "खोलना", "खोलिए", "खोलिये", "खोलें", "चलाओ", "चला", "चालू", "चालु", "शुरू"}
@@ -157,6 +157,16 @@ def secret_text(t):
     """True if the text to type looks like an OTP, PIN, card number or a password. Jarvis never types those."""
     d = re.sub(r"\D", "", t)
     return bool(re.search(r"password|passcode|\botp\b|\bpin\b|cvv|पासवर्ड|ओटीपी|पिन", t, re.I)) or (d == re.sub(r"[\s-]", "", t) and (4 <= len(d) <= 8 or 13 <= len(d) <= 19))
+
+
+# ---- Part 129: look and tap. Only this grammar, only the person's own words. ONE screenshot, a vision AI points, you see a number on it, and only your finger tap on Yes taps. ----
+LOOK_RX = re.compile(r"^\s*(?:look\s*(?:and|n|&)\s*tap|look\s*tap|dekh\s*(?:ke|kar|kr)\s*(?:dabao|dabaao|tap\s*karo|click\s*karo|press\s*karo)|देख\s*(?:के|कर)\s*(?:दबाओ|टैप\s*करो))\s*[:,\-]?\s*(.{2,80}?)\s*[.!]?\s*$", re.I | re.S)
+
+
+def look_cmd(msg):
+    """The thing to find on the screen (text), or None if this is not a look-and-tap sentence."""
+    m = LOOK_RX.match(msg.strip()) if len(msg) <= 160 and "?" not in msg else None
+    return re.sub(r"\s+", " ", m.group(1)).strip() if m else None
 
 
 def screen_cmd(msg):
@@ -564,6 +574,15 @@ def handle(msg, hindi, control, in_app, ask):
     msg = lang.norm(msg)
     if blocked(msg):
         return say("सर, मैं पासवर्ड, OTP, PIN या कार्ड नंबर कभी टाइप नहीं करता। कृपया आप खुद टाइप कीजिए।", "Sir, I never type passwords, OTPs, PINs or card numbers. Please type it yourself."), None
+    lk = look_cmd(msg)  # Part 129: "look and tap the chart". Needs the app and the switch, and later your own Yes tap on the picture
+    if lk:
+        if secret_text(lk) or blocked(lk):
+            return say("सर, मैं पासवर्ड, OTP, PIN या कार्ड वाली चीज़ें नहीं दबाता। आप खुद कीजिए।", "Sir, I do not tap password, OTP, PIN or card things. Please do that yourself."), None
+        if not in_app:
+            return say("सर, फ़ोन कंट्रोल सिर्फ़ Jarvis ऐप में चलता है।", "Sir, phone control works only in the Jarvis Android app."), None
+        if not control:
+            return say("फ़ोन कंट्रोल बंद है सर। Settings में \"Phone control\" चालू कीजिए।", "Phone control is OFF, sir. Turn it on in Settings, under Phone control."), None
+        return say(f"ठीक है सर, स्क्रीन की एक फोटो लेकर \"{lk}\" ढूँढता हूँ। आपकी हाँ के बिना कुछ नहीं दबाऊँगा।", f"Okay sir, I will take one picture of the screen and look for \"{lk}\". I will tap nothing until you tap Yes."), {"type": "look", "target": lk}
     for fn in (wa_cmd, media_cmd, alarm_cmd, search_cmd):  # Part 66 (alarm, timer) and Part 60 (search inside an app). Only the person's own words, never the AI, never a task step.
         got = fn(msg)
         if got:

@@ -222,6 +222,43 @@ public class MainActivity extends Activity {
                 } catch (Exception e) { /* fall through */ }
                 return "{\"ok\":false,\"err\":\"unknown\"}";
             }
+            // Part 129: look and tap. look() = ONE screenshot of the open app, tap() = ONE tap, only after your real finger tap on Yes on the picture.
+            @JavascriptInterface public String look() {
+                if (AppLock.locked()) return "{\"ok\":false,\"err\":\"locked\"}";
+                if (Privacy.stopped) return "{\"ok\":false,\"err\":\"stopped\"}";
+                if (!Privacy.control) return "{\"ok\":false,\"err\":\"off\"}";
+                if (Build.VERSION.SDK_INT < 30) return "{\"ok\":false,\"err\":\"old_shot\"}";
+                if (ScreenService.live == null) { runOnUiThread(() -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))); return "{\"ok\":false,\"err\":\"perm\"}"; }
+                runOnUiThread(() -> moveTaskToBack(true));  // the other app must be on the screen, not Jarvis
+                if (Privacy.actJob != null) Privacy.UI.removeCallbacks(Privacy.actJob);
+                Privacy.actJob = () -> {
+                    Privacy.actJob = null;
+                    if (Privacy.stopped || !Privacy.control) return;  // checked again at the moment of the picture
+                    ScreenService.shot(r -> shotDone(r));
+                };
+                Privacy.UI.postDelayed(Privacy.actJob, 1200);
+                return "{\"wait\":1}";
+            }
+            @JavascriptInterface public String tap(String json) {
+                if (AppLock.locked()) return "{\"ok\":false,\"err\":\"locked\"}";
+                try {
+                    final JSONObject a = new JSONObject(json);
+                    if (Privacy.stopped) return "{\"ok\":false,\"err\":\"stopped\"}";
+                    if (!Privacy.control) return "{\"ok\":false,\"err\":\"off\"}";
+                    if (ScreenService.live == null) return "{\"ok\":false,\"err\":\"perm\"}";
+                    final boolean sure = a.optBoolean("confirmed") && System.currentTimeMillis() - touch < 3000;  // a real finger tap just now
+                    if (!sure) return "{\"ok\":false,\"err\":\"need_yes\"}";
+                    runOnUiThread(() -> moveTaskToBack(true));
+                    if (Privacy.actJob != null) Privacy.UI.removeCallbacks(Privacy.actJob);
+                    Privacy.actJob = () -> {
+                        Privacy.actJob = null;
+                        if (Privacy.stopped || !Privacy.control) return;
+                        ScreenService.tapAt(a, true, r -> actDone("tap", r));
+                    };
+                    Privacy.UI.postDelayed(Privacy.actJob, 1200);
+                    return "{\"wait\":1}";
+                } catch (Exception e) { return "{\"ok\":false,\"err\":\"unknown\"}"; }
+            }
             // Part 36: turning the lock ON needs a phone screen lock; turning it OFF needs the Android prompt first
             @JavascriptInterface public String lockState() { return AppLock.state(MainActivity.this); }
             @JavascriptInterface public String appLock(boolean on) {
@@ -389,6 +426,7 @@ public class MainActivity extends Activity {
 
     static String pending;  // screen text waiting to be handed to the page
     static String pendingTask;  // Part 42: result of the last task, waiting to be shown in the chat
+    static String pendingShot;  // Part 129: the screen picture (or the reason there is none), waiting to be handed to the page. Memory only.
     static String pendingAct;  // Part 34: result of the last screen step, waiting to be shown in the chat
     static volatile long touch;  // time of the last finger tap (Part 28: needed to switch Jarvis on again)
 
@@ -410,6 +448,20 @@ public class MainActivity extends Activity {
         nm.createNotificationChannel(new NotificationChannel(NotifyService.ALERT, "Reminders", NotificationManager.IMPORTANCE_HIGH));
         nm.notify(77, new Notification.Builder(this, NotifyService.ALERT).setSmallIcon(android.R.drawable.ic_popup_reminder)
             .setContentTitle("Jarvis read your screen").setContentText("Tap to see the answer").setAutoCancel(true)
+            .setContentIntent(PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE)).build());
+    }
+
+    /** Part 129: the picture is ready (or failed). Jarvis comes back to the front and a notification says so. */
+    void shotDone(JSONObject r) {
+        if (Privacy.stopped) return;
+        Privacy.used("screen");
+        pendingShot = r.toString();
+        try { startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NEW_TASK)); }
+        catch (Exception e) { /* the notification below still works */ }
+        NotificationManager nm = getSystemService(NotificationManager.class);
+        nm.createNotificationChannel(new NotificationChannel(NotifyService.ALERT, "Reminders", NotificationManager.IMPORTANCE_HIGH));
+        nm.notify(79, new Notification.Builder(this, NotifyService.ALERT).setSmallIcon(android.R.drawable.ic_popup_reminder)
+            .setContentTitle("Jarvis took the picture").setContentText("Tap to see what I found").setAutoCancel(true)
             .setContentIntent(PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE)).build());
     }
 
@@ -474,6 +526,11 @@ public class MainActivity extends Activity {
             String q = pendingAct; pendingAct = null;
             getSystemService(NotificationManager.class).cancel(78);
             web.evaluateJavascript("window.onActDone&&onActDone(" + JSONObject.quote(q) + ")", null);
+        }
+        if (pendingShot != null && web != null) {  // Part 129
+            String q = pendingShot; pendingShot = null;
+            getSystemService(NotificationManager.class).cancel(79);
+            web.evaluateJavascript("window.onShot&&onShot(" + JSONObject.quote(q) + ")", null);
         }
         if (pending != null && web != null) {
             String p = pending; pending = null;

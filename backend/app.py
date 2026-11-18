@@ -272,7 +272,7 @@ class H(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self.allowed():
             return self.send(403, {"error": "blocked"})
-        data = self.body(1500000 if self.path == "/see" and self.headers.get("Authorization") else 20000)
+        data = self.body(1500000 if self.path in ("/see", "/lookat") and self.headers.get("Authorization") else 20000)
         if not isinstance(data, dict):
             return self.send(400, {"error": "galat request"})
         if self.path == "/newcode":  # Part 37: the pairing screen asks Termux to show the code again (the code is NEVER sent to the page)
@@ -457,6 +457,12 @@ class H(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(audio)))
             self.end_headers()
             return self.wfile.write(audio)
+        if self.path == "/lookat":  # Part 129: where is the thing on the screen picture. Nothing is saved, nothing is tapped here
+            try:
+                res, via = see.locate(data.get("image"), data.get("target"), PROVIDERS, getkey, names())
+            except RuntimeError as e:
+                return self.send(502, {"error": str(e)})
+            return self.send(200, dict(res, via=via))
         if self.path == "/see":
             try:
                 ans, via = see.look(data.get("image"), data.get("question"), data.get("style") == "hindi", PROVIDERS, getkey, names())

@@ -685,6 +685,12 @@ const ACTERR={no_torch:['सर, इस फ़ोन में टॉर्च �
   launch_failed:['सर, Android ने ऐप खोलने नहीं दिया।','Sir, Android did not let me open the app.'],
   bad_time:['सर, यह समय मुझे सही नहीं लगा। कुछ नहीं किया।','Sir, that time does not look right. I did nothing.'],
   bad_query:['सर, क्या ढूँढना है यह साफ़ नहीं हुआ। कुछ नहीं किया।','Sir, it is not clear what to search for. I did nothing.'],
+  secret_screen:['सर, इस स्क्रीन पर पासवर्ड बॉक्स है या यह पेमेंट ऐप है, इसलिए मैंने फोटो नहीं ली।','Sir, this screen has a password box or is a payment app, so I did not take a picture.'],
+  shot_failed:['सर, Android ने इस स्क्रीन की फोटो नहीं लेने दी (कुछ ऐप फोटो रोकते हैं)। कुछ नहीं किया।','Sir, Android did not give me a picture of this screen (some apps block it). I did nothing.'],
+  too_fast:['सर, एक सेकंड रुककर दोबारा बोलिए।','Sir, please wait a second and ask again.'],
+  old_shot:['सर, स्क्रीन की फोटो Android 11 या उससे नए में ही चलती है।','Sir, taking a screen picture works only on Android 11 or newer.'],
+  perm_shot:['सर, Accessibility में \"Jarvis screen reader\" एक बार बंद करके फिर चालू कीजिए (नई अनुमति), फिर दोबारा बोलिए।','Sir, turn \"Jarvis screen reader\" off and on once in Accessibility (it has a new permission), then ask again.'],
+  screen_changed:['सर, स्क्रीन बदल गई थी (दूसरा ऐप खुला या बहुत देर हो गई), इसलिए कुछ नहीं दबाया। फिर से बोलिए।','Sir, the screen had changed (another app, or too long), so I tapped nothing. Please ask again.'],
   unknown:['सर, मुझे यह कदम समझ नहीं आया। कुछ नहीं किया।','Sir, I did not understand this step. I did nothing.']};
 let lastAct=null;
 function actMsg(r,a){
@@ -770,10 +776,49 @@ async function doCall(a,w){
   else t='✖ '+say('Android ने कॉल नहीं लगने दिया सर।','Android did not let me place the call, sir.');
   w.textContent=t;if(!r.ok)w.className='m err';return t;
 }
+// Part 129: look and tap. Java takes ONE screenshot, the server's vision AI points at the thing, you see a red number 1 on the picture, and only your real finger tap on Yes taps.
+let lookTarget=null;
+async function doLook(a,w){
+  const hi=sty()=='hindi',say=(h,e)=>hi?h:e;let r;
+  try{r=JSON.parse(JarvisApp.look());}catch(e){r={ok:false,err:'unknown'};}
+  if(r.wait){lookTarget=a.target;const t=say('ठीक है सर, स्क्रीन की एक फोटो ले रहा हूँ। नतीजा नोटिफ़िकेशन दबाने पर यहाँ दिखेगा।','On it, sir. I am taking one picture of the screen. The result shows here when you tap the notification.');w.textContent=t;return t;}
+  const m=ACTERR[r.err]||ACTERR.unknown;w.className='m err';w.textContent=say(m[0],m[1]);return w.textContent;
+}
+window.onShot=async s=>{
+  let r;try{r=JSON.parse(s);}catch(e){return;}
+  const hi=sty()=='hindi',say=(h,e)=>hi?h:e,tg=lookTarget;lookTarget=null;if(!tg)return;
+  if(!r.ok){const m=ACTERR[r.err]||ACTERR.shot_failed,b=add('bot',say(m[0],m[1]));b.className='m err';return;}
+  const w=add('bot',say('फोटो मिल गई सर, \"'+tg+'\" ढूँढ रहा हूँ…','Got the picture, sir. Looking for \"'+tg+'\"...'));
+  let d;try{const x=await api('/lookat',{image:r.image,target:tg});if(x.s!=200){w.className='m err';w.textContent=x.d.error||'error';return;}d=x.d;}catch(e){w.className='m err';w.textContent=say('सर, सर्वर तक नहीं पहुँचा।','Sir, I could not reach the server.');return;}
+  if(!d.found){w.textContent=say('सर, स्क्रीन पर \"'+tg+'\" साफ़ नहीं दिखा, या एक से ज़्यादा हैं। मैंने कुछ नहीं दबाया।','Sir, I could not see \"'+tg+'\" clearly, or there is more than one. I tapped nothing.');speak(w.textContent,false,'TASK_CONFIRMATION');return;}
+  const img=new Image();await new Promise(z=>{img.onload=z;img.onerror=z;img.src=r.image;});
+  const cv=document.createElement('canvas'),cw=Math.min(300,img.width||300);cv.width=cw;cv.height=Math.max(1,Math.round(cw*(img.height||1)/(img.width||1)));
+  const g=cv.getContext('2d');g.drawImage(img,0,0,cv.width,cv.height);
+  const px=d.x*cv.width,py=d.y*cv.height;
+  g.lineWidth=3;g.strokeStyle='#ff3b30';g.beginPath();g.arc(px,py,17,0,6.283);g.stroke();
+  g.fillStyle='#ff3b30';g.beginPath();g.arc(px,py,11,0,6.283);g.fill();
+  g.fillStyle='#fff';g.font='bold 14px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('1',px,py);
+  cv.style.cssText='display:block;max-width:100%;margin-top:8px;border-radius:8px';
+  const risky=/\b(send|submit|pay|buy|purchase|order|delete|remove|uninstall|install|log ?out|sign ?out|transfer|confirm)\b/i.test(tg+' '+(d.label||''));
+  w.textContent=say('सर, क्या मैं लाल नंबर 1 पर दबाऊँ? ('+(d.label||tg)+')','Sir, should I tap the red number 1? ('+(d.label||tg)+')')+(risky?say('\n⚠ यह भेजने, पैसे या डिलीट जैसा बटन लगता है। पक्का देखिए।','\n⚠ This looks like a send, pay or delete type button. Please check carefully.'):'')+say('\nमैं अंदाज़ा लगाता हूँ, गलत भी हो सकता हूँ।','\nI am only guessing from a picture and can be wrong.');
+  const row=document.createElement('div');let done=false;
+  const end=m=>{if(done)return;done=true;row.remove();cv.remove();w.textContent=m;};
+  const mk=(label,cls,fn)=>{const b=document.createElement('button');b.type='button';b.className=cls;b.textContent=label;b.style.margin='8px 8px 0 0';b.onclick=ev=>{if(ev.isTrusted&&!done)fn();};return b;};
+  row.append(mk(say('हाँ, दबाओ','Yes, tap it'),'',()=>{  // Java also needs this real finger tap (3 seconds), checks Stop and Phone control, and that the same app is still open
+      done=true;row.remove();lastAct={type:'tap'};let q;
+      try{q=JSON.parse(JarvisApp.tap(JSON.stringify({fx:d.x,fy:d.y,label:d.label||'',confirmed:true})));}catch(e){q={ok:false,err:'unknown'};}
+      if(q.wait)w.firstChild.textContent=say('ठीक है सर, दबा रहा हूँ। नतीजा नोटिफ़िकेशन दबाने पर यहाँ दिखेगा।','On it, sir. The result shows here when you tap the notification.');
+      else{const m=ACTERR[q.err]||ACTERR.unknown;w.className='m err';w.firstChild.textContent=say(m[0],m[1]);}
+    }),mk(say('नहीं','No'),'g',()=>end(say('ठीक है सर, रद्द किया। कुछ नहीं दबाया।','Okay sir, cancelled. I tapped nothing.'))));
+  w.appendChild(cv);w.appendChild(row);
+  setTimeout(()=>end(say('समय खत्म हुआ सर, कुछ नहीं दबाया।','Timed out, sir. I tapped nothing.')),60000);
+  speak(say('सर, क्या यही है? हाँ दबाइए।','Sir, is this the one? Tap Yes if so.'),false,'TASK_CONFIRMATION');
+};
 let lastDir='down';
 async function doAct(a,w){
   if(a.type=='task')return runTask(a,w);
   if(a.type=='call')return doCall(a,w);
+  if(a.type=='look')return doLook(a,w);  // Part 129
   if(a.type=='confirm')return askYes(w,a);
   const hi=sty()=='hindi',say=(h,e)=>hi?h:e;let t;
   if(a.type=='open_app'){w.textContent=lt(a,0,a.said||a.name)||say('ऐप ढूँढ रहा हूँ: '+(a.said||a.name)+'…','Looking for the app: '+(a.said||a.name)+'...');await new Promise(z=>setTimeout(z,80));}  // Part 62: show what is happening before Android answers
