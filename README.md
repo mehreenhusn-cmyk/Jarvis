@@ -30,7 +30,7 @@
 | `app.py` | Server and the `/chat` handler chain (the heart) |
 | `actions.py`, `tasks.py` | Phone commands (fixed grammar, never the AI) and multi-step tasks |
 | `guest.py` | Guest session: RAM only, numbers masked |
-| `memory.py`, `people.py`, `notes.py`, `lists.py`, `habits.py`, `spend.py`, `ledger.py`, `remind.py` | What Jarvis keeps (list of stores: `memory.STORES`) |
+| `memory.py`, `people.py`, `notes.py`, `lists.py`, `habits.py`, `learn.py`, `spend.py`, `ledger.py`, `remind.py` | What Jarvis keeps (list of stores: `memory.STORES`) |
 | `brief.py`, `lens.py`, `progress.py`, `whatsnew.py`, `search.py` | Briefing, Home card, honest counts, what's new, search |
 | `voiceengine.py`, `tts.py`, `see.py`, `screen.py`, `web.py` | Voice, speech, photo and screenshot helper, screen text, internet answers |
 | `modes.py`, `clock.py`, `phone.py`, `calls.py`, `place.py`, `backup.py`, `lang.py`, `autostart.py` | Modes, time, phone doctor, calls, place, backup, languages, auto start |
@@ -173,15 +173,15 @@ One row per Part, plain numbers only. Keep each row to ONE line. A new idea gets
 | 130 | Voice fixes from the 17 Nov screenshots | `actions.py`, `MainActivity.java`, `index.html` | ~60 | Yes | Built, not phone tested |
 | 131 | Port busy fix | `run.sh`, `app.py` | 9 + 6 = 15 | No | Built, not phone tested |
 | 134 | Conversation pauses, not ends: after 4 silent rounds or when you leave the app it pauses and continues when you return or tap the mic or Jarvis; speech error 2 gets more tries and then a retry every few seconds; its own sentence is ignored. | `index.html`, `MainActivity.java`, `Ears.java` | 49 | Yes | Built, not phone tested |
-| 135 | Wake word to Conversation: tap the `Jarvis heard you` notification and Conversation starts (needs Parts 39 and 40 phone tested) | `MainActivity.java`, `index.html` | ~45 | Yes | Planned |
+| 135 | Wake word to Conversation: tap the `Jarvis heard you` notification and Conversation starts on Home (needs Parts 39 and 40 phone tested) | `MainActivity.java`, `ListenService.java`, `index.html` | 11 | Yes | Built, not phone tested |
 | 136 | Table A runner: `table a next`, tap PASS / FAIL / Skip, saved with date and note; feeds the Verified count | `*phonetest.py`, `app.py`, `progress.py`, `index.html` | ~130 | No | Planned |
 | 137 | Quiet mode exceptions: `quiet mode 2 hours except namaz, Ammi` | `modes.py`, `index.html` | ~100 | No | Planned |
 | 138 | Chat never lost, no fake done: every new pairing joins the oldest device, so chat and data survive a re-pair (old devices merged once); a short AI answer that claims a phone action is replaced by "I did nothing"; old `(phone action)` lines are not sent to the AI | `app.py`, `test_app.py` | 66 | No | Built, not phone tested |
 | 139 | Loose commands, round two: home, back and scroll work with filler words and one stray word (`होम स्क्रीन पर जाओ`, `open home screen`); `मैं अम्मी को कॉल कर` and `call ammi at anyhow` call Ammi; `usko open karo` asks which app; volume accepts filler. Click, type, send, pay, delete stay as before | `actions.py`, `test_app.py` | 51 | No | Built, not phone tested |
 | 140 | One Voice mode: Off / Hey Jarvis / Conversation instead of three switches; Interrupt is automatic (starts only when earphones are connected). Voice sheet is solid and tidy | `index.html` | 24 | No | Built, not phone tested |
 | 141 | Talk on Home: tap Jarvis on Home and it listens and answers there (reply bubble, `Thinking` and `Speaking` status), no jump to Chat; the chat still keeps the messages | `index.html` | 18 | No | Built, not phone tested |
-| 142 | Simple screens: fewer cards on Home and Settings, the rest under More (needs Hussain's Home screenshots) | `index.html` | ~80 | No | Planned |
-| 143 | What Jarvis learned: daily routine from his own data (counts only), a card to edit or delete, suggestions only | `*learn.py`, `app.py`, `index.html` | ~150 | No | Planned |
+| 142 | Simple screens: Home keeps Next best move, AI tools (9 tiles + `More tools`) and Today's schedule; Honest progress, Insights, Smart shortcuts and Phone and server are under `More`. Settings keeps Voice, Look, Privacy; Your Data, Notifications and Advanced are under `More`. The Assist tab shows all tools, the Memory tab opens Your Data | `index.html` | 16 | No | Built, not phone tested |
+| 143 | What Jarvis learned: counts of whom you call and which app you open, per hour (names only, never words or screen); card in Settings > More > Your Data with Keep and Delete; one offer on Home for this hour (`Shall I?` Yes / Not now); words `seekha dikhao`, `seekhna band karo`, `seekhna chalu karo`, `seekha bhool jao`; a line needs 3 times on 3 days; unkept lines vanish after 30 days; `delete everything` also erases it | `learn.py`, `app.py`, `backup.py`, `test_app.py`, `index.html` | 158 | No | Built, not phone tested |
 | 144 | Know people by voice: Vosk speaker model (about 13 MB); Jarvis asks aloud and saves only after a yes; greets and remembers the last talk | `*SpeakerId.java`, `*voices.py`, `MainActivity.java`, `app.py`, `index.html` | ~250 | Yes | Planned |
 | 145 | Samjha probe: `samjha: <sentence>` shows what Jarvis understood without doing anything | `app.py`, `actions.py` | ~30 | No | Planned |
 | 146 | Unknown sentences list: sentences it could not understand are saved on the phone; one tap teaches it | `*unknown.py`, `app.py`, `index.html` | ~80 | No | Planned |
@@ -197,7 +197,7 @@ One row per Part, plain numbers only. Keep each row to ONE line. A new idea gets
 4. Try Table A (section 7). Write PASS or FAIL for each row.
 5. Then name the next Part from the plan (section 4).
 
-**Done 19 Nov: 138, 149, 148, 139, 134, 140, 141 (built, not phone tested; 148 and 134 are Java, so the APK must be built). Next in the order below: start at 142.**
+**Done 19 Nov: 138, 149, 148, 139, 134, 140, 141, 142, 143, 135 (built, not phone tested; 148, 134 and 135 are Java, so the APK must be built). Next in the order below: start at 136.**
 
 **Build order (18 Nov):** 138, 149, 148, 139, 134, 140, 141, 142, 143, 135, 136, 137, 145, 146, 147, 144.
 
@@ -332,6 +332,9 @@ Nothing here is phone tested unless the Result says PASS. Build the APK first fo
 | 65 | Settings > Voice settings: look at the sheet. Pick `Conversation` in Voice mode, talk to Jarvis, then press Home and open another app for 20 seconds, then come back | One Voice mode choice (Off / Hey Jarvis / Conversation), no Hey Jarvis, Conversation or Interrupt buttons. The sheet is solid. Leaving the app shows `Conversation paused`; coming back continues listening by itself | Yes (Part 134) | not tested |
 | 66 | In Conversation mode stay silent for 4 rounds, then tap the mic. Also turn Wi-Fi and data off for 10 seconds while it listens, then turn them on | After 4 silent rounds it says it paused (it does not turn off) and one tap continues. With no internet it waits and tries again by itself; Jarvis's own sentence is not answered | Yes (Part 134) | not tested |
 | 67 | On Home tap Jarvis (the orb) and say `what is the time`. Then say it again with `Conversation` on | The page stays on Home, the bubble shows `You: ...` and the answer, status shows Listening, Thinking, Speaking. Chat has the same messages | No (Part 141) | not tested |
+| 68 | Open Home. Look at the sections, then open `More`. Then tap the Assist tab and the Memory tab. In Settings look at the list | Home shows Next best move, AI tools (9 tiles and a `More tools` button) and Today's schedule; `More` holds Honest progress, Insights, Smart shortcuts, Phone and server. Assist shows all tools. Settings shows Voice, Look, Privacy and `More`; Memory opens Your Data inside More | No (Part 142) | not tested |
+| 69 | Say `call Ammi` (or open YouTube) around the same hour on 3 different days. Next day at that hour open Home. Then Settings > More > Your Data > What Jarvis learned | Home shows `Sir, around this time you usually call Ammi. Shall I?` with Yes and Not now (Yes runs the call command, Not now hides it for today). The card lists the line with Keep and Delete. `seekhna band karo` stops it; `seekha bhool jao` erases it | No (Part 143) | not tested |
+| 70 | Turn Hey Jarvis background listening on, lock the phone, say `Jarvis`, then tap the `Jarvis heard you` notification | Jarvis opens on Home and Conversation starts (mic opens by itself, then listens again after each answer) | Yes (Part 135) | not tested |
 
 ## 8. RULES FOR EVERY CLAUDE
 

@@ -224,6 +224,33 @@ try:
 finally:
     p2.terminate()
     p2.wait()
+# Part 143: what Jarvis learned (counts only)
+import sqlite3 as _sq, time as _tm, learn as _ln
+_c = _sq.connect(":memory:")
+_ln.init(_c)
+_ago = lambda k: _tm.strftime("%Y-%m-%d", _tm.localtime(_tm.time() - k * 86400))
+for _d in (3, 2, 1):
+    _ln.note(_c, 1, {"type": "call", "name": "Ammi"})
+    _c.execute("UPDATE learned SET last=?", (_ago(_d),))
+_ln.note(_c, 1, {"type": "call", "name": "Ammi"})
+check("143: same call 4 times on 4 days is counted, only the name is kept", _c.execute("SELECT n, days FROM learned").fetchone() == (4, 4))
+check("143: done today -> no offer", _ln.suggest(_c, 1) is None)
+_c.execute("UPDATE learned SET last=?", (_ago(1),))
+check("143: next day, same hour -> one offer with a plain command", (_ln.suggest(_c, 1) or {}).get("cmd") == "call ammi")
+_ln.note(_c, 1, {"type": "call", "name": "Ammi", "raw": True})
+_ln.note(_c, 1, {"type": "home"})
+check("143: raw numbers and other actions are never counted", _c.execute("SELECT COUNT(*) FROM learned").fetchone() == (1,))
+_i = _c.execute("SELECT id FROM learned").fetchone()[0]
+_ln.act(_c, 1, _i, "later")
+check("143: Not now -> no second offer today", _ln.suggest(_c, 1) is None)
+_ln.act(_c, 1, _i, "delete")
+_ln.note(_c, 1, {"type": "call", "name": "Ammi"})
+check("143: Delete erases the counts and it is not learned again", _ln.rows(_c, 1) == [] and _c.execute("SELECT n FROM learned").fetchone() == (0,))
+_ln.handle(_c, 1, "seekhna band karo", False)
+_ln.note(_c, 1, {"type": "open_app", "name": "youtube"})
+check("143: seekhna band karo -> nothing more is counted", _c.execute("SELECT COUNT(*) FROM learned").fetchone() == (1,))
+_ln.handle(_c, 1, "seekha bhool jao", False)
+check("143: seekha bhool jao erases everything", _c.execute("SELECT COUNT(*) FROM learned").fetchone() == (0,) and _ln.handle(_c, 1, "hello there", False) is None)
 try:
     call("/status")
     check("band server offline dikhta hai", False)

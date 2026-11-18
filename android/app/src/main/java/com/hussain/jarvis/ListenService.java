@@ -133,9 +133,9 @@ public class ListenService extends Service implements RecognitionListener {
         MainActivity m = MainActivity.cur;
         if (MainActivity.visible && m != null) { m.runOnUiThread(m::wakeTalk); return; }
         nm.createNotificationChannel(new NotificationChannel("jarvis_wake", "Jarvis heard you", NotificationManager.IMPORTANCE_HIGH));
-        PendingIntent go = PendingIntent.getActivity(this, 3, new Intent(this, MainActivity.class).setAction(MainActivity.LISTEN), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent go = PendingIntent.getActivity(this, 3, new Intent(this, MainActivity.class).setAction(MainActivity.CONVERSE), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);  // Part 135: Conversation, not one question
         nm.notify(80, new Notification.Builder(this, "jarvis_wake").setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle("Jarvis heard you")
-            .setContentText("Tap to talk").setAutoCancel(true).setTimeoutAfter(15000).setContentIntent(go).build());
+            .setContentText("Tap to start a conversation").setAutoCancel(true).setTimeoutAfter(15000).setContentIntent(go).build());
     }
 
     @Override public void onResults(Bundle b) {

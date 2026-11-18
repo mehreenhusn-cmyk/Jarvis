@@ -73,6 +73,7 @@ body.hm #chat{--c1:#35c6ff;--c2:#9b6bff;--sf:rgba(16,24,54,.78);--sf2:rgba(255,2
 body.hm #vp,body.hm #chat form{background:rgba(7,11,26,.92);border-color:var(--line)}body.hm #vp select,body.hm #vp label{color:var(--mut)}
 body.hm #vp{background:#0a1228}.vp-row select{flex:1;min-width:0}#vmrow[hidden]{display:none}#vmrow label{flex:1}#vmrow select{width:100%;font-size:15px}  /* Parts 140 and 141: solid sheet, one mode row */
 #home .bub{white-space:pre-wrap;max-height:36vh;overflow:auto;overflow-wrap:anywhere}
+#htl button[hidden]{display:none!important}#hmore>summary~h4{margin-top:14px}#set .grp .grp{margin:10px 0 0}  /* Part 142 */
 body.hm #log{padding:16px 14px;gap:12px}
 body.hm .m{position:relative;max-width:84%;padding:11px 14px 8px;border:1px solid var(--line);background:rgba(16,24,54,.85);border-radius:4px 18px 18px 18px;box-shadow:0 0 18px rgba(53,198,255,.07);line-height:1.5}
 body.hm .m:not(.user):not(.err){margin-left:34px}
@@ -230,20 +231,25 @@ body.kb #tabs{display:none}
 <input id="code" inputmode="numeric" maxlength="6" placeholder="••••••"><p><button id="go">Pair this phone</button> <button id="nc" class="g">Show code in Termux</button></p><p id="pe" class="bad"></p></div>
 <div id="home" hidden><div id="hg"></div><div id="hq2">What would you like to do today?</div><div id="hd"></div><div id="wave"></div>
 <div class="hero"><div id="orb" role="button" aria-label="Talk to Jarvis"><i class="r1"></i><i class="r2"></i><i class="r3"></i>J</div><div id="hs0"></div><div class="bub" id="bub"></div></div>
-<div class="card" id="aw" hidden></div><h4>Next best move</h4><div id="lr"></div><div class="card" id="lc">...</div><div id="ls"></div><h4>Honest progress</h4><div class="card" id="mis">...</div>
+<div class="card" id="aw" hidden></div><div class="card" id="lsg" hidden></div><h4>Next best move</h4><div id="lr"></div><div class="card" id="lc">...</div><div id="ls"></div>
 <h4>AI tools</h4><div class="tools" id="htl"></div>
 <h4>Today's schedule</h4><div class="card" id="ht">...</div>
+<details class="grp" id="hmore" style="margin-top:14px"><summary>➕ More</summary>
+<h4>Honest progress</h4><div class="card" id="mis">...</div>
 <h4>Insights</h4><div class="two"><div class="card" style="text-align:center"><div class="sm">Phone battery</div><div class="ring" id="hr" style="--p:0"><b id="hrt">-</b></div><div class="sm" id="hrs"></div></div><div class="card"><div class="sm">Reminders today</div><div class="big" id="hn1">-</div><div class="sm" style="margin-top:8px">Money due or late</div><div class="big" id="hn2">-</div></div></div>
 <h4>Smart shortcuts</h4><div id="hsc"></div>
-<h4>Phone and server</h4><div class="card" id="hs"></div><div class="hb" id="hq"></div></div>
+<h4>Phone and server</h4><div class="card" id="hs"></div><div class="hb" id="hq"></div>
+</details></div>
 <div id="set" hidden>
 <details class="grp" open><summary>🎙️ Voice &amp; Personality</summary><div class="card" id="vcard"></div></details>
 <details class="grp"><summary>✨ Look</summary><div class="card" id="lookc"></div></details>
 <details class="grp"><summary>🔒 Privacy &amp; Security</summary><div class="card" id="dash"></div><h5>Payment apps</h5><div class="card" id="pay"></div><h5>Backup</h5><div class="card" id="bk"></div><h5>Background listening test</h5><div class="card" id="bgt"></div></details>
-<details class="grp"><summary>🗂️ Your Data (Memory Atlas)</summary><h5>What Jarvis keeps (counts)</h5><div class="card" id="al"></div><h5>People</h5><div class="card" id="pl"></div><h5>Memory</h5><div class="card" id="ml"></div><h5>Notes</h5><div class="card" id="nl"></div><h5>Money ledger</h5><div class="card" id="ll"></div></details>
+<details class="grp"><summary>➕ More</summary>
+<details class="grp"><summary>🗂️ Your Data (Memory Atlas)</summary><h5>What Jarvis learned</h5><div class="card" id="lrn"></div><h5>What Jarvis keeps (counts)</h5><div class="card" id="al"></div><h5>People</h5><div class="card" id="pl"></div><h5>Memory</h5><div class="card" id="ml"></div><h5>Notes</h5><div class="card" id="nl"></div><h5>Money ledger</h5><div class="card" id="ll"></div></details>
 <details class="grp"><summary>🔔 Notifications</summary><div class="card" id="nsc"></div></details>
 <details class="grp"><summary>⚙️ Advanced</summary><h5>System</h5><div class="card" id="sys"></div><h5>API key</h5><div class="card"><p style="margin-top:0;color:var(--mut)">Paste a key. Jarvis finds the company and checks it.</p>
 <input id="key" placeholder="Paste key here" autocomplete="off"><p><button id="kp">Paste from clipboard</button> <button id="kc" class="g">Check</button></p><p id="kr"></p><div id="kl"></div></div></details>
+</details>
 </div>
 <div id="tl" hidden style="padding:12px 14px"><div class="sh" id="tlf"></div><div id="tlb"></div><div class="sh"><button type="button" class="g" id="tlm" hidden>More</button></div></div><div id="off" class="bad" hidden style="padding:8px 16px;font-size:13px;background:var(--sf);border-bottom:1px solid var(--line)"></div><div id="pv"></div><div id="chat" hidden>
 <div id="vp" hidden>
@@ -437,6 +443,7 @@ window.onAppAway=()=>{if(convOn)convPauseNow();};
 window.onAppBack=()=>{netTry=0;setTimeout(()=>convResume(true),600);};
 document.addEventListener('visibilitychange',()=>{if(document.hidden)window.onAppAway();else window.onAppBack();});
 // Part 140: one Voice mode instead of three switches
+window.startConv=()=>{go('home');if(priv)return;if(convOn){convResume();return;}$('conv').click();};  // Part 135: the "Jarvis heard you" notification was tapped
 function vmSync(){const v=convOn?'conv':wakeOn?'hey':'off';if($('vmode').value!==v)$('vmode').value=v;$('vmrow').hidden=!appEars();}
 $('vmode').onchange=()=>{const v=$('vmode').value;
   if(v=='off'){if(convOn)convEnd(sty()=='hindi'?'ठीक है सर, वॉइस मोड बंद।':'Okay sir, voice mode is off.');else if(wakeOn)$('wake').click();}
@@ -444,6 +451,21 @@ $('vmode').onchange=()=>{const v=$('vmode').value;
   else if(!convOn)$('conv').click();
   vmSync();};
 // Part 141: the reply also shows on Home, so tapping Jarvis there never jumps to Chat
+// Part 143: what Jarvis learned (counts only) and the one offer for this hour. Jarvis only asks; Yes runs the normal command.
+let LRN=null;
+async function learnLoad(){try{const {s,d}=await api('/learn',{});if(s==200)LRN=d;}catch(e){}learnCard();learnSug();}
+async function learnAct(id,act){try{await api('/learn/act',{id:id,act:act});}catch(e){}learnLoad();}
+function learnCard(){const b=$('lrn');if(!b)return;b.textContent='';
+  if(!LRN){b.textContent='Server offline: nothing to show.';return;}
+  b.appendChild(el('div','sm',LRN.on?'Learning is ON. It keeps counts only, never your words or screen. Say "seekhna band karo" to stop.':'Learning is OFF. Say "seekhna chalu karo" to start again.'));
+  if(!LRN.items.length){b.appendChild(el('p','','Nothing learned yet. It needs a call or an app you repeat around the same hour on a few days.'));return;}
+  LRN.items.forEach(x=>{const r=el('div','tr');r.appendChild(el('span','',x.text));r.style.flexWrap='wrap';
+    const k=el('button','g',x.keep?'Kept ✓':'Keep');k.type='button';k.onclick=()=>learnAct(x.id,'keep');
+    const d=el('button','g','Delete');d.type='button';d.onclick=()=>learnAct(x.id,'delete');r.append(k,d);b.appendChild(r);});}
+function learnSug(){const b=$('lsg');if(!b)return;const s=LRN&&LRN.on&&LRN.suggest;b.hidden=!s;b.textContent='';if(!s)return;
+  b.appendChild(el('div','',s.text));const row=el('div','sh');
+  const y=el('button',null,'Yes');y.type='button';y.onclick=async()=>{await learnAct(s.id,'yes');ask(s.cmd);};
+  const n=el('button','g','Not now');n.type='button';n.onclick=()=>learnAct(s.id,'later');row.append(y,n);b.appendChild(row);}
 function homeSay(q,a){if($('home').hidden)return;hb={q:q,a:String(a||'').slice(0,700),u:Date.now()+90000};homeLoad(true);}
 $('conv').onclick=()=>{
   if(priv){add('err','Privacy mode is on. Tap "Turn mic on" first.');return;}
@@ -1011,13 +1033,13 @@ async function brief(){
 // Part 48: Home dashboard (neon look from the reference pictures). Everything shown here is real data from the server or the phone; nothing is made up.
 function go(v,k){view=v;k=k||v;const t=!!token;document.body.classList.toggle('hm',v=='home'||v=='chat');$('chat').hidden=!t||v!='chat';$('set').hidden=!t||v!='set';$('home').hidden=!t||v!='home';$('tl').hidden=!t||v!='tl';$('tabs').hidden=!t;
   $('tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v==k));
-  if(t&&v=='home')homeLoad(true);if(t&&v=='tl')tlLoad('all');if(t&&v=='set'){nsCard(true);keys();mem();led();ppl();atl();dash();sysCard();bgt();voiceLoad();bkLoad();}}
+  if(t&&v=='home')homeLoad(true);if(t&&v=='tl')tlLoad('all');if(t&&v=='set'){learnLoad();nsCard(true);keys();mem();led();ppl();atl();dash();sysCard();bgt();voiceLoad();bkLoad();}}
 // Part 122: bottom bar. A tab is added only when the page part behind it exists (Home 48, Talk, Assist 119, Timeline 109, Memory 88, Settings).
 const BB=[['home','🏠','Home','home'],['chat','💬','Talk','chat'],['as','🧰','Assist','htl'],['tl','🕘','Timeline','tl'],['mem','🗂️','Memory','al'],['set','⚙️','Settings','set']];
 BB.forEach(([k,i,n,need])=>{if(!$(need))return;const b=el('button','g');b.type='button';b.dataset.v=k;b.append(el('span','',i),n);b.onclick=()=>bb(k);$('tabs').appendChild(b);});
 function bb(k){
-  if(k=='as'){go('home','as');setTimeout(()=>{const h=$('htl').previousElementSibling;if(h)h.scrollIntoView();},250);return;}  // Assist = the AI tools tiles on Home
-  if(k=='mem'||k=='set'){go('set',k);const d=[...document.querySelectorAll('#set details')];d.forEach((x,j)=>x.open=k=='mem'?x.querySelector('summary').textContent.includes('Your Data'):j==0);
+  if(k=='as'){go('home','as');if(window.toolsAll)window.toolsAll(true);setTimeout(()=>{const h=$('htl').previousElementSibling;if(h)h.scrollIntoView();},250);return;}  // Assist = the AI tools tiles on Home
+  if(k=='mem'||k=='set'){go('set',k);const d=[...document.querySelectorAll('#set details')];d.forEach((x,j)=>x.open=k=='mem'?(x.querySelector('summary').textContent.includes('Your Data')||!!x.querySelector('#al')):j==0);
     if(k=='mem'){const m=d.find(x=>x.open);if(m)m.scrollIntoView();}else $('set').scrollTop=0;return;}  // Memory = Settings > Your Data opened
   go(k);}
 document.addEventListener('focusin',e=>{if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))document.body.classList.add('kb');});
@@ -1042,7 +1064,7 @@ async function homeLoad(force){
   $('hs0').textContent=(srvUp?'● Server online':'● Server offline')+' · '+(priv?'🔒 Stopped':live?'🎙 Listening...':convPause?'⏸ Conversation paused · tap the orb':busy?'… Thinking':((aud&&!aud.paused&&!aud.ended)||(window.speechSynthesis&&speechSynthesis.speaking))?'🔊 Speaking...':'Tap the orb to speak');
   $('bub').textContent=priv?'Jarvis is stopped. Open Chat and tap "Turn mic on" when you want me back.':(hb.a&&Date.now()<hb.u)?(hb.q?'You: '+hb.q+'\n':'')+hb.a:greet()+'. How can I help you?';
   const ph=pinfo();if(ph&&ph.battery!=null){$('hr').style.setProperty('--p',ph.battery);$('hrt').textContent=ph.battery+'%';$('hrs').textContent=ph.charging?'charging':'';}else{$('hrt').textContent='-';$('hrs').textContent='app only';}
-  if(force||Date.now()-homeT>20000){homeT=Date.now();sysCard($('hs'));
+  if(force||Date.now()-homeT>20000){homeT=Date.now();learnLoad();sysCard($('hs'));
     try{const {s,d}=await api('/today',{now:nowS(),phone:pinfo(),lens:LENS});tj=s==200?d:null;}catch(e){tj=null;}todayCard();awayCard();lensCard();missionCard();}
 }
 // Part 109: Life Timeline tab. Reads reminders that rang, tasks that ran, notes and expenses; filters below; More loads older items. Text only.
@@ -1087,6 +1109,8 @@ function fill(t){go('chat');$('msg').value=t;$('msg').focus();}  // the tool onl
 $('orb').onclick=()=>{if(!appEars()&&!SR)go('chat');$('mic').click();setTimeout(()=>homeLoad(true),60);};  // Part 141: listen on Home, answer on Home
 [['📝','Summarize',()=>fill('Summarize: ')],['🌐','Translate',()=>fill('Translate to Hindi: ')],['✍️','Write',()=>fill('Write a message: ')],['💡','Explain',()=>fill('Explain simply: ')],['🗓','Plan my day',()=>ask('briefing')],['📤','Handoff',()=>ask('handoff')],['🔎','Search all',()=>fill('sab jagah dhundo ')],['🧑‍🤝‍🧑','Guest session',()=>ask('guest session start')],['🔠','Big text',()=>ask('big text')],['🗺','Make a plan',()=>fill('Make a plan: ')],['✅','Reliable info',()=>fill('Reliable info: ')],['🛡','Red team',()=>fill('Red team: ')],['⚔','Debate',()=>fill('Debate ruthless: ')],['⏳','Decisions',()=>ask('pending decisions')],['🧩','Unfinished',()=>ask('adhoora dikhao')],['🙂','Mood',()=>fill('Mood ')],['📦','Time capsule',()=>fill('1 saal baad yeh sunana: ')],['🧑‍💻','Body double',()=>ask('body double 45 minute')],['⏱','Meeting mode',()=>fill('meeting mode 45 minute')],['🌙','Dream journal',()=>fill('Sapna: ')],['🔢','Signs log',()=>fill('Sign: ')]]
   .forEach(([i,n,f])=>{const b=el('button',null);b.type='button';b.append(el('span','',i),n);b.onclick=f;$('htl').appendChild(b);});
+{const k=[...$('htl').children];if(k.length>9){k.slice(9).forEach(b=>b.hidden=true);const m=el('button','g','More tools ▾');m.type='button';m.style.gridColumn='1/-1';  // Part 142: nine tiles, the rest on one tap
+  window.toolsAll=(open)=>{k.slice(9).forEach(b=>b.hidden=!open);m.textContent=open?'Fewer tools ▴':'More tools ▾';};m.onclick=()=>window.toolsAll(k[9].hidden);$('htl').appendChild(m);}}
 [['☀️','Briefing','Your day in one look','briefing'],['⏰','My reminders','Today and later','my reminders'],['🔁','Routines','Saved task sentences','my routines'],['💰','Money ledger','Who owes what','show ledger'],['🛒','Shopping list','Small things by voice','list dikhao'],['💸','Spending','What I spent','kharcha'],['💪','Habits','Streaks and check-ins','my habits'],['📊','Day report','Today in numbers','aaj ka summary'],['🖥','Explain screen','Read the app on screen','explain this screen'],['📋','Clipboard','Use what you just copied','__clip'],['🔔','Notifications','Summary of the apps you chose','__ns'],['📱','Lost phone help','Steps if the phone is gone','phone kho gaya']]
   .forEach(([i,n,sub,q])=>{const b=el('button','sc');b.type='button';const w=el('span');w.append(n,el('small','',sub));b.append(el('span','',i),w,el('b','','›'));b.onclick=()=>q=='__clip'?clip():q=='__ns'?nsum():ask(q);$('hsc').appendChild(b);});
 [['⚙ Settings',()=>go('set')],['⏹ Stop everything',()=>{go('chat');add('bot',stopAll());}]]

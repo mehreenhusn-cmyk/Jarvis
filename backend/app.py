@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, assist, autostart, backup, brief, calls, capsule, clock, debate, decisions, dreams, drift, events, ghost, guest, handoff, habits, ledger, lens, lists, memory, modes, money, mood, notes, people, phone, place, placenote, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
+import actions, assist, autostart, backup, brief, calls, capsule, clock, debate, decisions, dreams, drift, events, ghost, guest, handoff, habits, learn, ledger, lens, lists, memory, modes, money, mood, notes, people, phone, place, placenote, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -75,6 +75,7 @@ def db():
     ledger.init(c)
     lists.init(c)  # Part 83: shopping and packing lists
     habits.init(c)  # Part 83: habit and streak tracker
+    learn.init(c)  # Part 143: what Jarvis learned (counts only)
     spend.init(c)  # Part 84: quick expense logger
     decisions.init(c)  # Parts 93 + 94
     mood.init(c)  # Part 96
@@ -385,6 +386,13 @@ class H(BaseHTTPRequestHandler):
             except (TypeError, ValueError):
                 st = ""
             return self.send(200, {"ok": bool(st), "state": st})
+        if self.path == "/learn":  # Part 143: the \"What Jarvis learned\" card and the one offer for this hour (reading only)
+            c = db()
+            return self.send(200, {"on": learn.is_on(c, dev), "items": learn.rows(c, dev), "suggest": learn.suggest(c, dev)})
+        if self.path == "/learn/act":  # Part 143: Keep, Delete, or the answer to an offer (yes / later)
+            if str(data.get("act")) in ("keep", "delete", "yes", "later") and isinstance(data.get("id"), int):
+                learn.act(db(), dev, data["id"], str(data["act"]))
+            return self.send(200, {"ok": True})
         if self.path == "/today":  # Part 56: Home tab. Aaj ke reminders aur jin hisab ki tareekh aaj ya pehle ki hai
             now = str(data.get("now", ""))
             led = [{"id": i, "text": ledger.line(i, w, a, d, du), "late": du < now[:10]} for i, w, a, d, du in ledger.rows(db(), dev) if du and du <= now[:10]]
@@ -569,6 +577,8 @@ class H(BaseHTTPRequestHandler):
                 mem = notes.handle(c, dev, msg, style == "hindi")
             if mem is None:  # Part 83: "list me doodh add karo", "list dikhao" (own words, never sent to the AI)
                 mem = lists.handle(c, dev, msg, style == "hindi")
+            if mem is None:  # Part 143: "seekha dikhao", "seekhna band karo", "seekha bhool jao" (counts only, never your words)
+                mem = learn.handle(c, dev, msg, style == "hindi")
             if mem is None:  # Part 83: "habit banao gym", "aaj gym gaya", "my habits" (only habits you made)
                 mem = habits.handle(c, dev, msg, style == "hindi", now)
             if mem is None:  # Parts 110 + 111: "kamai 40000 mahina", "bachat 50000", "paisa picture", "agar job chhod du" (your numbers, plain arithmetic, no AI). Before the expense logger.
@@ -636,6 +646,7 @@ class H(BaseHTTPRequestHandler):
                 got = tasks.routine(c, dev, msg, style == "hindi", data.get("control") is True, data.get("app") is True) or tasks.make(c, dev, msg, style == "hindi", data.get("control") is True, data.get("app") is True) or actions.handle(msg, style == "hindi", data.get("control") is True, data.get("app") is True, ask)  # Part 41: several steps in one sentence become one task
                 if got:
                     mem, action = got
+                    learn.note(c, dev, action)  # Part 143: one more count for this call or app, in this hour
             gq = ghost.ask(c, dev, action, gapp) if mem is not None else None  # Part 107: the saved reason, asked once
             if mem is not None and gnote and action:
                 mem += "\n" + gnote

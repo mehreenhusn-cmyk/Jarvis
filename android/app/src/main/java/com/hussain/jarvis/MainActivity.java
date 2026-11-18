@@ -31,8 +31,9 @@ import android.webkit.WebViewClient;
 /** Part 16: a thin shell. It only shows the Jarvis page served by the Termux server on this phone. */
 public class MainActivity extends Activity {
     static final String URL = "http://127.0.0.1:8787";
+    static final String CONVERSE = "com.hussain.jarvis.CONVERSE";  // Part 135: the "Jarvis heard you" notification starts Conversation
     static final String LISTEN = "com.hussain.jarvis.LISTEN";  // Part 38: sent by the Quick Settings tile and the icon shortcut
-    boolean wantListen, wantNote;  // wantNote (Part 112): the call-note notification was tapped
+    boolean wantListen, wantNote, wantConv;  // wantNote (Part 112): the call-note notification was tapped
     WebView web;
     Ears ears;
     ValueCallback<Uri[]> picker;
@@ -401,6 +402,7 @@ public class MainActivity extends Activity {
             }
         }, "JarvisApp");
         wantListen = LISTEN.equals(getIntent().getAction());
+        wantConv = CONVERSE.equals(getIntent().getAction());
         wantNote = getIntent().getBooleanExtra("callnote", false);
         takeShare(getIntent());
         if (TaskRunner.CANCEL.equals(getIntent().getAction())) TaskRunner.cancel = true;
@@ -411,6 +413,7 @@ public class MainActivity extends Activity {
         super.onNewIntent(i);
         setIntent(i);
         wantListen = LISTEN.equals(i.getAction());  // handled in onResume, after the app lock
+        wantConv = CONVERSE.equals(i.getAction());
         wantNote = i.getBooleanExtra("callnote", false);
         takeShare(i);
         if (TaskRunner.CANCEL.equals(i.getAction())) TaskRunner.cancel = true;  // Part 42: the Cancel button of the task notification
@@ -518,6 +521,10 @@ public class MainActivity extends Activity {
         if (wantListen) {  // Part 38: tile or shortcut. Same as tapping the mic: the page checks Stop itself.
             wantListen = false;
             web.postDelayed(() -> web.evaluateJavascript("window.go&&go('chat');document.getElementById('mic')&&document.getElementById('mic').click()", null), 900);
+        }
+        if (wantConv) {  // Part 135: Conversation starts (the page checks Stop itself)
+            wantConv = false;
+            web.postDelayed(() -> web.evaluateJavascript("window.startConv&&startConv()", null), 900);
         }
         if (wantNote) {  // Part 112: after the app lock, the page asks "kuch yaad rakhna hai?" and saves the next words as a note
             wantNote = false;
