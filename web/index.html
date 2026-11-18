@@ -354,7 +354,7 @@ $('f').onsubmit=async e=>{
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
     if(s==200&&'debate' in d)debateBar(d.debate);if(/^\s*debate\s+(?:stop|khatam|band|off)\s*$/i.test(t))debateBar('');
     if(s==200&&'guest' in d){const was=guestOn;guestBar(d.guest);if(!d.guest&&was)guestErase(d.reply);}
-    if(s==200){w.textContent=d.reply;w.title='via '+d.via;if(d.mode)setMode(d.mode);if(d.timed)startTimed(d.timed);const said=d.action?(d.cool?await coolAct(d,w):await doAct(d.action,w)):d.reply.split('\n\nSources:')[0].split('\n\nस्रोत:')[0];if(said&&MODE!='quiet')speak(said,vm,d.action?'TASK_CONFIRMATION':'');if(d.remember)askSave(w,d.remember);if(d.ghost)ghostAsk(d.ghost);if(d.pw)pwPush(d.pw,true);extras(w,t);sp=MODE!='quiet'&&(vm||$('say').checked);}else{w.className='m err';w.textContent=d.error||'error';}
+    if(s==200){w.textContent=d.reply;w.title='via '+d.via;if(d.mode)setMode(d.mode);if(d.timed)startTimed(d.timed);const said=d.action?(d.cool?await coolAct(d,w):await doAct(d.action,w)):d.reply.split('\n\nSources:')[0].split('\n\nस्रोत:')[0];if(said&&MODE!='quiet')speak(said,vm,d.action?'TASK_CONFIRMATION':'');if(d.remember)askSave(w,d.remember);if(d.ghost)ghostAsk(d.ghost);if(d.tablea)tableAsk(w,d.tablea);if(d.pw)pwPush(d.pw,true);extras(w,t);sp=MODE!='quiet'&&(vm||$('say').checked);}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}finally{busy=false;homeSay(t,w.textContent);if((wakeOn||convOn)&&!sp)heardBack();}
 };
 let viaMic=false,wakeOn=false,appListening=false,cmdNext=false,convOn=false,convMiss=0,convTurns=0;
@@ -552,7 +552,8 @@ const LT={gu:['ઠીક છે સર, {x} ખોલી રહ્યો છુ�
 const lt=(a,i,x)=>(LT[a.lang]||[])[i]?.replace('{x}',x);
 async function speak(t,force,intent,profile){
   lastSay=t||'';
-  if(!force&&(!$('say').checked||MODE=='quiet'))return;if(TIMED&&MODE=='quiet'&&intent=='REMINDER')return;  // Part 100: in a timed mode reminders are text only
+  const qx=MODE=='quiet'&&TIMED&&(TIMED.ex||[]).some(w=>(t||'').toLowerCase().includes(w));  // Part 137: `quiet mode 2 hours except namaz, Ammi`: a spoken alert with such a word is still read aloud
+  if(!force&&(!$('say').checked||(MODE=='quiet'&&!qx)))return;if(TIMED&&MODE=='quiet'&&intent=='REMINDER'&&!qx)return;  // Part 100: in a timed mode reminders are text only
  if(wakeOn&&appEars())JarvisApp.stopListen();const v=$('voice').value||'neural:hi-IN-MadhurNeural';
   const sv=scriptVoice(t);if(sv){try{await neural(t,sv);return;}catch(e){add('err','Voice for this language failed: '+e.message+'. Trying the phone voice.');}}
   const eng=localStorage.getItem('jeng')!='0';  // Part 52: Tony / JARVIS voices are ON unless you switch to the classic voice
@@ -1080,6 +1081,7 @@ async function tlLoad(kind,more){if(!more){tlKind=kind;tlLast=0;$('tlb').textCon
   b.dataset.day=day;if(it.length)tlLast=it[it.length-1].at;$('tlm').hidden=it.length<30;$('tlm').onclick=()=>tlLoad(tlKind,true);}
 // Part 107: Context Ghost. The saved reason is asked once after you open the same app again. Text only; No sends the command `ghost bhool jao`.
 function ghostAsk(g){const b=add('bot','Continue what you were doing in '+g.app+' before: "'+g.reason+'"?');btns(b,[['Yes, continue',()=>{b.textContent='Okay, continuing: '+g.reason+'.';}],['No, forget it',()=>ask('ghost bhool jao')]]);}
+function tableAsk(w,r){btns(w,[['PASS',()=>ask('table a pass '+r.row)],['FAIL',()=>ask('table a fail '+r.row)],['Skip',()=>ask('table a skip '+r.row)]]);}  // Part 136: the answer is a normal chat command, so typing it works too
 // Part 108: card shown after 6+ hours away: up to 3 missed reminders and 1 phone issue. Review opens the briefing; both buttons hide the card.
 function awayCard(){const b=$('aw');b.textContent='';const a=tj&&tj.away;if(!a){b.hidden=true;return;}b.hidden=false;
   const n=a.reminders.length;b.append(el('div','lb','WHILE YOU WERE AWAY'),el('div','ld',(n?n+' reminder'+(n==1?'':'s')+' passed':'')+(n&&a.phone.length?' and ':'')+(a.phone.length?'1 phone issue':'')+' (away about '+a.hours+' h)'));
@@ -1191,8 +1193,8 @@ setInterval(()=>nsCard(false),3000);
 // Part 58: voice modes and the status line. The line is worked out from what is really happening (mic, server, sound), so it cannot get stuck.
 let MODE=localStorage.getItem('jmode')||'normal',busy=false;
 if(!['normal','research','quiet','focus'].includes(MODE))MODE='normal';
-function showTimed(){const e=new Date(TIMED.end);$('tn').textContent=TIMED.name+' mode · until '+('0'+e.getHours()).slice(-2)+':'+('0'+e.getMinutes()).slice(-2);$('tbar').hidden=false;}
-function startTimed(t){clearTimeout(TT);TIMED={name:t.name,end:Date.now()+t.min*60000};try{localStorage.setItem('jtimed',JSON.stringify(TIMED));}catch(e){}showTimed();TT=setTimeout(()=>endTimed(true),t.min*60000);}  // Part 100
+function showTimed(){const e=new Date(TIMED.end);$('tn').textContent=TIMED.name+' mode · until '+('0'+e.getHours()).slice(-2)+':'+('0'+e.getMinutes()).slice(-2)+(TIMED.exn&&TIMED.exn.length?' · except '+TIMED.exn.join(', '):'');$('tbar').hidden=false;}
+function startTimed(t){clearTimeout(TT);TIMED={name:t.name,end:Date.now()+t.min*60000,ex:t.ex||[],exn:t.exn||[]};try{localStorage.setItem('jtimed',JSON.stringify(TIMED));}catch(e){}showTimed();TT=setTimeout(()=>endTimed(true),t.min*60000);}  // Part 100
 function endTimed(auto){clearTimeout(TT);const was=TIMED;TIMED=null;try{localStorage.removeItem('jtimed');}catch(e){}$('tbar').hidden=true;if(was){setMode('normal');if(auto===true)add('bot','⏱ '+was.name+' mode is over. Back to normal.');}}
 function setMode(m){if(!['normal','research','quiet','focus'].includes(m))return;if(m!='quiet'&&TIMED){TIMED=null;clearTimeout(TT);try{localStorage.removeItem('jtimed');}catch(e){}$('tbar').hidden=true;}MODE=m;localStorage.setItem('jmode',m);$('mode').value=m;if(m=='quiet'){if(aud)aud.pause();if(window.speechSynthesis)speechSynthesis.cancel();}vstat();}
 function vstat(){

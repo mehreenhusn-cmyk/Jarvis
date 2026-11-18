@@ -675,6 +675,46 @@ def handle(msg, hindi, control, in_app, ask):
 
 
 
+# ---- Part 145: Samjha probe. `samjha: <sentence>` shows what Jarvis understood from the phone-command grammar and does NOTHING (no action, no note, no AI, nothing saved).
+# It assumes Phone control is ON and the app is open. Only the phone-command part is probed; notes, lists, reminders and the AI are not run.
+PROBE = re.compile(r"^\s*(?:samjha|samjhaa|समझा|समझ)\s*[:\uff1a]\s*(.{1,200}?)\s*$", re.I | re.S)
+KEYS = {"type": "type", "name": "name", "target": "target", "text": "text", "risk": "needs your Yes for", "dir": "direction", "said": "you said", "lang": "language", "to": "to", "query": "search", "minutes": "minutes", "level": "level"}
+
+
+def _noai(*a, **k):
+    raise RuntimeError("probe: the AI is never asked")
+
+
+def probe(msg, hindi):
+    """Plain-words report, or None if the message is not `samjha: ...`."""
+    g = PROBE.match(msg or "")
+    if not g:
+        return None
+    s, say = g.group(1), (lambda hi, en: hi if hindi else en)
+    if blocked(lang.norm(s)) or secret_text(s):  # never repeat a password, OTP, PIN or card back into the chat
+        return say("सर, जाँच (कुछ किया नहीं): इसमें पासवर्ड/OTP/PIN/कार्ड है, मैं इसे कभी टाइप नहीं करूँगा और यहाँ दोहराऊँगा भी नहीं।", "Sir, probe (nothing was done): it has a password, OTP, PIN or card. I never type that, and I will not repeat it here.")
+    head = say(f"सर, जाँच (कुछ किया नहीं): \"{s}\"", f"Sir, probe (nothing was done): \"{s}\"")
+    code = lang.detect(s)
+    heard = lang.norm(s)
+    lines = [head, say("भाषा", "Language") + ": " + (lang.NAMES.get(code) or {"hi": "Hindi", "en": "English"}.get(code) or "Hindi/English"), say("समझा हुआ पाठ", "Understood as") + ": " + heard]
+    if blocked(heard):
+        lines.append(say("नतीजा: पासवर्ड/OTP/PIN/कार्ड वाली बात, मैं इसे कभी टाइप नहीं करूँगा।", "Result: it has a password, OTP, PIN or card. I never type that."))
+    else:
+        try:
+            got = handle(s, hindi, True, True, _noai)
+        except RuntimeError:
+            got = None
+        if not got:
+            lines.append(say("नतीजा: फ़ोन कमांड नहीं। यह नोट, लिस्ट, रिमाइंडर या सामान्य बातचीत में जाएगा।", "Result: not a phone command. It would go to notes, lists, reminders or normal chat."))
+        else:
+            reply, act = got
+            if act:
+                lines.append(say("नतीजा: फ़ोन कमांड", "Result: phone command") + " - " + ", ".join(f"{KEYS.get(k, k)}: {v}" for k, v in act.items() if isinstance(v, (str, int, float)) and str(v)))
+                lines.append(say("यह आपकी हाँ मांगेगा।", "It will wait for your Yes.") if act.get("type") == "confirm" else say("यह तभी चलेगा जब आप सीधा बोलें।", "It runs only when you say it as a normal command."))
+            lines.append(say("जवाब होता", "Reply would be") + ": " + reply)
+    return "\n".join(lines) + "\n" + say("कुछ नहीं चलाया। (फ़ोन कंट्रोल चालू और ऐप खुला मानकर जाँचा।)", "Nothing was run. (Checked as if Phone control is ON and the app is open.)")
+
+
 # ---- Part 102: Cool-down before a message. `thanda karo` first, then the WhatsApp command. The page shows your text with a 20 second countdown and a Continue button.
 # Only when you ask for it, only for the next WhatsApp message (or 5 minutes), nothing is sent by Jarvis. RAM only.
 import time as _time

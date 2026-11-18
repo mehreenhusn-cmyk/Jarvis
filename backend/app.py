@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, assist, autostart, backup, brief, calls, capsule, clock, debate, decisions, dreams, drift, events, ghost, guest, handoff, habits, learn, ledger, lens, lists, memory, modes, money, mood, notes, people, phone, place, placenote, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
+import actions, assist, autostart, backup, brief, calls, capsule, clock, debate, decisions, dreams, drift, events, ghost, guest, handoff, habits, learn, ledger, lens, lists, memory, modes, money, mood, notes, people, phone, place, placenote, phonetest, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -76,6 +76,7 @@ def db():
     lists.init(c)  # Part 83: shopping and packing lists
     habits.init(c)  # Part 83: habit and streak tracker
     learn.init(c)  # Part 143: what Jarvis learned (counts only)
+    phonetest.init(c)  # Part 136: Table A answers (pass / fail / skip, date, note)
     spend.init(c)  # Part 84: quick expense logger
     decisions.init(c)  # Parts 93 + 94
     mood.init(c)  # Part 96
@@ -403,7 +404,7 @@ class H(BaseHTTPRequestHandler):
             c = db()
             bd = [{"in": k, "text": t, "on": on} for k, t, on in remind.birthdays(c, dev, n, 7)] if n else []  # Part 75: Daily Life Manager = reminders + ledger + birthdays + notes
             nts = [{"id": i, "text": x[:120]} for i, x in c.execute("SELECT id, text FROM notes WHERE device=? ORDER BY id DESC LIMIT 3", (dev,))]
-            return self.send(200, {"reminders": remind.today(c, dev, now), "ledger": led, "birthdays": bd, "notes": nts, "routines": tasks.scheduled(c, dev), "lens": lens.build(c, dev, now, data.get("phone"), str(data.get("lens") or "all")), "mission": progress.mission(), "away": brief.away(c, dev, now, data.get("phone"), False)})  # Part 108: card after 6+ hours away  # Part 85/86: next best move card and Now/Next/Later strip
+            return self.send(200, {"reminders": remind.today(c, dev, now), "ledger": led, "birthdays": bd, "notes": nts, "routines": tasks.scheduled(c, dev), "lens": lens.build(c, dev, now, data.get("phone"), str(data.get("lens") or "all")), "mission": progress.mission(c, dev), "away": brief.away(c, dev, now, data.get("phone"), False)})  # Part 108: card after 6+ hours away  # Part 85/86: next best move card and Now/Next/Later strip
         if self.path == "/timeline":  # Part 109: the Timeline tab (filter + "More" with `before`)
             return self.send(200, {"items": events.items(db(), dev, str(data.get("now", "")), str(data.get("kind", "all")), data.get("before"), 30)})
         if self.path == "/away/dismiss":  # Part 108: Dismiss or Review hides the card until you are away again
@@ -569,7 +570,11 @@ class H(BaseHTTPRequestHandler):
                 c.commit()
                 return self.send(200, {"reply": hit[0], "via": "memory", "mode": hit[1]})
             msg, gnote, gapp = ghost.pre(c, dev, msg, style == "hindi")  # Part 107: "Chrome kholo research ke liye" keeps the reason; the open command goes on without it
-            mem = memory.handle(c, dev, msg, style == "hindi")  # yaad rakho / bhool jao / kya yaad hai
+            mem = actions.probe(msg, style == "hindi")  # Part 145: "samjha: <sentence>" shows what Jarvis understood, does nothing
+            if mem is None:  # Part 136: "table a next", "table a pass 12" (your test answers; nothing runs on the phone)
+                mem = phonetest.handle(c, dev, msg, style == "hindi")
+            if mem is None:
+                mem = memory.handle(c, dev, msg, style == "hindi")  # yaad rakho / bhool jao / kya yaad hai
             now = str(data.get("now", ""))
             if mem is None:  # Part 89: "sab jagah dhundo Bombay" (same words in notes, memories, people, lists, reminders; reads only, no AI)
                 mem = search.handle(c, dev, msg, style == "hindi")
@@ -640,7 +645,7 @@ class H(BaseHTTPRequestHandler):
             if mem is None:  # Part 117: "last update", "kya kya add hua" (from the zips on this phone and the README, no AI)
                 mem = whatsnew.handle(msg, style == "hindi", sync_note())
             if mem is None:  # "app ka kaam kahan tak pahuncha" / "mission": three honest counts read from the README (Part 87)
-                mem = progress.handle(msg, style == "hindi")
+                mem = progress.handle(msg, style == "hindi", c, dev)
             action = None
             if mem is None:  # Part 30: "WhatsApp kholo" (only proposes; the app checks the switch and Stop)
                 got = tasks.routine(c, dev, msg, style == "hindi", data.get("control") is True, data.get("app") is True) or tasks.make(c, dev, msg, style == "hindi", data.get("control") is True, data.get("app") is True) or actions.handle(msg, style == "hindi", data.get("control") is True, data.get("app") is True, ask)  # Part 41: several steps in one sentence become one task
@@ -655,7 +660,7 @@ class H(BaseHTTPRequestHandler):
                 c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", keep, time.time()))
                 c.commit()
                 cl = actions.cool_take(dev, action)  # Part 102: asked once, because it uses the switch up
-                return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {}), **({"cool": cl} if cl else {}), **({"ghost": gq} if gq else {}), **({"pw": pwc} if (pwc := placenote.take(c, dev)) else {})))
+                return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {}), **({"cool": cl} if cl else {}), **({"ghost": gq} if gq else {}), **({"pw": pwc} if (pwc := placenote.take(c, dev)) else {}), **({"tablea": tq} if (tq := phonetest.take(dev)) else {})))
             rows = c.execute("SELECT role, content, ts FROM messages WHERE device=? ORDER BY id DESC LIMIT 20", (dev,)).fetchall()  # Part 126: 20 turns, not 10
             rows = [x for x in rows if not (x[0] == "assistant" and x[1].startswith("(phone action)"))]  # Part 138: the AI must not copy an old fake label
             tctx = clock.context([(r, t) for r, _, t in reversed(rows)], prev_ts)

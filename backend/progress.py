@@ -30,7 +30,7 @@ def plan():
     return done, names, order, opt
 
 
-def mission():
+def mission(db=None, dev=None):
     """Part 87: three SEPARATE counts, read from README section 2 (status column) and Table A (Result column).
     built = code written; tested = also tried on the phone; verified = Table A rows marked PASS. None if the README is missing."""
     try:
@@ -50,11 +50,17 @@ def mission():
             c["planned"] += n
     ta = t.split("## 7. ", 1)[-1].split("\n## 8. ", 1)[0]
     res = [r.strip().lower() for r in re.findall(r"^\| \d+ \|.*\| ([^|]+) \|\s*$", ta, re.M)]
+    if db is not None and dev is not None:  # Part 136: the rows you answered with `table a pass 12` win over the README column
+        try:
+            import phonetest
+            res = [r["res"] for r in phonetest.merged(db, dev, t)] or res
+        except Exception:
+            pass
     c.update(tests=len(res), ok=res.count("pass"), fail=res.count("fail"))
     return c
 
 
-def handle(msg, hindi):
+def handle(msg, hindi, db=None, dev=None):
     """Answer text, or None if this is not a progress question."""
     if len(msg) > 120 or not ((ASK.search(msg) and ABOUT.search(msg)) or re.match(r"^\s*mission(?: view| status)?\s*[?.]?\s*$", msg, re.I)):
         return None
@@ -62,7 +68,7 @@ def handle(msg, hindi):
     if p is None:
         return "सर, मुझे प्लान की फ़ाइल (README) नहीं मिली, इसलिए अभी पक्का नहीं बता सकता।" if hindi else "Sir, I cannot find the plan file (README), so I cannot tell you for sure right now."
     done, names, order, opt = p
-    m = mission()
+    m = mission(db, dev)
     todo = [n for n in order if n not in done]
     nxt = ", ".join(f"{n} ({names.get(n, '?')})" for n in todo[:3])
     fl = f", {m['fail']} FAIL" if m["fail"] else ""

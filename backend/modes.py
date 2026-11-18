@@ -102,8 +102,40 @@ TIMED = re.compile(r"^\s*(meeting|namaz|sleep|focus)(?:\s+(?:mode|मोड))?(?
 DEFAULT = {"meeting": 45, "namaz": 20, "sleep": 480, "focus": None}
 
 
+# ---- Part 137: Quiet mode with exceptions. `quiet mode 2 hours except namaz, Ammi`: quiet for that time (no voice, short replies), but a SPOKEN alert (a reminder, for example)
+# whose text has one of those words is still read aloud. Exceptions only allow speech: they never run anything on the phone. Up to 5 words, one word each.
+QX = re.compile(r"^\s*(?:jarvis[\s,]+)?(?:quiet|shaant|chup|क्वाइट)(?:\s+(?:mode|मोड))?\s+(\d{1,3})\s*(minute|minutes|min|mins|मिनट|hour|hours|hr|hrs|ghanta|ghante|घंटा|घंटे)\s*(?:(?:except|siwaye|sivay|chhodke|ke\s+alawa|ko\s+chhodkar)\s+(.+?))?\s*[.!]?\s*$", re.I)
+QX_NOTIME = re.compile(r"^\s*(?:quiet|shaant|chup)(?:\s+mode)?\s+(?:except|siwaye|sivay)\s+\S", re.I)
+ALIAS = {"namaz": ("namaz", "नमाज़", "नमाज", "azan", "azaan", "अज़ान", "अजान"), "ammi": ("ammi", "अम्मी"), "abbu": ("abbu", "अब्बू"), "mummy": ("mummy", "मम्मी"), "papa": ("papa", "पापा"),
+         "doctor": ("doctor", "डॉक्टर"), "dawai": ("dawai", "दवाई", "दवा", "medicine"), "medicine": ("medicine", "dawai", "दवाई", "दवा")}
+XWORD = re.compile(r"^[\w\u0900-\u097F]{2,20}$")
+
+
+def quiet_timed(msg, hindi):
+    """(reply, {"name": "quiet", "min", "ex": words to match, "exn": words as said}) or None."""
+    say = lambda hi, en: hi if hindi else en
+    if QX_NOTIME.match(msg or ""):
+        return say("सर, कितनी देर? ऐसे बोलिए: quiet mode 2 hours except namaz, Ammi", "Sir, for how long? Say it like this: quiet mode 2 hours except namaz, Ammi"), None
+    g = QX.match(msg or "")
+    if not g:
+        return None
+    n = int(g.group(1)) * (60 if g.group(2).lower() in ("hour", "hours", "hr", "hrs", "ghanta", "ghante", "घंटा", "घंटे") else 1)
+    if not 5 <= n <= 600:
+        return say("सर, 5 मिनट से 10 घंटे के बीच रखिए।", "Sir, choose between 5 minutes and 10 hours."), None
+    words = [w.strip().lower() for w in re.split(r"\s*(?:,|&|\band\b|\baur\b|और)\s*", g.group(3) or "") if w.strip()]
+    if len(words) > 5 or not all(XWORD.match(w) for w in words):
+        return say("सर, अपवाद में सिर्फ़ एक-एक शब्द रखिए, ज़्यादा से ज़्यादा 5। जैसे: namaz, Ammi", "Sir, give one word for each exception, at most 5. For example: namaz, Ammi"), None
+    ex = sorted({a for w in words for a in ALIAS.get(w, (w,))})
+    when = f"{n // 60} घंटे" if hindi and n % 60 == 0 else f"{n} मिनट" if hindi else (f"{n // 60} hour{'s' if n >= 120 else ''}" if n % 60 == 0 else f"{n} minutes")
+    tail = (say(f" अपवाद: {', '.join(words)} (इनके बारे में अलर्ट बोलकर आएँगे)।", f" Exceptions: {', '.join(words)} (alerts about these are still spoken).")) if words else ""
+    return say(f"क्वाइट मोड {when} के लिए। आवाज़ बंद, जवाब छोटे।{tail} जल्दी खत्म करने के लिए: normal mode", f"Quiet mode for {when}. No voice, short replies.{tail} To end sooner say: normal mode"), {"name": "quiet", "min": n, "ex": ex, "exn": words}
+
+
 def timed(msg, hindi):
     """(reply, {"name", "min"}) or None. `focus` needs minutes (plain `focus mode` is the old Part 58 setting)."""
+    q = quiet_timed(msg, hindi)  # Part 137
+    if q:
+        return q
     g = TIMED.match(msg or "")
     if not g:
         return None
