@@ -119,19 +119,29 @@ def _unit():
         ok("138: running the update twice changes nothing", _c.execute("SELECT COUNT(*) FROM messages WHERE device=1").fetchone()[0] == 2)
     finally:
         A.DB = _old
-    # Part 149: sentences that failed in Hussain's screenshots stay as tests. KNOWN-FAIL = still broken, Part 139 fixes it (it never stops the run)
-    kf = lambda n, c: print(("PASS " if c else "KNOWN-FAIL (Part 139) ") + n)
+    # Part 149: sentences that failed in Hussain's screenshots stay as tests. Part 139 fixed the 5 that used to print KNOWN-FAIL
     h = lambda m: AC.handle(m, True, True, True, lambda hh, s, e: ("x", "y"))
     ok("149: torch sentences with extra words (मैं ... कर, यार ... please)", all((h(m) or (0, {}))[1] == {"type": "torch", "on": on} for m, on in (("मैं टॉर्च चालू कर", True), ("मैं टॉर्च चालू करो", True), ("यार टॉर्च बंद कर please", False), ("torch band kar do", False))))
     ok("149: torch is never an app name", all((h(m) or (0, {}))[1].get("name") != "मैं टॉर्च" for m in ("मैं टॉर्च चालू कर", "मैं टॉर्च")))
     ok("149: call Ammi, scroll down, back, home still work", h("ammi ko call karo")[1] == {"type": "call", "name": "Ammi"} and h("neeche scroll karo")[1] == {"type": "scroll", "dir": "down"} and h("peeche jao")[1] == {"type": "back"} and h("होम जाओ")[1] == {"type": "home"})
     import whatsnew as WN
     ok("149: last update question is answered from the header, not by the AI", WN.handle("last part kaun sa update hua", False, "Update: Jarvis_part133.zip") is not None)
-    kf("149: होम स्क्रीन पर जाओ -> home", (h("होम स्क्रीन पर जाओ") or (0, {}))[1] == {"type": "home"})
-    kf("149: home screen par jao -> home", (h("home screen par jao") or (0, {}))[1] == {"type": "home"})
-    kf("149: go to home screen -> home", (h("go to home screen") or (0, {}))[1] == {"type": "home"})
-    kf("149: मैं अम्मी को कॉल कर -> call Ammi (not 'main ammi')", (h("मैं अम्मी को कॉल कर") or (0, {}))[1].get("name", "").lower() == "ammi")
-    kf("149: usko open karo -> no app called usko", (h("usko open karo") or (0, {}))[1].get("name") != "usko")
+    ok("149: होम स्क्रीन पर जाओ -> home", (h("होम स्क्रीन पर जाओ") or (0, {}))[1] == {"type": "home"})
+    ok("149: home screen par jao -> home", (h("home screen par jao") or (0, {}))[1] == {"type": "home"})
+    ok("149: go to home screen -> home", (h("go to home screen") or (0, {}))[1] == {"type": "home"})
+    ok("149: मैं अम्मी को कॉल कर -> call Ammi (not 'main ammi')", (h("मैं अम्मी को कॉल कर") or (0, {}))[1].get("name", "").lower() == "ammi")
+    ok("149: usko open karo -> no app called usko, Jarvis asks which app", ((h("usko open karo") or (0, {}))[1] or {}).get("name") != "usko" and "ऐप" in h("usko open karo")[0])
+    # Part 139: loose commands (home, back, scroll said loosely) and Part 148: more misheard "Jarvis" forms
+    ok("139: home screen said loosely, many ways", all((h(m) or (0, {}))[1] == {"type": "home"} for m in ("open home screen", "होम स्क्रीन पर ले चलो", "bhai jaldi home jao", "main home screen par jao na")))
+    ok("139: back and scroll with filler or one stray word", (h("peeche wapas jao") or (0, {}))[1] == {"type": "back"} and (h("main thoda neeche scroll kar") or (0, {}))[1] == {"type": "scroll", "dir": "down"})
+    ok("139: call Ammi with noise before and after the name", (h("call ammi at anyhow") or (0, {}))[1] == {"type": "call", "name": "Ammi"})
+    ok("139: volume with filler (मुझे आवाज़ कम चाहिए यार)", (h("mujhe awaaz kam chahiye yaar") or (0, {}))[1] == {"type": "volume", "dir": "down"})
+    ok("139: still chat: question, my home screen, home alone, back and home together, how-to", all(h(m) is None for m in ("how to go home", "my home screen", "home", "go back to home screen", "what is the home screen?")))
+    ok("139: click home is still a click, risky words still need Yes", (h("click home") or (0, {}))[1] == {"type": "click", "name": "home"} and (h("send message home jao") or (0, {}))[1].get("type") == "confirm")
+    ok("139: switch OFF -> OFF is said, nothing runs", "OFF" in AC.handle("home screen par jao", False, False, True, lambda hh, s, e: ("x", "y"))[0])
+    import re as _re
+    _wk = _re.compile(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web", "index.html"), encoding="utf-8").read().split("const WAKE=/")[1].split("/i;")[0].replace("(.*)$", "(.*)$"), _re.I)
+    ok("148: misheard Jarvis (जरवेस, जरवेश, jarvish, jar vis) opens the wake word", all(_wk.search(t) and _wk.search(t).group(1).strip() == "time" for t in ("जरवेस time", "ही जरवेश time", "jarvish time", "jar vis time")))
 _unit()
 
 PORT = "8799"

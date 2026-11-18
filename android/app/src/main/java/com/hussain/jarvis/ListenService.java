@@ -28,7 +28,7 @@ import org.json.JSONObject;
 public class ListenService extends Service implements RecognitionListener {
     static final String CH = "jarvis_listen", STOP = "com.hussain.jarvis.STOP_LISTEN";
     static final long MAX = 8L * 3600_000L;  // battery safety: the test ends by itself after 8 hours
-    static final Pattern WAKE = Pattern.compile("jarvis|jarvish|जार्विस|जारविस|जार्विश", Pattern.CASE_INSENSITIVE);
+    static final Pattern WAKE = Pattern.compile("jar ?vish|jar ?vis|jervis|jarvas|jarvice|jarves|jarwis|जार्विस|जारविस|जार्विश|जरवेस|जरवेश|जर्वेस|जर्विस|जरविस|जार्वेस|जारवेस|जरवीस|जार्विज|हिसारिस्ट", Pattern.CASE_INSENSITIVE);
     static volatile boolean up;
     final Handler ui = new Handler(Looper.getMainLooper());
     SpeechRecognizer sr;

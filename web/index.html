@@ -381,7 +381,7 @@ $('intr').onclick=()=>{
     :(hi?'इंटरप्ट चालू है सर, पर यह सिर्फ़ ईयरफ़ोन लगे हों तब चलेगा, वरना मेरी अपनी आवाज़ मुझे रोक देगी। फ़ोन का स्पीच सर्विस बीप कर सकता है।':'Interrupt is on, sir, but it works only with earphones connected, otherwise my own voice would stop me. The phone speech service may beep.'));
   else if(barging){barging=false;try{JarvisApp.stopListen();}catch(e){}}};
 const appEars=()=>!!(window.JarvisApp&&JarvisApp.listen);
-const WAKE=/(?:jarvis|jarvish|जार्विस|जारविस|जार्विश)[\s,.!?]*(.*)$/i;
+const WAKE=/(?:jar ?vish|jar ?vis|jervis|jarvas|jarvice|jarves|jarwis|जार्विस|जारविस|जार्विश|जरवेस|जरवेश|जर्वेस|जर्विस|जरविस|जार्वेस|जारवेस|जरवीस|जार्विज|हिसारिस्ट)[\s,.!?]*(.*)$/i;
 const heardBack=()=>{if(barging){barging=false;try{JarvisApp.stopListen();}catch(e){}}if(skipEnd)return;resumeMic();};  // Part 61: Jarvis finished (or was cut off)
 const resumeMic=()=>{if(!appEars()||priv)return;
   if(convOn){setTimeout(()=>{if(convOn&&!priv){appListening=true;micState(true);JarvisApp.listen($('lang').value,false);}},500);return;}  // Part 55: a short pause so the mic does not hear Jarvis's own voice

@@ -177,7 +177,7 @@ One row per Part, plain numbers only. Keep each row to ONE line. A new idea gets
 | 136 | Table A runner: `table a next`, tap PASS / FAIL / Skip, saved with date and note; feeds the Verified count | `*phonetest.py`, `app.py`, `progress.py`, `index.html` | ~130 | No | Planned |
 | 137 | Quiet mode exceptions: `quiet mode 2 hours except namaz, Ammi` | `modes.py`, `index.html` | ~100 | No | Planned |
 | 138 | Chat never lost, no fake done: every new pairing joins the oldest device, so chat and data survive a re-pair (old devices merged once); a short AI answer that claims a phone action is replaced by "I did nothing"; old `(phone action)` lines are not sent to the AI | `app.py`, `test_app.py` | 66 | No | Built, not phone tested |
-| 139 | Loose commands, round two: after retesting 125, 126, 130: command word anywhere, filler and misheard words ignored | `actions.py`, `test_app.py` | ~120 | No | Planned |
+| 139 | Loose commands, round two: home, back and scroll work with filler words and one stray word (`होम स्क्रीन पर जाओ`, `open home screen`); `मैं अम्मी को कॉल कर` and `call ammi at anyhow` call Ammi; `usko open karo` asks which app; volume accepts filler. Click, type, send, pay, delete stay as before | `actions.py`, `test_app.py` | 51 | No | Built, not phone tested |
 | 140 | One Voice mode: Off / Hey Jarvis / Conversation instead of three switches; Interrupt becomes automatic | `index.html` | ~50 | No | Planned |
 | 141 | Talk on Home: tap Jarvis on Home and it listens and answers there, no jump to Chat | `index.html` | ~50 | No | Planned |
 | 142 | Simple screens: fewer cards on Home and Settings, the rest under More (needs Hussain's Home screenshots) | `index.html` | ~80 | No | Planned |
@@ -186,8 +186,8 @@ One row per Part, plain numbers only. Keep each row to ONE line. A new idea gets
 | 145 | Samjha probe: `samjha: <sentence>` shows what Jarvis understood without doing anything | `app.py`, `actions.py` | ~30 | No | Planned |
 | 146 | Unknown sentences list: sentences it could not understand are saved on the phone; one tap teaches it | `*unknown.py`, `app.py`, `index.html` | ~80 | No | Planned |
 | 147 | Real tick: a tick or cross after a phone action only when the phone's own result says so | `index.html`, `app.py` | ~40 | No | Planned |
-| 148 | More Jarvis mishearings: more misheard forms of the name (हिसारिस्ट, जरवेस, जरवेश ...) count as the wake word | `ListenService.java`, `index.html` | ~10 | Yes | Planned |
-| 149 | Screenshot sentences as tests: torch, call Ammi, scroll, back, home, last update are locked. 5 sentences still FAIL and print KNOWN-FAIL: three home screen wordings, `मैं अम्मी को कॉल कर`, `usko open karo`. Part 139 must fix them | `test_app.py` | 13 | No | Built, not phone tested |
+| 148 | More Jarvis mishearings: जरवेस, जरवेश, जर्वेस, जरविस, हिसारिस्ट, jar vis, jarvice and more count as the wake word (page, ListenService, WakeEngine) | `ListenService.java`, `WakeEngine.java`, `index.html` | 6 | Yes | Built, not phone tested |
+| 149 | Screenshot sentences as tests: torch, call Ammi, scroll, back, home, last update. The 5 that failed before are fixed by Part 139 and now PASS | `test_app.py` | 13 | No | Built, not phone tested |
 
 ## 3. WHAT HUSSAIN DOES NOW
 
@@ -197,7 +197,7 @@ One row per Part, plain numbers only. Keep each row to ONE line. A new idea gets
 4. Try Table A (section 7). Write PASS or FAIL for each row.
 5. Then name the next Part from the plan (section 4).
 
-**Done 19 Nov: 138 and 149 (built, not phone tested). Next in the order below is 149 done, so start at 148.**
+**Done 19 Nov: 138, 149, 148, 139 (built, not phone tested; 148 is Java, so the APK must be built). Next in the order below: start at 134.**
 
 **Build order (18 Nov):** 138, 149, 148, 139, 134, 140, 141, 142, 143, 135, 136, 137, 145, 146, 147, 144.
 

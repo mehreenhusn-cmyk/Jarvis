@@ -11,6 +11,8 @@ EN = {"open", "launch", "start", "run", "ओपन", "ओपेन", "ओप्�
 HI = {"उघड", "उघडा", "उघडणे", "तिर", "तिरक्क", "तिरक्कवुम", "तिरक्कुम", "तेरुवु", "तेरवंडि", "तेरे", "तेरयिरि", "तुरक्कुक", "तुरक्कू", "खोल्हो", "खोल्हें", "kholo", "khol", "kholna", "kholiye", "kholiyega", "kholen", "chalao", "chala", "chalu", "shuru", "खोलो", "खोल", "खोलना", "खोलिए", "खोलिये", "खोलें", "चलाओ", "चला", "चालू", "चालु", "शुरू"}
 FILL = set("please plz pls jarvis जार्विस जारविस sir सर ko को app ap application ek एक zara jara जरा na ना kar karo kr कर करो do दो de दे dena dijiye दीजिए the my mera mere meri मेरा मेरे मेरी mujhe मुझे hai है hain chahiye चाहिए can could will you hey ok okay tum aap आप तुम bhai भाई जी ji phir fir अब ab".split())
 QW = set("kya kaise kyun kyu kab kaun what why how when who which क्या कैसे क्यों कब कौन".split())
+LNOISE = set("main mai मैं मै yaar yar यार abhi अभी bhi भी ye यह wo वो".split())  # Part 139: filler the mic adds (was a local list in device_cmd)
+PREPS = set("par pe pr पर पे ko को me mein में se से ka ki ke का की के to on le ले chal chalo चल चलो jana jaana जाना ho hona हो kijiye कीजिए karna करना".split())
 NEAR = EN | HI | {"jao", "jana", "jaana", "जाओ", "जाना"}  # words that make a message look like a command (for the AI fallback)
 
 _key = lambda s: re.sub(r"[\s़.\-'_]", "", s.lower()).translate(str.maketrans({"ू": "ु", "ी": "ि", "ॉ": "ो", "ँ": "ं", "्": ""}))  # Part 59: यूट्यूब and युटुब give a close key
@@ -75,6 +77,8 @@ def parse(msg):
         name = _trim(w[:-1])
     else:
         return None
+    if name and set(name) <= PRON:
+        return ""  # Part 139: only "it / usko / wahi": Jarvis asks which app instead of searching for an app called "usko"
     return " ".join(name) if len(name) <= 4 else None
 
 
@@ -140,12 +144,14 @@ BACKW, HOMEW = {"back", "peeche", "piche", "पीछे", "wapas", "वाप�
 SCRW, DOWN, UP = {"scroll", "स्क्रॉल", "skrol"}, {"down", "neeche", "niche", "नीचे"}, {"up", "upar", "oopar", "ऊपर"}
 CLICK_EN, CLICK_HI = {"click", "tap", "press"}, {"dabao", "dabaye", "dabaiye", "दबाओ", "दबाइए", "दबाएं"}
 AGAIN = set("aur और thoda थोड़ा thora again more phir फिर bhi भी baar बार once".split())  # Part 128: "thoda aur scroll karo", "aur neeche"
+LOOSEF = FILL | GO | AGAIN | LNOISE | PREPS  # Part 139
 ORD = {"pehla": 1, "pehle": 1, "first": 1, "पहला": 1, "dusra": 2, "doosra": 2, "second": 2, "दूसरा": 2, "teesra": 3, "tisra": 3, "third": 3, "तीसरा": 3, "chautha": 4, "chauthha": 4, "fourth": 4, "चौथा": 4,
        "panchva": 5, "paanchva": 5, "panchwa": 5, "fifth": 5, "पांचवा": 5, "पाँचवा": 5, "chatha": 6, "sixth": 6, "छठा": 6}
 ITEMW = set("video vedio item result chart link card post song option row videos result photo reel वीडियो आइटम चार्ट लिंक रिज़ल्ट रिजल्ट".split())
 OPENW = set("kholo khol open dabao click tap press play chalao खोलो खोल दबाओ चलाओ".split())
 NTHFILL = set("ooper upar oopar se from top the a wala wali number no nambar ka ki ke jo hai ko ऊपर से वाला वाली नंबर नम्बर".split())
 THIS = set("is isko ye yeh yah this it इस इसे यह ये".split())
+PRON = THIS | set("usko use उसको उसे wahi wahin वही वहीं dobara दोबारा that them isse again wo वो".split())  # Part 139: "usko open karo" is not an app called usko
 BTN = {"button", "btn", "बटन", "tab", "option"}
 LOCKW, PHONEW = {"lock", "लॉक"}, {"phone", "फोन", "फ़ोन", "mobile", "मोबाइल", "screen", "स्क्रीन"}  # Part 35: lock only. There is no unlock command and there never will be.
 TYPE_RX = re.compile(r"^\s*(?:type|likho|लिखो|टाइप)\s*(?:karo|kar do|kar|करो|कर दो)?\s*[:,\-]?\s*(.+)$", re.I | re.S)
@@ -226,6 +232,37 @@ def screen_cmd(msg):
     return act, f"Pressing \"{n}\", sir.", f"ठीक है सर, \"{n}\" दबा रहा हूँ।"
 
 
+# ---- Part 139: loose commands. The command word may sit anywhere, filler and ONE stray word are ignored. Only safe steps: home, back, scroll. Never click, type, send, pay or delete. ----
+MOVE = set("go jao ja jaa jana jaana chalo chal le जाओ जा जाना चलो चल ले".split())
+VERBS = MOVE | set("open ओपन ओपेन kholo khol खोलो खोल dikhao दिखाओ show".split())
+SCREENW = {"screen", "स्क्रीन", "page"}
+
+
+def loose_cmd(msg):
+    """(action or None, English text, Hindi text) for home, back and scroll said in a loose way, else None."""
+    m = msg.strip()
+    if "?" in m or len(m) > 80 or risk_of(msg) or LABEL_RISK.search(m):
+        return None
+    w = _words(m)
+    s = set(w)
+    if not w or len(w) > 9 or s & QW or s & (CLICK_EN | CLICK_HI | BTN | CALLW | {"app", "ऐप", "एप", "type", "लिखो"}):
+        return None
+    known = HOMEW | BACKW | SCRW | DOWN | UP | SCREENW | LOOSEF | VERBS
+    stray = [x for x in w if x not in known]
+    if len(stray) > 1:
+        return None
+    home, back = bool(s & HOMEW), bool(s & BACKW)
+    if home != back and s & VERBS and not (s & (SCRW | DOWN | UP)):
+        if home:
+            return {"type": "home"}, "Going to the home screen, sir.", "ठीक है सर, होम स्क्रीन पर जा रहा हूँ।"
+        if s & MOVE:
+            return {"type": "back"}, "Going back, sir.", "ठीक है सर, पीछे जा रहा हूँ।"
+    if not (home or back) and s & SCRW and bool(s & DOWN) != bool(s & UP):
+        d = "down" if s & DOWN else "up"
+        return {"type": "scroll", "dir": d}, f"Scrolling {d}, sir.", ("नीचे" if d == "down" else "ऊपर") + " स्क्रॉल कर रहा हूँ सर।"
+    return None
+
+
 # Part 37: settings help. Only a FIXED list: open a settings page, flashlight, music volume. Wi-Fi, Bluetooth and location are never switched
 # by Jarvis (Android does not allow it): the page is opened and Jarvis says so.
 PAGES = {"wifi": ("wifi", "वाईफाई वायफाय वाईफ़ाई"), "bluetooth": ("bluetooth", "ब्लूटूथ ब्लूटुथ"), "location": ("location gps", "लोकेशन"),
@@ -254,14 +291,14 @@ def device_cmd(msg):
     if not w or len(w) > 8 or s & QW:
         return None
     OPENON = {"open", "ओपन", "ओपेन", "kholo", "khol", "खोलो", "खोल"}  # Part 59: "open torch" / "ओपन टॉर्च" means switch it on
-    NOISE = set("main mai मैं मै yaar yar यार abhi अभी bhi भी ye यह wo वो".split())  # Part 130: filler the mic adds
+    NOISE = LNOISE  # Part 130: filler the mic adds (Part 139: shared list)
     extra = [x for x in w if x not in TORCHW | ONW | OFFW | GO | FILL | OPENW | NOISE]  # a misheard "Jarvis" or one stray word must not lose the command
     strong = TORCHW - {"light", "लाइट", "flash", "फ्लैश"}
     dirs = [x for x in w if x in ONW or x in OPENON or x in OFFW]
     if dirs and ((s & (TORCHW - {"light", "लाइट"}) and not extra) or (s & strong and len(extra) == 1)):
         on = dirs[-1] not in OFFW  # "abhi bhi chalu hai switch off kar": the LAST direction word wins
         return {"type": "torch", "on": on}, ("Switching the flashlight on, sir." if on else "Switching the flashlight off, sir."), ("टॉर्च चालू कर रहा हूँ सर।" if on else "टॉर्च बंद कर रहा हूँ सर।")
-    if s & VOLW and s <= VOLW | VUP | VDOWN | GO | FILL | OPENW and bool(s & VUP) != bool(s & VDOWN):
+    if s & VOLW and s <= VOLW | VUP | VDOWN | GO | FILL | OPENW | LNOISE | PREPS and bool(s & VUP) != bool(s & VDOWN):
         d = "up" if s & VUP else "down"
         return {"type": "volume", "dir": d}, f"Turning the volume {d}, sir.", ("आवाज़ बढ़ा रहा हूँ सर।" if d == "up" else "आवाज़ कम कर रहा हूँ सर।")
     pages = {PAGEOF[x] for x in s if x in PAGEOF}
@@ -297,7 +334,7 @@ def call_cmd(msg):
     s = set(w)
     if s & QW or s & CALLNO:
         return None
-    drop = FILL | CALLFILL
+    drop = FILL | CALLFILL | LNOISE  # Part 139: "मैं अम्मी को कॉल कर" is Ammi, not "main ammi"
     while w and w[0] in drop:
         w = w[1:]
     while w and w[-1] in drop:
@@ -319,6 +356,8 @@ def call_cmd(msg):
     if nm and all(x.isdigit() for x in rest):
         num = re.sub(r"[ \-]", "", nm.group())
         return {"type": "call", "number": num, "raw": True}, f"Opening the dialer with {num}, sir. Please press the green call button yourself.", f"डायलर में {num} खोल रहा हूँ सर। हरा कॉल बटन आप खुद दबाइए।"
+    if "at" in rest[1:]:
+        rest = rest[:rest.index("at", 1)]  # Part 139: "call ammi at anyhow": the name is what comes before "at"
     if len(rest) > 3 or "of" in rest or any(x.isdigit() for x in rest):
         return None
     name = " ".join(rest)
@@ -591,7 +630,7 @@ def handle(msg, hindi, control, in_app, ask):
             if not control:
                 return say("फ़ोन कंट्रोल बंद है सर। Settings में \"Phone control\" चालू कीजिए।", "Phone control is OFF, sir. Turn it on in Settings, under Phone control."), None
             return say(got[2], got[1]), got[0]
-    sc = screen_cmd(msg) or device_cmd(msg)  # Part 34 (screen steps) and Part 37 (settings pages, flashlight, volume)
+    sc = screen_cmd(msg) or device_cmd(msg) or loose_cmd(msg)  # Part 139 adds loose_cmd last. Part 34 (screen steps) and Part 37 (settings pages, flashlight, volume)
     if sc and sc[0] and sc[0]["type"] == "type" and not (control and in_app):
         sc = None  # "type hello" is only a command when phone control is ON in the app; otherwise it is normal chat
     rk = risk_of(msg) if (control and in_app) else None

@@ -24,7 +24,7 @@ import org.vosk.Recognizer;
  *  no words are saved, shown or sent anywhere. Mic is used only while ListenService runs (notification with Stop). */
 final class WakeEngine {
     static final String MODEL_URL = "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip", NAME = "vosk-model-small-en-us-0.15";
-    static final Pattern WAKE = Pattern.compile("jarvis|jar vis|jarvish|jervis|jarvas", Pattern.CASE_INSENSITIVE);
+    static final Pattern WAKE = Pattern.compile("jar ?vish|jar ?vis|jervis|jarvas|jarvice|jarves|jarwis|जार्विस|जारविस|जार्विश|जरवेस|जरवेश|जर्वेस|जर्विस|जरविस|जार्वेस|जारवेस|जरवीस|जार्विज|हिसारिस्ट", Pattern.CASE_INSENSITIVE);
     interface Cb { void heard(); void failed(String why); }
     static volatile boolean downloading;
     static volatile int pct;
