@@ -272,7 +272,7 @@ body.holo #orb::after{content:"";position:absolute;inset:0;border-radius:50%;poi
 <details class="grp"><summary>✨ Look</summary><div class="card" id="lookc"></div></details>
 <details class="grp"><summary>🔒 Privacy &amp; Security</summary><div class="card" id="dash"></div><h5>Payment apps</h5><div class="card" id="pay"></div><h5>Backup</h5><div class="card" id="bk"></div><h5>Background listening test</h5><div class="card" id="bgt"></div></details>
 <details class="grp"><summary>➕ More</summary>
-<details class="grp"><summary>🗂️ Your Data (Memory Atlas)</summary><h5>What Jarvis learned</h5><div class="card" id="lrn"></div><h5>What Jarvis keeps (counts)</h5><div class="card" id="al"></div><h5>People</h5><div class="card" id="pl"></div><h5>Memory</h5><div class="card" id="ml"></div><h5>Notes</h5><div class="card" id="nl"></div><h5>Money ledger</h5><div class="card" id="ll"></div></details>
+<details class="grp"><summary>🗂️ Your Data (Memory Atlas)</summary><h5>What Jarvis learned</h5><div class="card" id="lrn"></div><h5>Sentences I did not understand</h5><div class="card" id="unk"></div><h5>What Jarvis keeps (counts)</h5><div class="card" id="al"></div><h5>People</h5><div class="card" id="pl"></div><h5>Memory</h5><div class="card" id="ml"></div><h5>Notes</h5><div class="card" id="nl"></div><h5>Money ledger</h5><div class="card" id="ll"></div></details>
 <details class="grp"><summary>🔔 Notifications</summary><div class="card" id="nsc"></div></details>
 <details class="grp"><summary>⚙️ Advanced</summary><h5>System</h5><div class="card" id="sys"></div><h5>API key</h5><div class="card"><p style="margin-top:0;color:var(--mut)">Paste a key. Jarvis finds the company and checks it.</p>
 <input id="key" placeholder="Paste key here" autocomplete="off"><p><button id="kp">Paste from clipboard</button> <button id="kc" class="g">Check</button></p><p id="kr"></p><div id="kl"></div></div></details>
@@ -494,6 +494,18 @@ function learnSug(){const b=$('lsg');if(!b)return;const s=LRN&&LRN.on&&LRN.sugge
   b.appendChild(el('div','',s.text));const row=el('div','sh');
   const y=el('button',null,'Yes');y.type='button';y.onclick=async()=>{await learnAct(s.id,'yes');ask(s.cmd);};
   const n=el('button','g','Not now');n.type='button';n.onclick=()=>learnAct(s.id,'later');row.append(y,n);b.appendChild(row);}
+// Part 146: sentences Jarvis could not understand. Say a clear command right after an unclear one and Jarvis pairs them; one tap on Teach makes the unclear one mean it. Nothing runs by itself.
+let UNK=null;
+async function unkLoad(){try{const {s,d}=await api('/unknown',{});if(s==200)UNK=d;}catch(e){}unkCard();}
+async function unkAct(id,act){try{await api('/unknown/act',{id:id,act:act});}catch(e){}unkLoad();}
+function unkCard(){const b=$('unk');if(!b)return;b.textContent='';
+  if(!UNK){b.textContent='Server offline: nothing to show.';return;}
+  b.appendChild(el('div','sm',UNK.on?'Keeps only the sentence, never the AI answer. Say a clear command right after an unclear one and I pair them; you tap Teach. Say "unknown band karo" to stop.':'OFF: nothing is saved or used. Say "unknown chalu karo" to start again.'));
+  if(!UNK.items.length){b.appendChild(el('p','','No unknown sentence yet.'));return;}
+  UNK.items.forEach(x=>{const r=el('div','tr');r.style.flexWrap='wrap';
+    r.appendChild(el('span','','“'+x.said+'”'+(x.meaning?' → “'+x.meaning+'”':'  (say the clear command next time and I pair them)')));
+    if(x.meaning){const t=el('button','g',x.taught?'Taught ✓':'Teach');t.type='button';t.onclick=()=>unkAct(x.id,x.taught?'forget':'teach');r.appendChild(t);}
+    const d=el('button','g','Delete');d.type='button';d.onclick=()=>unkAct(x.id,'delete');r.appendChild(d);b.appendChild(r);});}
 function homeSay(q,a){if($('home').hidden)return;hb={q:q,a:String(a||'').slice(0,700),u:Date.now()+90000};homeLoad(true);}
 $('conv').onclick=()=>{
   if(priv){add('err','Privacy mode is on. Tap "Turn mic on" first.');return;}
@@ -782,6 +794,10 @@ const ACTERR={no_torch:['सर, इस फ़ोन में टॉर्च �
   screen_changed:['सर, स्क्रीन बदल गई थी (दूसरा ऐप खुला या बहुत देर हो गई), इसलिए कुछ नहीं दबाया। फिर से बोलिए।','Sir, the screen had changed (another app, or too long), so I tapped nothing. Please ask again.'],
   unknown:['सर, मुझे यह कदम समझ नहीं आया। कुछ नहीं किया।','Sir, I did not understand this step. I did nothing.']};
 let lastAct=null;
+// Part 147: a tick or cross comes ONLY from the phone's own answer (what the app sent back). Waiting, "which one", refused by a switch, or "not sure": no sign.
+function tk(r,a){if(!r||r.wait||r.ask)return '';
+  if(r.ok===true)return (r.changed===false||r.was===false||((r.type||(a&&a.type))=='lock'&&!r.locked))?'':'✔ ';
+  return r.ok===false&&r.err&&!['stopped','off','locked','tap'].includes(r.err)?'✖ ':'';}
 function actMsg(r,a){
   const hi=sty()=='hindi',say=(h,e)=>hi?h:e,t=r.type||(a&&a.type);
   if(r.ok){
@@ -803,11 +819,11 @@ function actMsg(r,a){
 }
 window.onActDone=s=>{
   let r;try{r=JSON.parse(s)}catch(e){return;}
-  const hi=sty()=='hindi',t=actMsg(r,lastAct),w=add('bot',t);if(!r.ok)w.className='m err';
+  const hi=sty()=='hindi',t=tk(r,lastAct)+actMsg(r,lastAct),w=add('bot',t);if(!r.ok)w.className='m err';
   if(!r.ok&&r.err=='no_scroll'&&lastAct&&lastAct.type=='scroll'){  // fallback: a swipe, only after a real tap on Yes
     const b=document.createElement('button');b.type='button';b.className='g';b.style.margin='8px 8px 0 0';b.textContent=hi?'हाँ, स्वाइप करके देखो':'Yes, try a swipe';
     const d=lastAct.dir;b.onclick=ev=>{if(!ev.isTrusted)return;b.remove();lastAct={type:'swipe',dir:d};try{JarvisApp.act(JSON.stringify({type:'swipe',dir:d,confirmed:true}));}catch(e){}};w.appendChild(b);}
-  speak(t,false,'TASK_CONFIRMATION');
+  speak(t.replace(/^[✔✖]\s*/,''),false,'TASK_CONFIRMATION');
 };
 // Part 54: Jarvis offers to remember a fact. Only a real finger tap on Yes saves it (through the normal "yaad rakho" path, so passwords are still refused).
 function askSave(w,fact){
@@ -823,7 +839,7 @@ function askSave(w,fact){
 async function runTask(a,w){
   const hi=sty()=='hindi',say=(h,e)=>hi?h:e;let r={};
   try{r=JSON.parse(JarvisApp.runTask(JSON.stringify({id:a.id,steps:a.steps})));}catch(e){r={ok:false,err:'unknown'};}
-  if(!r.ok){const m=ACTERR[r.err]||ACTERR.unknown;api('/task/update',{id:a.id,state:r.err=='perm'?'WAITING_FOR_PERMISSION':'FAILED',note:r.err||'unknown'}).catch(()=>{});w.className='m err';w.textContent=say(m[0],m[1]);return w.textContent;}
+  if(!r.ok){const m=ACTERR[r.err]||ACTERR.unknown;api('/task/update',{id:a.id,state:r.err=='perm'?'WAITING_FOR_PERMISSION':'FAILED',note:r.err||'unknown'}).catch(()=>{});w.className='m err';w.textContent=tk(r)+say(m[0],m[1]);return w.textContent;}
   localStorage.setItem('jtask',JSON.stringify({id:a.id,texts:a.texts}));
   api('/task/update',{id:a.id,state:'RUNNING',cur:0}).catch(()=>{});
   const t=say('काम शुरू सर। हर कदम के बाद जाँचूँगा, गड़बड़ हुई तो रुक जाऊँगा। नतीजा नोटिफ़िकेशन दबाने पर यहाँ दिखेगा।','Started, sir. I check every step and stop if something goes wrong. The result shows here when you tap the notification.');
@@ -897,7 +913,7 @@ window.onShot=async s=>{
       done=true;row.remove();lastAct={type:'tap'};let q;
       try{q=JSON.parse(JarvisApp.tap(JSON.stringify({fx:d.x,fy:d.y,label:d.label||'',confirmed:true})));}catch(e){q={ok:false,err:'unknown'};}
       if(q.wait)w.firstChild.textContent=say('ठीक है सर, दबा रहा हूँ। नतीजा नोटिफ़िकेशन दबाने पर यहाँ दिखेगा।','On it, sir. The result shows here when you tap the notification.');
-      else{const m=ACTERR[q.err]||ACTERR.unknown;w.className='m err';w.firstChild.textContent=say(m[0],m[1]);}
+      else{const m=ACTERR[q.err]||ACTERR.unknown;w.className='m err';w.firstChild.textContent=tk(q)+say(m[0],m[1]);}
     }),mk(say('नहीं','No'),'g',()=>end(say('ठीक है सर, रद्द किया। कुछ नहीं दबाया।','Okay sir, cancelled. I tapped nothing.'))));
   w.appendChild(cv);w.appendChild(row);
   setTimeout(()=>end(say('समय खत्म हुआ सर, कुछ नहीं दबाया।','Timed out, sir. I tapped nothing.')),60000);
@@ -915,7 +931,7 @@ async function doAct(a,w){
   if(a.type!='open_app'){  // Part 34: click, scroll, type, back, home, current app. Java moves Jarvis aside, does ONE step, checks it, and the result comes back through onActDone.
     lastAct=a;
     if(r.wait){t=say('ठीक है सर, कर रहा हूँ। नतीजा नोटिफ़िकेशन दबाने पर यहाँ दिखेगा।','On it, sir. The result will show here when you tap the notification.');w.textContent=t;return t;}
-    t=actMsg(r,a);w.textContent=t;if(!r.ok)w.className='m err';return t;}
+    t=tk(r,a)+actMsg(r,a);w.textContent=t;if(!r.ok)w.className='m err';return t;}
   if(r.ok)t='✔ '+(lt(a,0,r.app)||say('ठीक है सर, '+r.app+' खोल रहा हूँ।','Opening '+r.app+', sir.'));
   else if(r.ask){
     t=lt(a,2,'')||say('कौन सा सर?','Which one, sir?');w.textContent=t;const row=document.createElement('div');
@@ -1063,7 +1079,7 @@ async function brief(){
 // Part 48: Home dashboard (neon look from the reference pictures). Everything shown here is real data from the server or the phone; nothing is made up.
 function go(v,k){view=v;k=k||v;const t=!!token;document.body.classList.toggle('hm',v=='home'||v=='chat');$('chat').hidden=!t||v!='chat';$('set').hidden=!t||v!='set';$('home').hidden=!t||v!='home';$('tl').hidden=!t||v!='tl';$('tabs').hidden=!t;
   $('tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v==k));
-  if(t&&v=='home')homeLoad(true);if(t&&v=='tl')tlLoad('all');if(t&&v=='set'){learnLoad();nsCard(true);keys();mem();led();ppl();atl();dash();sysCard();bgt();voiceLoad();bkLoad();}}
+  if(t&&v=='home')homeLoad(true);if(t&&v=='tl')tlLoad('all');if(t&&v=='set'){learnLoad();unkLoad();nsCard(true);keys();mem();led();ppl();atl();dash();sysCard();bgt();voiceLoad();bkLoad();}}
 // Part 122: bottom bar. A tab is added only when the page part behind it exists (Home 48, Talk, Assist 119, Timeline 109, Memory 88, Settings).
 const BB=[['home','🏠','Home','home'],['chat','💬','Talk','chat'],['as','🧰','Assist','htl'],['tl','🕘','Timeline','tl'],['mem','🗂️','Memory','al'],['set','⚙️','Settings','set']];
 BB.forEach(([k,i,n,need])=>{if(!$(need))return;const b=el('button','g');b.type='button';b.dataset.v=k;b.append(el('span','',i),n);b.onclick=()=>bb(k);$('tabs').appendChild(b);});

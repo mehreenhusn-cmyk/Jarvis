@@ -292,6 +292,42 @@ check("145: a risky sentence shows it will wait for your Yes", "needs your Yes f
 check("145: a non-command says where it would go", "not a phone command" in _pb("samjha: kal 9 baje chai yaad dilana"))
 check("145: a secret is never repeated back", "1234" not in _pb("samjha: type password 1234") and "never type" in _pb("samjha: type password 1234"))
 check("145: other messages are not a probe; the AI is never asked", _pb("open youtube") is None and "not a phone command" in _pb("samjha: aaj mausam kaisa rahega"))
+# Parts 146 + 147
+import unknown as _un
+_c = _sq.connect(":memory:")
+_un.init(_c)
+for _m in ("yutub chalao", "torch jala de bhai", "aaj mausam kaisa hai?", "kal 9 baje chai yaad dilana", "type otp 482913 kholo", "message bhejo", "meri password chalao"):
+    _un.note(_c, 1, _m, True)
+_un.note(_c, 1, "ghar ka app kholo", False)
+_said = [r[0] for r in _c.execute("SELECT said FROM unknown ORDER BY id")]
+check("146: only command-looking, safe sentences are kept (no question, no chat, no secret, no risky step, only in the app)", _said == ["yutub chalao", "torch jala de bhai"])
+_un.note(_c, 1, "yutub chalao", True)
+_act = AC.handle("open youtube", False, True, True, lambda *a: ("x", "y"))[1]
+_un.pair(_c, 1, "open youtube", _act)
+check("146: the clear command right after pairs with the unclear one, nothing is taught yet", _c.execute("SELECT meaning, taught FROM unknown WHERE said='yutub chalao'").fetchone() == ("open youtube", 0) and _un.expand(_c, 1, "yutub chalao") == "yutub chalao")
+_i = _c.execute("SELECT id FROM unknown WHERE said='yutub chalao'").fetchone()[0]
+check("146: a sentence with no pair cannot be taught", "do not know" in _un.handle(_c, 1, "unknown teach 2", False) and _c.execute("SELECT taught FROM unknown WHERE said='torch jala de bhai'").fetchone() == (0,))
+_un.handle(_c, 1, f"unknown teach {_i}", False)
+check("146: Teach makes the sentence mean the command (exact match, also with other case or marks)", _un.expand(_c, 1, "Yutub chalao!") == "open youtube" and _un.expand(_c, 1, "yutub chalao ab") == "yutub chalao ab")
+_un.note(_c, 1, "ammi ko ring maaro chalao", True)
+_un.pair(_c, 1, "call ammi", AC.handle("call ammi", False, True, True, lambda *a: ("x", "y"))[1])
+check("146: calls (and messages, clicks, typing, alarms) are never paired or taught", _c.execute("SELECT meaning FROM unknown WHERE said='ammi ko ring maaro chalao'").fetchone() == ("",))
+_un.note(_c, 1, "bahut purani line chalao", True)
+_un.LAST.pop(1, None)
+_un.pair(_c, 1, "open youtube", _act)
+check("146: no recent unclear sentence -> nothing is paired", _c.execute("SELECT meaning FROM unknown WHERE said='bahut purani line chalao'").fetchone() == ("",))
+_un.handle(_c, 1, "unknown band karo", False)
+check("146: unknown band karo -> nothing saved and taught sentences pause", _un.expand(_c, 1, "yutub chalao") == "yutub chalao" and (_un.note(_c, 1, "naya chalao", True) or True) and _c.execute("SELECT COUNT(*) FROM unknown WHERE said='naya chalao'").fetchone() == (0,))
+_un.handle(_c, 1, "unknown chalu karo", False)
+check("146: chalu karo -> taught sentences work again", _un.expand(_c, 1, "yutub chalao") == "open youtube")
+_un.act(_c, 1, _i, "forget")
+check("146: Forget untaches it, the pair stays", _un.expand(_c, 1, "yutub chalao") == "yutub chalao" and any(x["meaning"] == "open youtube" for x in _un.rows(_c, 1)))
+_un.handle(_c, 1, "unknown saaf karo", False)
+check("146: unknown saaf karo erases everything; other messages are left alone", _un.rows(_c, 1) == [] and _un.handle(_c, 1, "hello there", False) is None and _un.handle(_c, 1, "unknown", False) is None)
+import backup as _bk
+check("146: backup knows the table and delete everything wipes it", "unknown" in _bk.T and "unknown" in open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "backup.py"), encoding="utf-8").read().split("def wipe")[1].split("def handle")[0])
+check("147: a tick or cross at the start of a short AI answer is removed", A.untick("\u2705 Done, torch is on") == "Done, torch is on" and A.untick("\u2716 failed") == "failed")
+check("147: a long plan with its own check marks is left alone", A.untick("Plan:\n\u2705 a") == "Plan:\n\u2705 a" and A.untick("x" * 300) == "x" * 300)
 try:
     call("/status")
     check("band server offline dikhta hai", False)

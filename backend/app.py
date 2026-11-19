@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, assist, autostart, backup, brief, calls, capsule, clock, debate, decisions, dreams, drift, events, ghost, guest, handoff, habits, learn, ledger, lens, lists, memory, modes, money, mood, notes, people, phone, place, placenote, phonetest, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
+import actions, assist, autostart, backup, brief, calls, capsule, clock, debate, decisions, dreams, drift, events, ghost, guest, handoff, habits, learn, ledger, lens, lists, memory, modes, money, mood, notes, people, phone, place, placenote, phonetest, unknown, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -76,6 +76,7 @@ def db():
     lists.init(c)  # Part 83: shopping and packing lists
     habits.init(c)  # Part 83: habit and streak tracker
     learn.init(c)  # Part 143: what Jarvis learned (counts only)
+    unknown.init(c)  # Part 146: sentences it could not understand
     phonetest.init(c)  # Part 136: Table A answers (pass / fail / skip, date, note)
     spend.init(c)  # Part 84: quick expense logger
     decisions.init(c)  # Parts 93 + 94
@@ -174,6 +175,14 @@ CAN += (" Never write the label '(phone action)'. Never say you switched, opened
 
 FAKE = re.compile(r"\(phone action\)|\b(?:switch|turn|open|launch|call|dial|scroll|click)(?:ed|ing)\b|\bgoing to\b|kar diya|kar di\b|khol diya|ja raha|jaa raha|कर दिया|कर दी|खोल दिया|खोल रहा|जा रहा|कर रहा", re.I)
 THING = re.compile(r"torch|flash ?light|wi-?fi|bluetooth|volume|brightness|alarm|timer|home|screen|chrome|youtube|whatsapp|\bapp\b|\bcall|scroll|टॉर्च|वाईफाई|ब्लूटूथ|वॉल्यूम|अलार्म|टाइमर|होम|स्क्रीन|ऐप|कॉल|स्क्रॉल", re.I)
+
+
+TICKS = re.compile(r"^[\s\u2714\u2716\u2705\u274c\u2713\u2717\u2611\ufe0f]+")
+
+
+def untick(reply):
+    """Part 147: a tick or cross at the start of a short answer may only come from the phone's own result (the page adds it). The AI or the server never writes one there."""
+    return TICKS.sub("", reply) if isinstance(reply, str) and len(reply) <= 240 else reply
 
 
 def honest(reply, style):
@@ -394,6 +403,13 @@ class H(BaseHTTPRequestHandler):
             if str(data.get("act")) in ("keep", "delete", "yes", "later") and isinstance(data.get("id"), int):
                 learn.act(db(), dev, data["id"], str(data["act"]))
             return self.send(200, {"ok": True})
+        if self.path == "/unknown":  # Part 146: the list for Settings > Your Data (reading only)
+            c = db()
+            return self.send(200, {"on": unknown.is_on(c, dev), "items": unknown.rows(c, dev)})
+        if self.path == "/unknown/act":  # Part 146: Teach, Forget or Delete one sentence
+            if str(data.get("act")) in ("teach", "forget", "delete") and isinstance(data.get("id"), int):
+                unknown.act(db(), dev, data["id"], str(data["act"]))
+            return self.send(200, {"ok": True})
         if self.path == "/today":  # Part 56: Home tab. Aaj ke reminders aur jin hisab ki tareekh aaj ya pehle ki hai
             now = str(data.get("now", ""))
             led = [{"id": i, "text": ledger.line(i, w, a, d, du), "late": du < now[:10]} for i, w, a, d, du in ledger.rows(db(), dev) if du and du <= now[:10]]
@@ -537,7 +553,7 @@ class H(BaseHTTPRequestHandler):
                     reply, via = ask(guest.add(dev, "user", guest.mask(msg)), str(data.get("style", "")), guest.RULE)
                 except RuntimeError as e:
                     return self.send(502, {"error": str(e)})
-                reply = honest(reply, str(data.get("style", "")))  # Part 138
+                reply = untick(honest(reply, str(data.get("style", ""))))  # Part 138 + 147
                 guest.add(dev, "assistant", reply)
                 return self.send(200, {"reply": reply, "via": via, "guest": True})
             c = db()
@@ -570,6 +586,7 @@ class H(BaseHTTPRequestHandler):
                 c.commit()
                 return self.send(200, {"reply": hit[0], "via": "memory", "mode": hit[1]})
             msg, gnote, gapp = ghost.pre(c, dev, msg, style == "hindi")  # Part 107: "Chrome kholo research ke liye" keeps the reason; the open command goes on without it
+            msg = unknown.expand(c, dev, msg)  # Part 146: a sentence you taught becomes its plain command (all the normal checks still run)
             mem = actions.probe(msg, style == "hindi")  # Part 145: "samjha: <sentence>" shows what Jarvis understood, does nothing
             if mem is None:  # Part 136: "table a next", "table a pass 12" (your test answers; nothing runs on the phone)
                 mem = phonetest.handle(c, dev, msg, style == "hindi")
@@ -584,6 +601,8 @@ class H(BaseHTTPRequestHandler):
                 mem = lists.handle(c, dev, msg, style == "hindi")
             if mem is None:  # Part 143: "seekha dikhao", "seekhna band karo", "seekha bhool jao" (counts only, never your words)
                 mem = learn.handle(c, dev, msg, style == "hindi")
+            if mem is None:  # Part 146: "unknown dikhao", "unknown teach 2", "unknown band karo", "unknown saaf karo" (the sentence only, never the AI)
+                mem = unknown.handle(c, dev, msg, style == "hindi")
             if mem is None:  # Part 83: "habit banao gym", "aaj gym gaya", "my habits" (only habits you made)
                 mem = habits.handle(c, dev, msg, style == "hindi", now)
             if mem is None:  # Parts 110 + 111: "kamai 40000 mahina", "bachat 50000", "paisa picture", "agar job chhod du" (your numbers, plain arithmetic, no AI). Before the expense logger.
@@ -652,6 +671,7 @@ class H(BaseHTTPRequestHandler):
                 if got:
                     mem, action = got
                     learn.note(c, dev, action)  # Part 143: one more count for this call or app, in this hour
+                    unknown.pair(c, dev, msg, action)  # Part 146: this clear command may be what the last unclear sentence meant
             gq = ghost.ask(c, dev, action, gapp) if mem is not None else None  # Part 107: the saved reason, asked once
             if mem is not None and gnote and action:
                 mem += "\n" + gnote
@@ -661,6 +681,7 @@ class H(BaseHTTPRequestHandler):
                 c.commit()
                 cl = actions.cool_take(dev, action)  # Part 102: asked once, because it uses the switch up
                 return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {}), **({"cool": cl} if cl else {}), **({"ghost": gq} if gq else {}), **({"pw": pwc} if (pwc := placenote.take(c, dev)) else {}), **({"tablea": tq} if (tq := phonetest.take(dev)) else {})))
+            unknown.note(c, dev, msg, data.get("app") is True)  # Part 146: no command matched and it goes to the AI, so the sentence is kept for you to teach
             rows = c.execute("SELECT role, content, ts FROM messages WHERE device=? ORDER BY id DESC LIMIT 20", (dev,)).fetchall()  # Part 126: 20 turns, not 10
             rows = [x for x in rows if not (x[0] == "assistant" and x[1].startswith("(phone action)"))]  # Part 138: the AI must not copy an old fake label
             tctx = clock.context([(r, t) for r, _, t in reversed(rows)], prev_ts)
@@ -669,7 +690,7 @@ class H(BaseHTTPRequestHandler):
                 reply, via = ask([{"role": r, "content": t} for r, t, _ in reversed(rows)], style, CAN + tctx + memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + replyideas.context(data.get("notif")) + wtxt + MOOD + debate.extra(dev) + modes.extra(mode))
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
-            reply = honest(reply, style)  # Part 138: no action ran on this path, so "done" from the AI is replaced
+            reply = untick(honest(reply, style))  # Part 138 + 147: no action ran on this path, so "done" from the AI is replaced
             if srcs:  # the list of sites comes from the real search result, not from the AI
                 reply += ("\n\nस्रोत: " if style == "hindi" else "\n\nSources: ") + ", ".join(srcs) + "\n" + web.label(srcs, style == "hindi")  # Part 90
             c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", "(answer about your screen was shown, not saved)" if screen.used(data.get("screen")) else "(reply ideas were shown, not saved)" if replyideas.used(data.get("notif")) else reply, time.time()))
