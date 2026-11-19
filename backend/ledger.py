@@ -5,7 +5,8 @@ import json, re, time
 import memory, remind
 
 ADD = re.compile(r"dene h|dena h|lene h|lena h|udhaar|udhar|उधार|देने हैं|देना है|लेने हैं|लेना है|\bowe", re.I)
-LIST = re.compile(r"hisab|hisaab|ledger|kitna\s*(?:dena|lena|baaki)|total\s*(?:dena|lena|baaki)|हिसाब", re.I)
+LIST = re.compile(r"^\s*(?:mera\s+|mere\s+|मेरा\s+|मेरे\s+)?(?:baaki\s+|बाकी\s+|pura\s+|पूरा\s+)?(?:hisab|hisaab|ledger|हिसाब)(?:\s+(?:dikhao|batao|dikha|bata|list|dekho|kitna|दिखाओ|बताओ|दिखा|बता|देखो))?\s*[?.!]*\s*$"
+                  r"|kitna\s*(?:dena|lena|baaki)|total\s*(?:dena|lena|baaki)|कितना\s*(?:देना|लेना|बाकी)", re.I)  # Part 153: "हम क्या गिर रहा है यार मेरे हिसाब" is a normal sentence, not the ledger
 PAID = re.compile(r"^\s*(?:paid|chuka diya|mil gaya|चुका दिया|मिल गया)\s*#?(\d+)\s*$", re.I)
 DEL = re.compile(r"^\s*(?:hisab hatao|hisaab hatao|ledger delete|हिसाब हटाओ)\s*#?(\d+)\s*$", re.I)
 

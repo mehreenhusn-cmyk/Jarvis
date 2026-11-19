@@ -118,14 +118,23 @@ public class MainActivity extends Activity {
                 if (AppLock.locked()) return;
                 if (Privacy.stopped) { web.post(() -> web.evaluateJavascript("window.onHeardErr&&onHeardErr('Jarvis is stopped. Tap Turn mic on first',false)", null)); return; }
                 if (!allowed(Manifest.permission.RECORD_AUDIO, 1)) { web.post(() -> web.evaluateJavascript("window.onHeardErr&&onHeardErr('allow the microphone, then tap the mic again',false)", null)); return; }
-                runOnUiThread(() -> { if (ears == null) ears = new Ears(MainActivity.this, web); ears.start(lang, wake); });
+                runOnUiThread(() -> { if (ears == null) { ears = new Ears(MainActivity.this, web); liveEars = ears; } ears.start(lang, wake); });
             }
             // Part 61: listen WHILE Jarvis speaks (interrupt). Same checks as listen(); the page asks only with earphones connected.
             @JavascriptInterface public void listenBarge(String lang) {
                 if (AppLock.locked() || Privacy.stopped || !allowed(Manifest.permission.RECORD_AUDIO, 1)) return;
-                runOnUiThread(() -> { if (ears == null) ears = new Ears(MainActivity.this, web); ears.start(lang, true, true); });
+                runOnUiThread(() -> { if (ears == null) { ears = new Ears(MainActivity.this, web); liveEars = ears; } ears.start(lang, true, true); });
             }
             @JavascriptInterface public boolean headset() { return Ears.headset(MainActivity.this); }
+            // Part 153: keep the mic working in the background (a notification with Stop shows). The page asks only after your own switch.
+            @JavascriptInterface public void keepAlive(boolean on) {
+                runOnUiThread(() -> {
+                    if (on && !KeepAlive.on && !Privacy.stopped && !AppLock.locked() && allowed(Manifest.permission.RECORD_AUDIO, 1)) KeepAlive.start(MainActivity.this);
+                    else if (!on && KeepAlive.on) KeepAlive.halt(MainActivity.this);
+                });
+            }
+            @JavascriptInterface public boolean keepOn() { return KeepAlive.on; }
+            @JavascriptInterface public void setQuiet(int ms) { Ears.quiet = Math.max(1000, Math.min(6000, ms)); }
             // Part 39: background listening TEST. Starts only after a real finger tap, never while locked or stopped. Counts only, keeps no words.
             @JavascriptInterface public String bgListen(boolean on) {
                 if (AppLock.locked()) return "{\"ok\":false,\"err\":\"locked\"}";
@@ -482,6 +491,7 @@ public class MainActivity extends Activity {
     }
 
     static MainActivity cur;  // Part 40: the offline listener opens the mic through this when Jarvis is on screen
+    static volatile Ears liveEars;  // Part 153: lets the notification Stop button end the mic
     static volatile boolean visible;  // Part 39: the background test counts how often "Jarvis" was heard with the app NOT on screen
     boolean asking, closing;
 
@@ -500,7 +510,7 @@ public class MainActivity extends Activity {
         visible = false;
         if (cur == this) cur = null;
         AppLock.left();  // Android does not let apps listen from the background, so Hey Jarvis pauses here
-        if (ears != null && ears.on) { ears.stop(); ears.js("onHeardErr", "Hey Jarvis paused because the app went to the background"); }
+        if (ears != null && ears.on && !KeepAlive.on) { ears.stop(); ears.js("onHeardErr", "Hey Jarvis paused because the app went to the background"); }  // Part 153: with Keep listening in background (KeepAlive) the mic simply continues
         web.evaluateJavascript("window.onAppAway&&onAppAway()", null);  // Part 134: Conversation mode pauses here (it does not end) and continues when you return
     }
 

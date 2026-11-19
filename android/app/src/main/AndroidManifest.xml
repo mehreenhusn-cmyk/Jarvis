@@ -51,6 +51,7 @@
         </service>
         <receiver android:name=".CallNote" android:exported="true"><intent-filter><action android:name="android.intent.action.PHONE_STATE"/></intent-filter></receiver>
         <service android:name=".ListenService" android:exported="false" android:foregroundServiceType="microphone"/>
+        <service android:name=".KeepAlive" android:exported="false" android:foregroundServiceType="microphone"/>  <!-- Part 153 -->
         <activity android:name=".MainActivity" android:exported="true" android:configChanges="orientation|screenSize|keyboardHidden"
             android:windowSoftInputMode="adjustResize" android:launchMode="singleTask">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>

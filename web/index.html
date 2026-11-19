@@ -2,6 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="google" content="notranslate"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#0e1116">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Jarvis</title>
+<script>(function(){try{var k=localStorage.getItem('jskin')||'auto',r=k=='auto'?(matchMedia('(prefers-color-scheme:light)').matches?'light':'dark'):k;if(k!='neon')document.documentElement.setAttribute('data-skin',r);}catch(e){}})();</script>
 <style>
 :root{--bg:#0e1116;--sf:#161b22;--sf2:#1d242d;--fg:#e6e9ee;--mut:#8b95a3;--ac:#c9a45c;--acd:#2a2417;--me:#233044;--line:#262e38;--ok:#4fb27a;--bad:#e5655f;color-scheme:dark light}
 @media(prefers-color-scheme:light){:root{--bg:#f6f4ef;--sf:#fff;--sf2:#efece5;--fg:#1c2128;--mut:#6b7480;--ac:#8a6a21;--acd:#f3ead4;--me:#e3ebf6;--line:#dcd8cd;--ok:#2e8a57;--bad:#c94741}}
@@ -248,6 +249,58 @@ body.holo #orb::after{content:"";position:absolute;inset:0;border-radius:50%;poi
 }
 @media (prefers-reduced-motion:reduce){body.holo #hf,body.holo #orb::after,#holo .rg i{animation:none!important}}
 </style>
+<style id="skin">
+/* Part 153: calm, warm theme (dark and light), switchable in Settings > Appearance. "Neon (old)" removes data-skin and the old look comes back. */
+html[data-skin=dark]{--k-bg:#1f1e1d;--k-sf:#2a2927;--k-sf2:#363431;--k-fg:#ece9e2;--k-mut:#a29d92;--k-ac:#d97757;--k-on:#1b0f0a;--k-me:#3a3733;--k-line:#413e3a;--k-ok:#7bb37f;--k-bad:#e5736d;color-scheme:dark}
+html[data-skin=light]{--k-bg:#faf9f5;--k-sf:#ffffff;--k-sf2:#f0eee6;--k-fg:#29261f;--k-mut:#6f6b62;--k-ac:#c15f3c;--k-on:#ffffff;--k-me:#ece6d6;--k-line:#e2ddd0;--k-ok:#3d8a5a;--k-bad:#c94741;color-scheme:light}
+html[data-skin]{--bg:var(--k-bg);--sf:var(--k-sf);--sf2:var(--k-sf2);--fg:var(--k-fg);--mut:var(--k-mut);--ac:var(--k-ac);--acd:var(--k-sf2);--me:var(--k-me);--line:var(--k-line);--ok:var(--k-ok);--bad:var(--k-bad)}
+html[data-skin] body{background:var(--k-bg);color:var(--k-fg)}
+html[data-skin] button{color:var(--k-on)}html[data-skin] button.g,html[data-skin] #gear,html[data-skin] #vbtn{color:var(--k-fg)}
+html[data-skin] #tabs button.on{color:var(--k-on)}
+html[data-skin] #home,html[data-skin] body.hm #chat{--c1:var(--k-ac);--c2:var(--k-ac);--c3:var(--k-ac);--hc:var(--k-sf);--hl:var(--k-line);--fg:var(--k-fg);--mut:var(--k-mut);--line:var(--k-line);--sf:var(--k-sf);--sf2:var(--k-sf2);background:var(--k-bg)!important;color:var(--k-fg)}
+html[data-skin] body.hm header,html[data-skin] body.hm #tabs,html[data-skin] body.hm #pv,html[data-skin] body.hm #off,html[data-skin] body.hm #vstat,html[data-skin] body.hm #vp,html[data-skin] body.hm #chat form{background:var(--k-sf)!important;color:var(--k-fg);border-color:var(--k-line)!important}
+html[data-skin] body.hm #st,html[data-skin] body.hm #pv,html[data-skin] body.hm #vstat{color:var(--k-mut)}
+html[data-skin] body.hm .logo{border-color:var(--k-ac);color:var(--k-ac)}
+html[data-skin] body.hm #gear,html[data-skin] body.hm #vbtn,html[data-skin] body.hm #tabs button.g,html[data-skin] body.hm #chat button.g,html[data-skin] body.hm #stop,html[data-skin] body.hm #vstat select,html[data-skin] body.hm #vp select{background:var(--k-sf2);color:var(--k-fg);border:1px solid var(--k-line)}
+html[data-skin] body.hm #tabs button.on{background:var(--k-ac);color:var(--k-on);border-color:transparent}
+html[data-skin] body.hm #stop{color:var(--k-bad)}
+html[data-skin] body.hm .m{background:var(--k-sf);border-color:var(--k-line);box-shadow:none}
+html[data-skin] body.hm .m.user{background:var(--k-me);color:var(--k-fg);border:0;box-shadow:none}html[data-skin] body.hm .m.user::after{color:var(--k-mut)}
+html[data-skin] body.hm .m:not(.user):not(.err)::before{background:var(--k-ac);color:var(--k-on);box-shadow:none}
+html[data-skin] body.hm .m.err{background:transparent;color:var(--k-bad);border-color:var(--k-bad)}
+html[data-skin] body.hm .ds{background:var(--k-sf2);color:var(--k-mut);border-color:var(--k-line)}
+html[data-skin] body.hm #box,html[data-skin] body.hm #chat form input{background:var(--k-sf2);border-color:var(--k-line);color:var(--k-fg)}
+html[data-skin] body.hm #box:focus-within,html[data-skin] body.hm #chat form input:focus{border-color:var(--k-ac);box-shadow:0 0 0 3px color-mix(in srgb,var(--k-ac) 22%,transparent)}
+html[data-skin] body.hm #send,html[data-skin] body.hm #mic{background:var(--k-ac);color:var(--k-on);box-shadow:none}
+html[data-skin] body.hm #mic.on{box-shadow:0 0 0 4px color-mix(in srgb,var(--k-bad) 35%,transparent)}
+html[data-skin] body.hm .sh button{background:var(--k-sf2);border:1px solid var(--k-line);color:var(--k-fg)}
+html[data-skin] #home .card,html[data-skin] .tools button,html[data-skin] .sc{background:var(--k-sf);border-color:var(--k-line);box-shadow:none;color:var(--k-fg)}
+html[data-skin] #home button.g,html[data-skin] .tr{background:var(--k-sf2);border-color:var(--k-line);color:var(--k-fg)}
+html[data-skin] .tr{border-left-color:var(--k-ac)}
+html[data-skin] #home .bar,html[data-skin] .bar{background:var(--k-sf2)}html[data-skin] #home .bar i{background:var(--k-ac)}
+html[data-skin] .ring{background:conic-gradient(var(--k-ac) calc(var(--p)*1%),var(--k-sf2) 0)}html[data-skin] .ring b{background:var(--k-sf)}
+html[data-skin] #hq2{color:var(--k-ac)}html[data-skin] #wave i{background:var(--k-ac)}
+html[data-skin] #orb{background:var(--k-sf);box-shadow:0 0 0 1px var(--k-line);color:var(--k-ac)}
+html[data-skin] #orb.on{animation:pl2 1.6s ease-in-out infinite}@keyframes pl2{50%{box-shadow:0 0 0 10px color-mix(in srgb,var(--k-ac) 22%,transparent);transform:scale(1.04)}}
+html[data-skin] #orb .r1,html[data-skin] #orb .r2,html[data-skin] #orb .r3{opacity:.55}
+html[data-skin] #orb.off{box-shadow:0 0 0 2px var(--k-bad)}
+html[data-skin] #home .bub{background:var(--k-sf2);border-color:var(--k-line)}
+html[data-skin] #gbar,html[data-skin] #dbar,html[data-skin] #tbar{background:var(--k-sf2);color:var(--k-fg);border-color:var(--k-line)}
+html[data-skin] #vp{box-shadow:0 -10px 30px rgba(0,0,0,.18)}
+/* Settings as cards (all themes) */
+#set{padding:14px 14px 28px}
+.sec{margin:20px 4px 8px;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}.sec:first-child{margin-top:4px}
+#set>.grp,#set .grp{border-radius:16px}
+.grp>summary{padding:12px 14px;gap:12px}
+.grp>summary .gi{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-size:18px;background:var(--sf2);flex:none}
+.grp>summary .gt{display:flex;flex-direction:column;line-height:1.25}.grp>summary .gt small{font-weight:400;font-size:12px;color:var(--mut);margin-top:2px}
+.grp[open]>summary{border-bottom:1px solid var(--line)}
+.grp>summary~*{padding:12px 14px 0}.grp>summary~*:last-child{padding-bottom:14px}
+.grp .card{background:var(--sf2);border-color:transparent}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:2px 0 12px}.seg button{padding:11px 8px;font-size:14px;border-radius:12px}.seg button.g{border:1px solid var(--line)}
+.srow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}.srow:first-of-type{border-top:0}.srow span small{display:block;color:var(--mut);font-size:12px;font-weight:400}
+.srow input[type=checkbox]{width:44px;height:26px;flex:none;accent-color:var(--ac)}
+</style>
 </head><body>
 <header><div class="logo">J</div><div><b>JARVIS</b><span id="st">...</span></div><span class="sp"></span><button id="vbtn" title="Voice">🔊</button><button id="gear" title="Settings">⚙</button></header>
 <div id="tbar" hidden><span><b id="tn"></b><br><small>No voice, short replies, reminders as text.</small></span><button type="button" id="tend">End</button></div>
@@ -268,13 +321,15 @@ body.holo #orb::after{content:"";position:absolute;inset:0;border-radius:50%;poi
 <h4>Phone and server</h4><div class="card" id="hs"></div><div class="hb" id="hq"></div>
 </details></div>
 <div id="set" hidden>
-<details class="grp" open><summary>🎙️ Voice &amp; Personality</summary><div class="card" id="vcard"></div></details>
-<details class="grp"><summary>✨ Look</summary><div class="card" id="lookc"></div></details>
-<details class="grp"><summary>🔒 Privacy &amp; Security</summary><div class="card" id="dash"></div><h5>Payment apps</h5><div class="card" id="pay"></div><h5>Backup</h5><div class="card" id="bk"></div><h5>Background listening test</h5><div class="card" id="bgt"></div></details>
-<details class="grp"><summary>➕ More</summary>
-<details class="grp"><summary>🗂️ Your Data (Memory Atlas)</summary><h5>What Jarvis learned</h5><div class="card" id="lrn"></div><h5>Sentences I did not understand</h5><div class="card" id="unk"></div><h5>What Jarvis keeps (counts)</h5><div class="card" id="al"></div><h5>People</h5><div class="card" id="pl"></div><h5>Memory</h5><div class="card" id="ml"></div><h5>Notes</h5><div class="card" id="nl"></div><h5>Money ledger</h5><div class="card" id="ll"></div></details>
-<details class="grp"><summary>🔔 Notifications</summary><div class="card" id="nsc"></div></details>
-<details class="grp"><summary>⚙️ Advanced</summary><h5>System</h5><div class="card" id="sys"></div><h5>API key</h5><div class="card"><p style="margin-top:0;color:var(--mut)">Paste a key. Jarvis finds the company and checks it.</p>
+<div class="sec">General</div>
+<details class="grp" open><summary><span class="gi">🎙️</span><span class="gt">Voice &amp; Listening<small>Voice, background mic, speed, internet</small></span></summary><div class="card" id="vcard"></div><h5>Listening &amp; search</h5><div class="card" id="vlcard"></div></details>
+<details class="grp"><summary><span class="gi">🎨</span><span class="gt">Appearance<small>Dark, light or neon theme, effects</small></span></summary><div class="card" id="lookc"></div></details>
+<div class="sec">Privacy &amp; data</div>
+<details class="grp"><summary><span class="gi">🔒</span><span class="gt">Privacy &amp; Security<small>Mic, payment apps, backup</small></span></summary><div class="card" id="dash"></div><h5>Payment apps</h5><div class="card" id="pay"></div><h5>Backup</h5><div class="card" id="bk"></div><h5>Background listening test</h5><div class="card" id="bgt"></div></details>
+<details class="grp"><summary><span class="gi">➕</span><span class="gt">More<small>Your data, notifications, advanced</small></span></summary>
+<details class="grp"><summary><span class="gi">🗂️</span><span class="gt">Your Data (Memory Atlas)<small>What Jarvis keeps and learned</small></span></summary><h5>What Jarvis learned</h5><div class="card" id="lrn"></div><h5>Sentences I did not understand</h5><div class="card" id="unk"></div><h5>What Jarvis keeps (counts)</h5><div class="card" id="al"></div><h5>People</h5><div class="card" id="pl"></div><h5>Memory</h5><div class="card" id="ml"></div><h5>Notes</h5><div class="card" id="nl"></div><h5>Money ledger</h5><div class="card" id="ll"></div></details>
+<details class="grp"><summary><span class="gi">🔔</span><span class="gt">Notifications<small>What Jarvis may read</small></span></summary><div class="card" id="nsc"></div></details>
+<details class="grp"><summary><span class="gi">⚙️</span><span class="gt">Advanced<small>System and API keys</small></span></summary><h5>System</h5><div class="card" id="sys"></div><h5>API key</h5><div class="card"><p style="margin-top:0;color:var(--mut)">Paste a key. Jarvis finds the company and checks it.</p>
 <input id="key" placeholder="Paste key here" autocomplete="off"><p><button id="kp">Paste from clipboard</button> <button id="kc" class="g">Check</button></p><p id="kr"></p><div id="kl"></div></div></details>
 </details>
 </div>
@@ -294,6 +349,8 @@ body.holo #orb::after{content:"";position:absolute;inset:0;border-radius:50%;poi
 <form id="f"><button type="button" id="stop" title="Stop" aria-label="Stop"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg></button><div id="box"><input id="msg" autocomplete="off" placeholder="Message Jarvis..."><button type="button" id="cam" title="Camera" aria-label="Camera" class="g"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5h3l1.6-2.5h6.8L17 8.5h3V19H4z"/><circle cx="12" cy="13.5" r="3.6"/></svg></button></div><button id="send" title="Send" aria-label="Send"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button><button type="button" id="mic" title="Speak" aria-label="Speak"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button><input type="file" id="pic" accept="image/*" capture="environment" hidden></form></div>
 <script>
 const $=id=>document.getElementById(id);
+function chatBottom(){const l=document.getElementById('log');if(l)l.scrollTop=l.scrollHeight;}  // Part 153: Talk always opens at the newest message
+
 const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;};  // Part 56: global (the system card needs it too)
 const dur=s=>{const m=Math.round(s/60);return m<60?m+' min':Math.floor(m/60)+' h '+(m%60)+' min';};  // over 60 minutes: hours and minutes
 let view='home';  // Part 48: the app opens on the Home dashboard (chat, home or set)
@@ -345,7 +402,7 @@ async function ping(){
 }
 async function history(){
   $('log').textContent='';lastDay='';
-  try{const {s,d}=await api('/history');if(s==200)d.messages.forEach(m=>add(m.role,m.content,m.ts));}catch(e){}
+  try{const {s,d}=await api('/history');if(s==200)d.messages.forEach(m=>add(m.role,m.content,m.ts));chatBottom();}catch(e){}
   try{const {s,d}=await api('/guest',{});if(s==200)guestBar(d.on);}catch(e){}
 }
 $('nc').onclick=async()=>{try{const {s:st}=await api('/newcode',{});$('pe').textContent=st==200?'Look in Termux now: the last line says PAIRING CODE.':'Wait a few seconds and tap again.';}catch(e){$('pe').textContent='Cannot reach the server. Is Termux running?';}};
@@ -368,6 +425,7 @@ $('f').onsubmit=async e=>{
   if(CNOTE.test(t)){add('user',t);add('bot',callNoteCmd(t));return;}  // Part 112
   if(GLQ.test(t)){add('user',t);add('bot',glassCmd(t));return;}  // Part 121
   if(HLQ.test(t)){add('user',t);add('bot',holoCmd(t));return;}  // Part 151
+  if(THQ.test(t)){add('user',t);add('bot',skinCmd(t));return;}  // Part 153
   if(SCRQ.test(t)||MAPQ.test(t)){add('user',t);add('bot',SCRQ.test(t)?scrollCmd(t):mapCmd(t));return;}  // Parts 115 + 116: phone-only, never sent to the server or the AI
   if(BATQ.test(t)&&!BATNO.test(t)&&t.length<70){const ph=pinfo();if(ph&&ph.battery!=null){const hi=sty()=='hindi',vm0=viaMic;viaMic=false;add('user',t);
     const a=hi?`सर, बैटरी ${ph.battery}% है और फ़ोन ${ph.charging?'चार्ज हो रहा है':'चार्ज नहीं हो रहा'}।`:`Battery is at ${ph.battery}% and the phone is ${ph.charging?'charging':'not charging'}, sir.`;
@@ -378,7 +436,7 @@ $('f').onsubmit=async e=>{
     if(r.perm===false){add('user',t);add('bot','Turn on "Jarvis screen reader" in Accessibility settings (I opened it for you), then ask again.');return;}
     pendingMsg=t;add('bot','Switch to the app you want me to read. I will read it in '+r.wait+' seconds and come back.');return;}
   const sc=screenData;screenData=null;const nf=notifData;notifData=null;const vm=viaMic;viaMic=false;add('user',t);const w=add('bot','...');homeSay(t,'…');
-  let sp=false;busy=true;try{const loc=(WHERE.test(t)||PSAVE.test(t))?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:(t.length<=90&&(PHQ.test(t)||/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)))?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,cal:CALQ2.test(t)?bridge('calendar',calSpec(t)):/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)?bridge('calendar','0,1'):null,screen:sc,notif:nf,app:inApp(),control:inApp()&&ctl(),mode:MODE});
+  let sp=false;busy=true;try{const loc=(WHERE.test(t)||PSAVE.test(t))?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:(t.length<=90&&(PHQ.test(t)||/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)))?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,cal:CALQ2.test(t)?bridge('calendar',calSpec(t)):/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)?bridge('calendar','0,1'):null,screen:sc,notif:nf,app:inApp(),control:inApp()&&ctl(),mode:MODE,webauto:localStorage.getItem('jwebauto')!='0'});
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
     if(s==200&&'debate' in d)debateBar(d.debate);if(/^\s*debate\s+(?:stop|khatam|band|off)\s*$/i.test(t))debateBar('');
     if(s==200&&'guest' in d){const was=guestOn;guestBar(d.guest);if(!d.guest&&was)guestErase(d.reply);}
@@ -424,7 +482,7 @@ const appEars=()=>!!(window.JarvisApp&&JarvisApp.listen);
 const WAKE=/(?:jar ?vish|jar ?vis|jervis|jarvas|jarvice|jarves|jarwis|जार्विस|जारविस|जार्विश|जरवेस|जरवेश|जर्वेस|जर्विस|जरविस|जार्वेस|जारवेस|जरवीस|जार्विज|हिसारिस्ट)[\s,.!?]*(.*)$/i;
 const heardBack=()=>{lastEnd=Date.now();if(barging){barging=false;try{JarvisApp.stopListen();}catch(e){}}if(skipEnd)return;resumeMic();};  // Part 61: Jarvis finished (or was cut off)
 const resumeMic=()=>{if(!appEars()||priv)return;
-  if(convOn){if(convPause)return;convLater(500);return;}  // Part 55: a short pause so the mic does not hear Jarvis's own voice
+  if(convOn){if(convPause)return;convLater(120);return;}  // Part 55 (+153: was 500): a short pause so the mic does not hear Jarvis's own voice
   if(cmdNext){cmdNext=false;appListening=true;micState(true);JarvisApp.listen($('lang').value,false);}
   else if(wakeOn)JarvisApp.listen($('lang').value,true);};
 function wakeBtn(){vmSync();$('wake').hidden=!appEars();$('conv').hidden=!appEars();intrBtn();$('wake').textContent='Hey Jarvis: '+(wakeOn?'on':'off');
@@ -444,13 +502,13 @@ window.onHeard=(txt,wake)=>{txt=(txt||'').trim();
     cmdNext=true;JarvisApp.stopListen();speak(sty()=='hindi'?'जी सर?':'Yes sir?',true);return;}
   appListening=false;micState(false);
   if(convOn){if(!txt)return convSilent();
-    if(Date.now()-lastEnd<5000&&wd(txt).length>=3&&echoLike(txt)){convLater(400);return;}  // Part 134: it heard Jarvis's own sentence, so listen again and do not count it
+    if(Date.now()-lastEnd<5000&&wd(txt).length>=3&&echoLike(txt)){convLater(150);return;}  // Part 134: it heard Jarvis's own sentence, so listen again and do not count it
     convMiss=0;netTry=0;if(STOPW.test(txt)){convEnd(sty()=='hindi'?'ठीक है सर, बातचीत बंद।':'Okay sir, conversation mode is off.');return;}
     if(++convTurns>20){convEnd('Conversation mode stopped after 20 turns to save battery. Tap Conversation to start again.');return;}}
   if(txt)heardSend(txt);else{add('err','I did not hear anything.');homeSay('','I did not hear anything.');}};
 window.onHeardErr=txt=>{if(barging||cutWait){barging=cutWait=false;return;}appListening=false;
   if(convOn){if(/did not hear/i.test(txt))return convSilent();
-    if(/went to the background/i.test(txt)){convPauseNow();return;}  // Part 134: leaving the app pauses, coming back continues
+    if(/went to the background/i.test(txt)){if(!bgKeep())convPauseNow();return;}  // Part 134: leaving the app pauses, coming back continues
     if(/no internet|error [124]\)/i.test(txt)){const again=netTry<3;convPauseNow(again?'':'Mic: '+txt);if(again){netTry++;setTimeout(()=>convResume(true),5000*netTry);}return;}  // Part 134: speech error 1, 2, 4: wait and try again 3 more times
     convEnd('Conversation mode stopped. Mic: '+txt);return;}
   wakeOn=false;cmdNext=false;micState(false);wakeBtn();add('err','Mic: '+txt);homeSay('','Mic: '+txt);};
@@ -459,20 +517,23 @@ const STOPW=/^(?:jarvis[ ,]*)?(?:bas(?: karo| itna| ho gaya)?|stop(?: listening)
 function convBtn(){vmSync();$('conv').hidden=!appEars();$('conv').textContent='Conversation: '+(convOn?'on':'off');micState(appListening);}
 function convEnd(msg){convOn=false;convPause=false;netTry=0;convMiss=0;convTurns=0;if(appEars())JarvisApp.stopListen();appListening=false;convBtn();if(msg)add('bot',msg);}
 function convSilent(){if(++convMiss>=4){convMiss=0;convPauseNow(sty()=='hindi'?'सर, चार बार कुछ सुनाई नहीं दिया, इसलिए बातचीत रोक दी। जारी रखने के लिए माइक या Jarvis दबाइए।':'I heard nothing four times, sir, so I paused. Tap the mic or Jarvis to continue.');return;}
-  convLater(400);}
+  convLater(150);}
 // Part 134: pause, resume and the shared "open the mic" step of Conversation mode
 function convLater(ms){setTimeout(()=>{if(convOn&&!convPause&&!priv&&!appListening){appListening=true;micState(true);JarvisApp.listen($('lang').value,false);}},ms);}
 function convPauseNow(msg){if(!convOn)return;const was=convPause;convPause=true;appListening=false;try{if(appEars())JarvisApp.stopListen();}catch(e){}convBtn();if(msg&&!was)add('bot',msg);}
 function convResume(auto){if(!convOn||!convPause||priv)return;if(!auto)netTry=0;convPause=false;convMiss=0;convBtn();
   const talk=(aud&&!aud.paused&&!aud.ended)||(window.speechSynthesis&&speechSynthesis.speaking);
   if(busy||talk)return;  // the answer is still coming: the mic opens after Jarvis finishes
-  convLater(700);}
-window.onAppAway=()=>{if(convOn)convPauseNow();};
+  convLater(250);}
+const bgKeep=()=>{try{return localStorage.getItem('jbgmic')!='0'&&appEars()&&(convOn||wakeOn)&&JarvisApp.keepOn&&JarvisApp.keepOn();}catch(e){return false;}};  // Part 153
+function bgSync(){try{if(!appEars())return;if(JarvisApp.setQuiet)JarvisApp.setQuiet(parseInt(localStorage.getItem('jquiet')||'2500',10));if(JarvisApp.keepAlive)JarvisApp.keepAlive(localStorage.getItem('jbgmic')!='0'&&(convOn||wakeOn));}catch(e){}}
+window.onAppAway=()=>{if(convOn&&!bgKeep())convPauseNow();};
+window.bgStopped=()=>{try{if(convOn)convEnd('Background listening was stopped from the notification.');else if(wakeOn)$('wake').click();}catch(e){}};
 window.onAppBack=()=>{netTry=0;setTimeout(()=>convResume(true),600);};
-document.addEventListener('visibilitychange',()=>{if(document.hidden)window.onAppAway();else window.onAppBack();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(!bgKeep())window.onAppAway();}else window.onAppBack();});
 // Part 140: one Voice mode instead of three switches
 window.startConv=()=>{go('home');if(priv)return;if(convOn){convResume();return;}$('conv').click();};  // Part 135: the "Jarvis heard you" notification was tapped
-function vmSync(){const v=convOn?'conv':wakeOn?'hey':'off';if($('vmode').value!==v)$('vmode').value=v;$('vmrow').hidden=!appEars();}
+function vmSync(){bgSync();const v=convOn?'conv':wakeOn?'hey':'off';if($('vmode').value!==v)$('vmode').value=v;$('vmrow').hidden=!appEars();}
 $('vmode').onchange=()=>{const v=$('vmode').value;
   if(v=='off'){if(convOn)convEnd(sty()=='hindi'?'ठीक है सर, वॉइस मोड बंद।':'Okay sir, voice mode is off.');else if(wakeOn)$('wake').click();}
   else if(v=='hey'){if(!wakeOn)$('wake').click();}
@@ -657,24 +718,47 @@ function pwPush(pw,loud){try{if(!window.JarvisApp||!JarvisApp.placeSet)return;co
 async function pwBoot(){try{const {s,d}=await api('/place/sync',{});if(s==200&&d.pw)pwPush(d.pw,false);}catch(e){}}
 function btPaired(){try{if(!window.JarvisApp||!JarvisApp.btPaired)return 'Bluetooth names are shown only in the Jarvis Android app.';const r=JSON.parse(JarvisApp.btPaired());
   if(r.need)return 'Allow "Nearby devices" for Jarvis when Android asks, then say: bluetooth devices';return r.list&&r.list.length?'Paired Bluetooth devices:\n'+r.list.map(x=>'- '+x).join('\n')+'\nSay: jab <word from the name> bluetooth jude <your note>':'No paired Bluetooth devices found.';}catch(e){return 'Could not read Bluetooth names.';}}
+let SKIN=(()=>{try{return localStorage.getItem('jskin')||'auto';}catch(e){return 'auto';}})();  // Part 153: auto | dark | light | neon (the old look)
 let HOLO=(()=>{try{return localStorage.getItem('jholo')!='0';}catch(e){return true;}})();  // Part 151: declared first because the Look card (Part 132) reads it
 // Part 121 (+ 132): Glass skin on Home, dark phones only. `glass off` goes back to the old look, `glass on` brings it back, `reduce effects` is the same as glass off. Saved in this page only.
 let GLASS=(()=>{try{return localStorage.getItem('jglass')!='0';}catch(e){return true;}})();
 const GLQ=/^\s*(glass(?: skin)?|reduce effects)\s*(on|off|chalu|band)?\s*$/i;
-function glassApply(){document.body.classList.toggle('glass',GLASS);try{localStorage.setItem('jglass',GLASS?'1':'0');}catch(e){}if($('lookc'))lookCard();}
+function glassApply(){document.body.classList.toggle('glass',GLASS&&SKIN=='neon');try{localStorage.setItem('jglass',GLASS?'1':'0');}catch(e){}if($('lookc'))lookCard();}
 // Part 132: Settings > Look card with the Reduce effects switch (the same switch as the words `reduce effects` and `glass off`).
 function lookCard(){const c=$('lookc');c.textContent='';const l=el('label'),cb=el('input');cb.type='checkbox';cb.checked=!GLASS;cb.onchange=()=>{GLASS=!cb.checked;glassApply();};l.append(cb,el('span','','Reduce effects (no glass, blur or glow on Home)'));const l2=el('label'),c2=el('input');c2.type='checkbox';c2.checked=!HOLO;c2.onchange=()=>{HOLO=!c2.checked;holoApply();};l2.append(c2,el('span','','No hologram (the light rings and beam under the orb)'));
-  c.append(l,l2,el('p','sm','The glass look and the hologram show on dark phones only. Chat is not changed. You can also say: glass off, or: no hologram'));}
+  const seg=el('div','seg');[['auto','🌗 Auto'],['dark','🌙 Dark'],['light','☀️ Light'],['neon','⚡ Neon (old)']].forEach(([k,n])=>{const b=el('button',k==SKIN?'':'g',n);b.type='button';b.onclick=()=>{SKIN=k;skinApply();};seg.appendChild(b);});
+  c.append(seg,el('p','sm','Auto follows your phone. You can also say: dark theme, light theme.'),l,l2,el('p','sm','Glass, glow and hologram show only in the Neon (old) theme. Say: glass off, or: no hologram'));}
 function glassCmd(t){const m=t.match(GLQ),red=/reduce/i.test(m[1]),a=(m[2]||'').toLowerCase(),yes=/^(on|chalu)$/.test(a);
   if(red||a){GLASS=red?!!(a&&!yes):yes;glassApply();}
   return GLASS?'Glass look is ON (dark phones only). Say: glass off, or: reduce effects':'Glass look is OFF (the old look). Say: glass on';}
 glassApply();
 // Part 151: Home hologram. On by default (dark phones). `no hologram` or Settings > Look turns it off, `hologram on` brings it back. Saved in this page only.
 const HLQ=/^\s*(?:(no hologram)|hologram\s*(on|off|chalu|band)?)\s*$/i;
-function holoApply(){document.body.classList.toggle('holo',HOLO);try{localStorage.setItem('jholo',HOLO?'1':'0');}catch(e){}if($('lookc'))lookCard();}
+function holoApply(){document.body.classList.toggle('holo',HOLO&&SKIN=='neon');try{localStorage.setItem('jholo',HOLO?'1':'0');}catch(e){}if($('lookc'))lookCard();}
 function holoCmd(t){const m=t.match(HLQ);if(m[1])HOLO=false;else if(m[2])HOLO=/^(on|chalu)$/i.test(m[2]);holoApply();
   return HOLO?'Hologram is ON (dark phones only). Say: no hologram':'Hologram is OFF. Say: hologram on';}
 holoApply();
+
+// Part 153: theme (Auto / Dark / Light / Neon old look). Auto follows the phone. Saved in this page only.
+const THQ=/^\s*(?:(auto|dark|light|neon)\s*(?:theme|mode)|(?:theme|mode)\s*(auto|dark|light|neon)|(डार्क|लाइट)\s*(?:थीम|मोड))\s*$/i;
+function skinApply(){const d=document.documentElement;const r=SKIN=='auto'?(matchMedia('(prefers-color-scheme:light)').matches?'light':'dark'):SKIN;
+  if(SKIN=='neon')d.removeAttribute('data-skin');else d.setAttribute('data-skin',r);
+  const c=document.querySelector('meta[name=theme-color]');if(c)c.content=SKIN=='neon'?'#0e1116':(r=='light'?'#faf9f5':'#1f1e1d');
+  document.body.classList.toggle('glass',GLASS&&SKIN=='neon');document.body.classList.toggle('holo',HOLO&&SKIN=='neon');
+  try{localStorage.setItem('jskin',SKIN);}catch(e){}if($('lookc'))lookCard();}
+function skinCmd(t){const m=t.match(THQ);const w=(m[1]||m[2]||(/डार्क/.test(m[3]||'')?'dark':'light')).toLowerCase();SKIN=w;skinApply();return 'Theme: '+({auto:'Auto (follows your phone)',dark:'Dark',light:'Light',neon:'Neon (old look)'}[w])+'.';}
+try{matchMedia('(prefers-color-scheme:light)').addEventListener('change',()=>{if(SKIN=='auto')skinApply();});}catch(e){}
+skinApply();
+// Part 153: Settings > Voice & Listening switches (background mic, auto internet search, how long Jarvis waits after you stop talking)
+function listenCard(){const b=$('vlcard');if(!b)return;b.textContent='';
+  const sw=(key,def,title,sub)=>{const r=el('div','srow');const t=el('span','',title);t.appendChild(el('small','',sub));const i=el('input');i.type='checkbox';i.checked=(localStorage.getItem(key)??(def?'1':'0'))!='0';
+    i.onchange=()=>{localStorage.setItem(key,i.checked?'1':'0');bgSync();};r.append(t,i);b.appendChild(r);};
+  sw('jbgmic',true,'Keep listening in background','Mic stays on when you press Home or lock the screen (Conversation / Hey Jarvis mode). A notification shows while it listens.');
+  sw('jwebauto',true,'Search the internet by itself','Price, news, score, weather: Jarvis looks it up without being told. Sources are shown under the answer.');
+  const r=el('div','srow');const t=el('span','','Wait after I stop talking');t.appendChild(el('small','','Shorter = faster answers. Longer = it lets you pause while thinking.'));
+  const sel=el('select');[['1500','Fast (1.5 s)'],['2500','Normal (2.5 s)'],['4000','Patient (4 s)']].forEach(([v,n])=>{const o=el('option','',n);o.value=v;sel.appendChild(o);});
+  sel.value=localStorage.getItem('jquiet')||'2500';sel.onchange=()=>{localStorage.setItem('jquiet',sel.value);bgSync();};r.append(t,sel);b.appendChild(r);
+  b.appendChild(el('p','sm','Interrupting Jarvis while he speaks works with earphones. On the loudspeaker the mic would hear Jarvis himself.'));}
 // Part 112: note after a call. Off until you say `call note on`. Jarvis never sees the number or the voice, only that a call of 30 seconds or more ended.
 let CNW=0;const CNOTE=/^\s*call note\s*(on|off|chalu|band)?\s*$/i;
 function callNoteAsk(){go('chat');const b=add('bot','Call ended. Kuch yaad rakhna hai? Type or say your note now.');CNW=Date.now()+5*60000;btns(b,[['Skip',()=>{CNW=0;b.textContent='Okay, no note.';}]]);}
@@ -1077,9 +1161,9 @@ async function brief(){
   try{const {s,d}=await api('/brief',{now:nowS(),style:sty(),auto:true,phone:pinfo()});if(s==200&&d.text){add('bot',d.text);speak(d.text,false,'BRIEFING');}}catch(e){}
 }
 // Part 48: Home dashboard (neon look from the reference pictures). Everything shown here is real data from the server or the phone; nothing is made up.
-function go(v,k){view=v;k=k||v;const t=!!token;document.body.classList.toggle('hm',v=='home'||v=='chat');$('chat').hidden=!t||v!='chat';$('set').hidden=!t||v!='set';$('home').hidden=!t||v!='home';$('tl').hidden=!t||v!='tl';$('tabs').hidden=!t;
+function go(v,k){view=v;k=k||v;if(v=='chat')setTimeout(chatBottom,30);const t=!!token;document.body.classList.toggle('hm',v=='home'||v=='chat');$('chat').hidden=!t||v!='chat';$('set').hidden=!t||v!='set';$('home').hidden=!t||v!='home';$('tl').hidden=!t||v!='tl';$('tabs').hidden=!t;
   $('tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v==k));
-  if(t&&v=='home')homeLoad(true);if(t&&v=='tl')tlLoad('all');if(t&&v=='set'){learnLoad();unkLoad();nsCard(true);keys();mem();led();ppl();atl();dash();sysCard();bgt();voiceLoad();bkLoad();}}
+  if(t&&v=='home')homeLoad(true);if(t&&v=='tl')tlLoad('all');if(t&&v=='set'){learnLoad();unkLoad();nsCard(true);keys();mem();led();ppl();atl();dash();sysCard();bgt();voiceLoad();listenCard();bkLoad();}}
 // Part 122: bottom bar. A tab is added only when the page part behind it exists (Home 48, Talk, Assist 119, Timeline 109, Memory 88, Settings).
 const BB=[['home','🏠','Home','home'],['chat','💬','Talk','chat'],['as','🧰','Assist','htl'],['tl','🕘','Timeline','tl'],['mem','🗂️','Memory','al'],['set','⚙️','Settings','set']];
 BB.forEach(([k,i,n,need])=>{if(!$(need))return;const b=el('button','g');b.type='button';b.dataset.v=k;b.append(el('span','',i),n);b.onclick=()=>bb(k);$('tabs').appendChild(b);});

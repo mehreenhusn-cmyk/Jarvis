@@ -9,6 +9,11 @@ import screen as SC, actions as AC, progress as PG
 _r = lambda t: SC.redact(t)[0]
 def _unit():
     ok = lambda n, c: print(("PASS " if c else "FAIL ") + n) or (c or sys.exit(1))
+    import web as WB, ledger as LG  # Part 153
+    ok("153: bitcoin price question is searched by itself", WB.needs("करंट लाइफ प्राइस क्या चल रहा है बीटीसी उष्ट का") and WB.needs("Mumbai ki top 5 news batao"))
+    ok("153: normal talk and reminders are not searched", not WB.needs("aaj mera mood kharab hai") and not WB.needs("kal 9 baje chai yaad dilana"))
+    ok("153: 'net par search karke batana' repeats the question before", WB.follow("नेट पर सर्च करके बताना मेरे को", "bitcoin price") == "bitcoin price" and not WB.follow("नेट पर सर्च करके बताना मेरे को", ""))
+    ok("153: 'मेरे हिसाब' inside a sentence is not the ledger", not LG.LIST.search("हम क्या गिर रहा है यार मेरे हिसाब") and LG.LIST.search("mera hisab dikhao"))
     ok("32: OTP chhupta hai", "483921" not in _r("Your OTP is 483921. Do not share."))
     ok("32: OTP agli line mein bhi chhupta hai", "123456" not in _r("Verification code\n123 456").replace(" ", ""))
     ok("32: card number chhupta hai", "4111" not in _r("Card 4111 1111 1111 1111 exp 12/29") and "12/29" in _r("Card 4111 1111 1111 1111 exp 12/29"))

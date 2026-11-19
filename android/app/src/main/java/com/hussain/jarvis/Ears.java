@@ -24,6 +24,7 @@ class Ears implements RecognitionListener {
     String lang = "en-IN";
     int fails;           // soft errors in a row (speech service disconnected); reset when you actually speak
     boolean retrying;    // true when again() calls start(), so the counter is not reset by our own retry
+    static volatile long quiet = 2500L;  // Part 153: how long Jarvis waits in silence before he answers (Settings > Voice & Listening)
     volatile boolean wake, on, barge;  // barge (Part 61): listening WHILE Jarvis speaks, partial words go to the page so it can stop talking
 
     Ears(Activity a, WebView w) { act = a; web = w; }
@@ -50,8 +51,8 @@ class Ears implements RecognitionListener {
         return (new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang).putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1).putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, bargeMode)
-            .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, wake ? 1500L : 4500L)  // Part 36: when you talk, Jarvis waits about 4 to 5 seconds of quiet before answering, like a person
-            .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, wake ? 1500L : 4000L));  // (some phone speech services ignore these two numbers)
+            .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, wake ? 1500L : quiet)  // Part 36: when you talk, Jarvis waits about 4 to 5 seconds of quiet before answering, like a person
+            .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, wake ? 1500L : Math.max(1000L, quiet - 500L)));  // (some phone speech services ignore these two numbers)
     }
 
     void stop() {

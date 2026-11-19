@@ -165,7 +165,8 @@ def check(n, k):
         return str(e)
 
 
-CAN = ("\n\nWHAT JARVIS CAN DO (the app does these when Hussain's words fit, not you): open any app; scroll, click, back and home on the open app; call or dial a contact by name; alarm and timer; reminders; notes, lists, habits, expenses; read the screen when asked; look at a photo; search the web in Research mode. "
+CAN = ("\n\nWHAT JARVIS CAN DO (the app does these when Hussain's words fit, not you): open any app; scroll, click, back and home on the open app; call or dial a contact by name; alarm and timer; reminders; notes, lists, habits, expenses; read the screen when asked; look at a photo; search the internet BY ITSELF for live questions (price, news, score, weather) and when he says: net par search karke batao. "
+       "You DO have internet: when a block named INTERNET SE MILA TEXT is below, answer from it. Never say you have no permission to search. If a live question has no such block, the lookup failed: say so in one sentence and tell him to say: search karo <topic>. "
        "WHAT IT CANNOT DO: see inside another app's private data (like a trading watch list) unless it is on the screen, send a message or pay without his tap, or guess news. "
        "If he asks for something from the CAN list, never say you cannot: tell him the exact short words to say, for example: Ammi ko call karo, or: Chrome kholo aur neeche scroll karo. "
        "Use the earlier messages to understand words like usko, wahi, isko, that, it.")  # Part 126
@@ -685,7 +686,8 @@ class H(BaseHTTPRequestHandler):
             rows = c.execute("SELECT role, content, ts FROM messages WHERE device=? ORDER BY id DESC LIMIT 20", (dev,)).fetchall()  # Part 126: 20 turns, not 10
             rows = [x for x in rows if not (x[0] == "assistant" and x[1].startswith("(phone action)"))]  # Part 138: the AI must not copy an old fake label
             tctx = clock.context([(r, t) for r, _, t in reversed(rows)], prev_ts)
-            wtxt, srcs = web.lookup(msg, now, mode == "research" and len(msg) >= 8 and not screen.used(data.get("screen")))  # Part 57: in Research mode every question is searched
+            prev_q = next((x[1] for x in rows[1:] if x[0] == "user"), "")  # Part 153: the question before this one ("net par search karke batana" means that one)
+            wtxt, srcs = web.lookup(msg, now, mode == "research" and len(msg) >= 8 and not screen.used(data.get("screen")), data.get("webauto") is not False and not screen.used(data.get("screen")), prev_q)  # Part 57 + 153: Research mode searches everything; live questions (price, news, score, weather) are searched by themselves
             try:
                 reply, via = ask([{"role": r, "content": t} for r, t, _ in reversed(rows)], style, CAN + tctx + memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + replyideas.context(data.get("notif")) + wtxt + MOOD + debate.extra(dev) + modes.extra(mode))
             except RuntimeError as e:

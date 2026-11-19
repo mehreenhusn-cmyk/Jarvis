@@ -44,9 +44,9 @@
 4. Voice: Sarvam `Shubh` (Hindi and English), Edge as backup. Speech to text: the phone's recognizer (one language at a time).
 5. Privacy: no cloud sync, no silent recording, every feature has an OFF word.
 
-## 2. ALL PARTS IN ONE TABLE (Part 1 to 151)
+## 2. ALL PARTS IN ONE TABLE (Part 1 to 153)
 
-One row per Part, plain numbers only. Keep each row to ONE line. A new idea gets the NEXT number (now 152). When a Part is built, fill the real lines and change the status. Status words are read by `mission`: `Built, not phone tested`, `Built, phone tested`, `Built, partly tested`, `Planned`. `*` = new file. A range like `1 to 5` means the old notes did not split them.
+One row per Part, plain numbers only. Keep each row to ONE line. A new idea gets the NEXT number (now 154). When a Part is built, fill the real lines and change the status. Status words are read by `mission`: `Built, not phone tested`, `Built, phone tested`, `Built, partly tested`, `Planned`. `*` = new file. A range like `1 to 5` means the old notes did not split them.
 
 | Part | What it does | Files | Lines | New APK? | Status |
 |---|---|---|---|---|---|
@@ -190,6 +190,8 @@ One row per Part, plain numbers only. Keep each row to ONE line. A new idea gets
 | 149 | Screenshot sentences as tests: torch, call Ammi, scroll, back, home, last update. The 5 that failed before are fixed by Part 139 and now PASS | `test_app.py` | 13 | No | Built, not phone tested |
 | 150 | No more fingerprint: the app lock (Part 36) is OFF for good. Jarvis never asks for a fingerprint, face or PIN. An old ON saved by an older APK is cleared at start. The App lock card is gone from Settings > Privacy | `AppLock.java`, `index.html` | 55 + 7 removed | Yes | Built, not phone tested |
 | 151 | Home hologram: a light disc and beam under the orb, three tilted rings turning around it, scan lines, a small float and flicker. Faster when listening, red when stopped. Dark phones only. OFF: Settings > Look > `No hologram`, or say `no hologram` (`hologram on` brings it back) | `index.html` | 39 added + 3 changed | No | Built, not phone tested |
+| 152 | Zip number already used by an earlier update (the phone says: skipped, same zip already done). No code of its own | - | - | No | Built, phone tested |
+| 153 | (1) Jarvis searches the internet by itself for live questions (price, news, score, weather); coin prices come from CoinGecko; `net par search karke batana` searches the question before; Settings switch. (2) `hisab` inside a normal sentence no longer opens the ledger. (3) Theme: Auto / Dark / Light / Neon (old), warm calm colours, Settings > Appearance, or say `dark theme` / `light theme`. (4) Settings in sections with icon cards, new Voice & Listening card. (5) Talk opens at the newest message. (6) Keep listening in background: foreground mic service with a Stop notification (`KeepAlive`), Conversation and Hey Jarvis continue after Home or screen off. (7) Faster mic restart (0.12 s) and a Wait-after-I-stop-talking setting (1.5 / 2.5 / 4 s) | `web.py`, `app.py`, `ledger.py`, `test_app.py`, `index.html`, `KeepAlive.java`*, `MainActivity.java`, `Ears.java`, `AndroidManifest.xml` | about 330 added | Yes | Built, not phone tested |
 
 ## 3. WHAT HUSSAIN DOES NOW
 
