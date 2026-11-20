@@ -170,6 +170,10 @@ public class ScreenService extends AccessibilityService {
             cb.got(r(sent, "refused"));
             return;
         }
+        if ("scroll".equals(t) && "read".equals(a.optString("mode"))) {  // Part 154: reading scroll, one screenful at a time with a pause to read
+            readScroll(s, !"up".equals(a.optString("dir")), String.valueOf(root.getPackageName()), cb);
+            return;
+        }
         int before = sig(root);
         boolean did = false;
         boolean swiped = false;
@@ -243,13 +247,13 @@ public class ScreenService extends AccessibilityService {
                     JSONObject o2 = r(true, null);
                     try { o2.put("changed", n2 != null && sig(n2) != was); } catch (Exception e) { /* send what we have */ }
                     cb.got(o2);
-                }, 900);
+                }, 1700);  // Part 154: the soft swipe takes about 1.1 s
                 return;
             }
             JSONObject o = r(true, null);
             try { o.put("changed", ch); } catch (Exception e) { /* send what we have */ }
             cb.got(o);
-        }, 900);
+        }, sw ? 1700 : 900);  // Part 154: a swipe needs 1.1 s to finish
     }
 
     // ---- Part 129: look and tap. ONE screenshot of the open app (Android 11+), kept only in memory and sent only to the vision AI after your request.
@@ -362,12 +366,114 @@ public class ScreenService extends AccessibilityService {
         for (int i = 0; i < n.getChildCount(); i++) gather(n.getChild(i), d + 1, out, m);
     }
 
-    /** Part 123: one plain vertical swipe in the middle of the screen. down = the page moves down (finger goes up). */
+    /** Part 154: one swipe = about ONE screenful (85% of the page), so the next part shows and the last line you read stays on top. */
     private static boolean swipeNow(ScreenService s, boolean down) {
+        AccessibilityNodeInfo root = s.getRootInActiveWindow();
+        if (root != null && pageSwipe(s, root, down, null)) return true;
+        return plainSwipe(s, down);  // old way, only if the page area could not be read
+    }
+
+    /** Part 123: one plain vertical swipe (the old way, kept as the last fallback) in the middle of the screen. down = the page moves down (finger goes up). */
+    private static boolean plainSwipe(ScreenService s, boolean down) {
         android.util.DisplayMetrics m = s.getResources().getDisplayMetrics();
         Path p = new Path();
         p.moveTo(m.widthPixels / 2f, m.heightPixels * (down ? 0.7f : 0.3f));
         p.lineTo(m.widthPixels / 2f, m.heightPixels * (down ? 0.3f : 0.7f));
         return s.dispatchGesture(new GestureDescription.Builder().addStroke(new GestureDescription.StrokeDescription(p, 0, 350)).build(), null, null);
+    }
+
+    // ---- Part 154: reading scroll. ONE screenful, a pause to read, the next one. It only scrolls: never taps, types or sends. ----
+    static volatile boolean stopRead, reading;
+
+    /** The visible page: the biggest scroll area if it is big, else the window without the top and bottom bars. */
+    private static android.graphics.Rect pageArea(ScreenService s, AccessibilityNodeInfo root) {
+        android.util.DisplayMetrics m = s.getResources().getDisplayMetrics();
+        android.graphics.Rect w = new android.graphics.Rect(0, (int) (m.heightPixels * 0.10f), m.widthPixels, (int) (m.heightPixels * 0.88f));
+        try {
+            ArrayList<AccessibilityNodeInfo> sc = new ArrayList<>();
+            collect(root, 0, sc, "scroll");
+            long best = -1;
+            android.graphics.Rect pick = null;
+            for (AccessibilityNodeInfo n : sc) {
+                android.graphics.Rect rc = new android.graphics.Rect();
+                n.getBoundsInScreen(rc);
+                long ar = (long) rc.width() * rc.height();
+                if (ar > best) { best = ar; pick = rc; }
+            }
+            if (pick != null && pick.height() > m.heightPixels * 0.4f && pick.width() > m.widthPixels * 0.5f && pick.intersect(w) && pick.height() > m.heightPixels * 0.4f) return pick;
+        } catch (Exception e) { /* use the window */ }
+        return w;
+    }
+
+    /** ONE screenful: about 85% of the page. Android 8+: the finger slows down at the end, so the page does not fly further. done runs when the swipe ends (may be null). */
+    static boolean pageSwipe(ScreenService s, AccessibilityNodeInfo root, boolean down, Runnable done) {
+        if (Build.VERSION.SDK_INT < 24) return false;
+        android.graphics.Rect a = pageArea(s, root);
+        float h = a.height(), x = a.exactCenterX();
+        float y1 = down ? a.bottom - h * 0.05f : a.top + h * 0.05f;
+        float y2 = down ? y1 - h * 0.85f : y1 + h * 0.85f;
+        return soft(s, x, y1, y2, null, 0, done);
+    }
+
+    private static boolean soft(ScreenService s, float x, float ya, float yb, GestureDescription.StrokeDescription prev, int i, Runnable done) {
+        final float[] f = {0f, 0.70f, 0.92f, 0.98f, 1f};
+        final long[] ms = {300, 300, 250, 250};
+        final boolean more = Build.VERSION.SDK_INT >= 26 && i < 3;
+        final GestureDescription.StrokeDescription sd;
+        if (Build.VERSION.SDK_INT < 26) {  // old Android: one plain stroke
+            Path q = new Path();
+            q.moveTo(x, ya);
+            q.lineTo(x, yb);
+            sd = new GestureDescription.StrokeDescription(q, 0, 900);
+        } else {
+            Path p = new Path();
+            p.moveTo(x, ya + (yb - ya) * f[i]);
+            p.lineTo(x, ya + (yb - ya) * f[i + 1]);
+            sd = prev == null ? new GestureDescription.StrokeDescription(p, 0, ms[i], more) : prev.continueStroke(p, 0, ms[i], more);
+        }
+        return s.dispatchGesture(new GestureDescription.Builder().addStroke(sd).build(), new GestureResultCallback() {
+            @Override public void onCompleted(GestureDescription g) { if (more) soft(s, x, ya, yb, sd, i + 1, done); else if (done != null) done.run(); }
+            @Override public void onCancelled(GestureDescription g) { if (done != null) done.run(); }
+        }, null);
+    }
+
+    /** Scrolls one screenful, waits 1.5 to 2.5 s (time to read), scrolls again. Stops: you say stop, the page ended (2 screens in a row changed nothing), another app came to the front, 20 screens or 2 minutes. */
+    private static void readScroll(ScreenService s, boolean down, String pkg, Done cb) {
+        if (reading) { cb.got(r(false, "busy")); return; }
+        reading = true;
+        stopRead = false;
+        final long end = System.currentTimeMillis() + 120000L;
+        final int[] n = {0, 0};  // screens done, screens in a row that changed nothing
+        final Handler h = new Handler(Looper.getMainLooper());
+        final Runnable[] loop = new Runnable[1];
+        loop[0] = () -> {
+            try {
+                AccessibilityNodeInfo root = live == null ? null : live.getRootInActiveWindow();
+                String why = stopRead ? "stopped"
+                    : (root == null || !pkg.equals(String.valueOf(root.getPackageName()))) ? "left"
+                    : (Privacy.stopped || !Privacy.control) ? "off"
+                    : (n[0] >= 20 || System.currentTimeMillis() > end) ? "limit"
+                    : n[1] >= 2 ? "end" : null;
+                if (why != null) {
+                    reading = false;
+                    JSONObject o = r(true, null);
+                    try { o.put("steps", Math.max(0, n[0] - n[1])).put("why", why).put("changed", n[0] - n[1] > 0); } catch (Exception e) { /* send what we have */ }
+                    cb.got(o);
+                    return;
+                }
+                final int before = sig(root);
+                n[0]++;
+                Runnable after = () -> h.postDelayed(() -> {
+                    AccessibilityNodeInfo now = live == null ? null : live.getRootInActiveWindow();
+                    if (now != null && sig(now) == before) n[1]++; else n[1] = 0;
+                    h.postDelayed(loop[0], 1500L + (long) (Math.random() * 1000L));  // time to read
+                }, 400);
+                if (!pageSwipe(s, root, down, after)) { n[1] = 2; after.run(); }
+            } catch (Exception e) {
+                reading = false;
+                cb.got(r(false, "refused"));
+            }
+        };
+        h.post(loop[0]);
     }
 }

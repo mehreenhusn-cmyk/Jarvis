@@ -92,7 +92,8 @@ STORES = [("memories", "Memories", "", "Remove button"), ("people", "People note
           ("touch", "Last talked people", "", "say: ammi track band karo"), ("contracts", "Habit contracts", "", "say: contract hatao gym"), ("capsules", "Time capsules", "", "say: capsule hatao N"), ("dreams", "Dream journal", "", "say: sapna hatao N"), ("signs", "Signs log", "", "say: sign hatao <text>"),
           ("ledger", "Money ledger", "", "delete everything"), ("reminders", "Reminders", "", "delete everything"),
           ("routines", "Routines", "", "delete everything"), ("flags", "Switches (honest question, drift)", " AND val=1 AND name IN ('honest','drift')", "say: sach sawal off / drift off"), ("money", "Income and savings numbers", "", "say: kamai hatao / bachat hatao"), ("ghost", "Context Ghost reasons", "", "say: ghost bhool jao"), ("places", "Saved places", "", "say: jagah hatao ghar"), ("pwatch", "Place and Bluetooth reminders", "", "say: place reminder hatao N"), ("tasks", "Task history", "", "delete everything"), ("dayreport", "Day report time", "", "delete everything"),
-          ("unknown", "Unknown and taught sentences", "", "Settings > Your Data, or say: unknown saaf karo")]
+          ("unknown", "Unknown and taught sentences", "", "Settings > Your Data, or say: unknown saaf karo"),
+          ("chatsum", "Short summary of older chat", "", "say: clear history"), ("nudges", "Answers to Jarvis offers", "", "say: sujhav band karo"), ("autofacts", "Facts picked up from your talk", " AND status!='no'", "say: galat hai #N / auto seekha bhool jao")]  # Parts 158 + 155
 
 
 def atlas(c, dev):

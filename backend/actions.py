@@ -263,6 +263,33 @@ def loose_cmd(msg):
     return None
 
 
+# ---- Part 154: reading scroll. "padhte hue scroll karo", "scroll karte raho": ONE screenful, a pause to read, the next one. "scroll ruko" stops it. Only scrolling, never a tap. ----
+READW = set("padhte padhta padhke padh padhna पढ़ते पढ़ता पढ़कर पढ़ना पढ़ read reading auto khud खुद lagatar लगातार continuous continuously keep karte करते raho rahe रहो रहे rehna".split())
+STOPS = set("ruko roko ruk रुको रोको रुक band बंद bas बस stop".split())
+HUE = set("hue huye hue हुए ke saath sath with while".split())
+
+
+def read_cmd(msg):
+    """(action, English text, Hindi text) for the reading scroll or its stop, else None. The word `scroll` must be in the sentence."""
+    m = msg.strip()
+    if "?" in m or len(m) > 80 or risk_of(msg) or LABEL_RISK.search(m):
+        return None
+    w = _words(m)
+    s = set(w)
+    if not w or len(w) > 8 or not s & SCRW or s & QW or s & (CLICK_EN | CLICK_HI | BTN | CALLW | {"app", "ऐप", "एप", "type", "लिखो"}):
+        return None
+    if len(s - (SCRW | DOWN | UP | GO | FILL | AGAIN | LNOISE | PREPS | HUE | READW | STOPS)) > 1:
+        return None
+    if s & STOPS and not s & READW:
+        return {"type": "scroll", "mode": "stop"}, "Stopping the scroll, sir.", "ठीक है सर, स्क्रॉल रोक रहा हूँ।"
+    if s & READW and not (s & DOWN and s & UP):
+        d = "up" if s & UP else "down"
+        return ({"type": "scroll", "dir": d, "mode": "read"},
+                f"Scrolling {d}, one screen at a time, sir. I wait a little after each one so you can read. Say: scroll ruko, to stop.",
+                ("ऊपर" if d == "up" else "नीचे") + " की तरफ़ एक-एक स्क्रीन स्क्रॉल कर रहा हूँ सर, हर बार थोड़ा रुककर। रोकने के लिए बोलिए: स्क्रॉल रुको।")
+    return None
+
+
 # Part 37: settings help. Only a FIXED list: open a settings page, flashlight, music volume. Wi-Fi, Bluetooth and location are never switched
 # by Jarvis (Android does not allow it): the page is opened and Jarvis says so.
 PAGES = {"wifi": ("wifi", "वाईफाई वायफाय वाईफ़ाई"), "bluetooth": ("bluetooth", "ब्लूटूथ ब्लूटुथ"), "location": ("location gps", "लोकेशन"),
@@ -630,7 +657,7 @@ def handle(msg, hindi, control, in_app, ask):
             if not control:
                 return say("फ़ोन कंट्रोल बंद है सर। Settings में \"Phone control\" चालू कीजिए।", "Phone control is OFF, sir. Turn it on in Settings, under Phone control."), None
             return say(got[2], got[1]), got[0]
-    sc = screen_cmd(msg) or device_cmd(msg) or loose_cmd(msg)  # Part 139 adds loose_cmd last. Part 34 (screen steps) and Part 37 (settings pages, flashlight, volume)
+    sc = read_cmd(msg) or screen_cmd(msg) or device_cmd(msg) or loose_cmd(msg)  # Part 154 puts read_cmd first. Part 139 adds loose_cmd last. Part 34 (screen steps) and Part 37 (settings pages, flashlight, volume)
     if sc and sc[0] and sc[0]["type"] == "type" and not (control and in_app):
         sc = None  # "type hello" is only a command when phone control is ON in the app; otherwise it is normal chat
     rk = risk_of(msg) if (control and in_app) else None

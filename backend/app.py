@@ -1,8 +1,8 @@
 """Jarvis backend - Part 1: chat + pairing + SQLite. Sirf Python stdlib, pip install nahi chahiye."""
-import hashlib, json, os, re, secrets, sqlite3, time, urllib.request, urllib.error
+import hashlib, json, os, re, secrets, sqlite3, threading, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, assist, autostart, backup, brief, calls, capsule, clock, debate, decisions, dreams, drift, events, ghost, guest, handoff, habits, learn, ledger, lens, lists, memory, modes, money, mood, notes, people, phone, place, placenote, phonetest, unknown, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
+import actions, assist, autolearn, autostart, backup, brief, calls, capsule, chatsum, clock, cutoff, debate, decisions, dreams, drift, events, ghost, guest, handoff, habits, learn, ledger, lens, lists, memory, modes, money, mood, notes, nudge, people, phone, place, placenote, phonetest, unknown, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -64,6 +64,26 @@ def own(c):
     c.commit()
 
 
+_bg = threading.Lock()
+
+
+def after_chat(dev):
+    """Part 158: fold older chat into a short summary. Part 155: every 8th chat pick up facts. Runs in the background, one at a time, and never raises."""
+    if not _bg.acquire(False):
+        return
+    c = None
+    try:
+        c = db()
+        chatsum.update(c, dev, ask)
+        autolearn.note(c, dev, ask)
+    except Exception:
+        pass
+    finally:
+        if c is not None:
+            c.close()
+        _bg.release()
+
+
 def db():
     c = sqlite3.connect(DB)
     c.execute("CREATE TABLE IF NOT EXISTS devices(id INTEGER PRIMARY KEY, name TEXT, token_hash TEXT UNIQUE, ts REAL)")
@@ -76,6 +96,9 @@ def db():
     lists.init(c)  # Part 83: shopping and packing lists
     habits.init(c)  # Part 83: habit and streak tracker
     learn.init(c)  # Part 143: what Jarvis learned (counts only)
+    chatsum.init(c)  # Part 158: short summary of older chat
+    autolearn.init(c)  # Part 155: facts picked up from what you say
+    nudge.init(c)  # Part 157: answers to Jarvis's offers
     unknown.init(c)  # Part 146: sentences it could not understand
     phonetest.init(c)  # Part 136: Table A answers (pass / fail / skip, date, note)
     spend.init(c)  # Part 84: quick expense logger
@@ -399,10 +422,16 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, {"ok": bool(st), "state": st})
         if self.path == "/learn":  # Part 143: the \"What Jarvis learned\" card and the one offer for this hour (reading only)
             c = db()
-            return self.send(200, {"on": learn.is_on(c, dev), "items": learn.rows(c, dev), "suggest": learn.suggest(c, dev)})
+            return self.send(200, {"on": learn.is_on(c, dev), "items": learn.rows(c, dev), "suggest": learn.suggest(c, dev) or nudge.suggest(c, dev),  # Part 157: more offers
+                                   "facts": [{"id": i, "text": t} for i, t in autolearn.saved(c, dev)], "today": autolearn.today(c, dev), "facts_on": autolearn.is_on(c, dev)})  # Part 156: facts picked up, and the last 24 hours
         if self.path == "/learn/act":  # Part 143: Keep, Delete, or the answer to an offer (yes / later)
-            if str(data.get("act")) in ("keep", "delete", "yes", "later") and isinstance(data.get("id"), int):
-                learn.act(db(), dev, data["id"], str(data["act"]))
+            wh, i = str(data.get("act")), data.get("id")
+            if isinstance(i, int) and wh == "fact_delete":  # Part 156: one picked-up fact
+                autolearn.forget(db(), dev, i)
+            elif isinstance(i, int) and i < 0 and wh in ("yes", "later", "never"):  # Part 157: an offer from nudge.py (its ids are negative)
+                nudge.act(db(), dev, i, wh)
+            elif isinstance(i, int) and i >= 0 and wh in ("keep", "delete", "yes", "later"):
+                learn.act(db(), dev, i, wh)
             return self.send(200, {"ok": True})
         if self.path == "/unknown":  # Part 146: the list for Settings > Your Data (reading only)
             c = db()
@@ -565,7 +594,8 @@ class H(BaseHTTPRequestHandler):
             if re.match(r"^\s*(?:clear|delete|erase)\s+(?:my\s+)?(?:chat\s+)?history\s*$", msg, re.I):
                 c.execute("DELETE FROM messages WHERE device=?", (dev,))
                 c.commit()
-                return self.send(200, {"reply": "Okay sir, the chat history is deleted. Saved memories, people and reminders are not touched.", "via": "memory"})
+                chatsum.wipe(c, dev)  # Part 158: the short summary of the old chat goes too
+                return self.send(200, {"reply": "Okay sir, the chat history and its short summary are deleted. Saved memories, people and reminders are not touched.", "via": "memory"})
             style = str(data.get("style", ""))
             if re.search(r"[\u0900-\u097F]", msg):
                 style = "hindi"  # Part 130: you spoke Hindi, so local replies (phone actions, notes, lists) answer in Hindi too
@@ -602,6 +632,10 @@ class H(BaseHTTPRequestHandler):
                 mem = lists.handle(c, dev, msg, style == "hindi")
             if mem is None:  # Part 143: "seekha dikhao", "seekhna band karo", "seekha bhool jao" (counts only, never your words)
                 mem = learn.handle(c, dev, msg, style == "hindi")
+            if mem is None:  # Part 155: "kya samjha", "galat hai #3", "auto seekhna band karo", "auto seekha bhool jao" (facts picked up from your words)
+                mem = autolearn.handle(c, dev, msg, style == "hindi")
+            if mem is None:  # Part 157: "sujhav band karo" / "sujhav chalu karo" (Jarvis only asks, never acts alone)
+                mem = nudge.handle(c, dev, msg, style == "hindi")
             if mem is None:  # Part 146: "unknown dikhao", "unknown teach 2", "unknown band karo", "unknown saaf karo" (the sentence only, never the AI)
                 mem = unknown.handle(c, dev, msg, style == "hindi")
             if mem is None:  # Part 83: "habit banao gym", "aaj gym gaya", "my habits" (only habits you made)
@@ -689,7 +723,7 @@ class H(BaseHTTPRequestHandler):
             prev_q = next((x[1] for x in rows[1:] if x[0] == "user"), "")  # Part 153: the question before this one ("net par search karke batana" means that one)
             wtxt, srcs = web.lookup(msg, now, mode == "research" and len(msg) >= 8 and not screen.used(data.get("screen")), data.get("webauto") is not False and not screen.used(data.get("screen")), prev_q)  # Part 57 + 153: Research mode searches everything; live questions (price, news, score, weather) are searched by themselves
             try:
-                reply, via = ask([{"role": r, "content": t} for r, t, _ in reversed(rows)], style, CAN + tctx + memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + replyideas.context(data.get("notif")) + wtxt + MOOD + debate.extra(dev) + modes.extra(mode))
+                reply, via = ask([{"role": r, "content": t} for r, t, _ in reversed(rows)], style, CAN + tctx + memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + replyideas.context(data.get("notif")) + wtxt + MOOD + debate.extra(dev) + modes.extra(mode) + cutoff.context(data.get("interrupted")) + chatsum.context(c, dev) + autolearn.context(c, dev))  # Part 160: what Jarvis was saying when you cut in
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
             reply = untick(honest(reply, style))  # Part 138 + 147: no action ran on this path, so "done" from the AI is replaced
@@ -697,7 +731,10 @@ class H(BaseHTTPRequestHandler):
                 reply += ("\n\nस्रोत: " if style == "hindi" else "\n\nSources: ") + ", ".join(srcs) + "\n" + web.label(srcs, style == "hindi")  # Part 90
             c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", "(answer about your screen was shown, not saved)" if screen.used(data.get("screen")) else "(reply ideas were shown, not saved)" if replyideas.used(data.get("notif")) else reply, time.time()))
             c.commit()
-            sug = None if screen.used(data.get("screen")) or replyideas.used(data.get("notif")) else memory.suggest(msg)  # Part 54: only an offer, nothing is saved here
+            quiet_turn = screen.used(data.get("screen")) or replyideas.used(data.get("notif"))
+            sug = None if quiet_turn else (memory.suggest(msg) or autolearn.pending(c, dev))  # Part 54 + 155: only an offer (Yes / No), nothing is saved here
+            if not quiet_turn:
+                threading.Thread(target=after_chat, args=(dev,), daemon=True).start()  # Parts 155 + 158: after the answer is ready, so the chat is never slower
             return self.send(200, dict({"reply": reply, "via": via}, **({"remember": sug} if sug else {}), **({"debate": debate.label(dev)} if debate.label(dev) else {})))
         self.send(404, {"error": "not found"})
 

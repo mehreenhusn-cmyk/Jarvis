@@ -25,6 +25,12 @@ class Ears implements RecognitionListener {
     int fails;           // soft errors in a row (speech service disconnected); reset when you actually speak
     boolean retrying;    // true when again() calls start(), so the counter is not reset by our own retry
     static volatile long quiet = 2500L;  // Part 153: how long Jarvis waits in silence before he answers (Settings > Voice & Listening)
+    final StringBuilder held = new StringBuilder();  // Part 161: the parts of ONE sentence heard so far (you paused in the middle)
+    volatile boolean speaking;  // Part 161: true while you talk again inside the waiting time
+    final Runnable flushJob = this::flush;
+    private float floor = 99f;  // Part 160: the quiet level of the room (slowly follows the mic level)
+    private int hot;             // Part 160: how many level readings in a row were clearly louder than the room
+    private long lastVoice;      // Part 160: when the page was last told "a voice started"
     volatile boolean wake, on, barge;  // barge (Part 61): listening WHILE Jarvis speaks, partial words go to the page so it can stop talking
 
     Ears(Activity a, WebView w) { act = a; web = w; }
@@ -56,7 +62,7 @@ class Ears implements RecognitionListener {
     }
 
     void stop() {
-        on = false; barge = false;
+        on = false; barge = false; speaking = false; held.setLength(0);
         ui.removeCallbacksAndMessages(null);
         if (sr != null) { sr.destroy(); sr = null; }
     }
@@ -75,17 +81,39 @@ class Ears implements RecognitionListener {
         }, ms);
     }
 
+    /** Part 161: send everything heard so far as ONE sentence. */
+    void flush() {
+        ui.removeCallbacks(flushJob);
+        String t = held.toString().trim();
+        held.setLength(0);
+        speaking = false;
+        on = false;
+        if (sr != null) { try { sr.cancel(); } catch (Exception x) { /* gone already */ } }
+        js("onHeard", t);
+    }
+
     @Override public void onResults(Bundle b) {
         ArrayList<String> r = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-        boolean w = wake;
-        if (!w) on = false;
-        js("onHeard", r == null || r.isEmpty() ? "" : r.get(0));
-        if (w) again(400);
+        String t = r == null || r.isEmpty() ? "" : r.get(0).trim();
+        if (wake) { js("onHeard", t); again(400); return; }
+        speaking = false;
+        if (t.isEmpty() && held.length() == 0) { on = false; js("onHeard", ""); return; }
+        if (!t.isEmpty()) { if (held.length() > 0) held.append(' '); held.append(t); }
+        long extra = Math.max(0L, quiet - 1300L);  // Part 161: the speech service already waited about 1.3 s of silence by itself; we wait the rest, and join what you say next
+        if (extra < 150L) { flush(); return; }
+        ui.removeCallbacks(flushJob);
+        ui.postDelayed(flushJob, extra);
+        again(150);
     }
 
     @Override public void onError(int e) {
         if (!on) return;
         boolean quiet = e == SpeechRecognizer.ERROR_NO_MATCH || e == SpeechRecognizer.ERROR_SPEECH_TIMEOUT || e == SpeechRecognizer.ERROR_RECOGNIZER_BUSY;
+        if (held.length() > 0 && !wake) {  // Part 161: an error inside the waiting time must never lose the sentence you already said
+            if (quiet && !speaking) { again(250); return; }
+            flush();
+            return;
+        }
         if (wake && quiet) { again(e == SpeechRecognizer.ERROR_RECOGNIZER_BUSY ? 1500 : 300); return; }
         boolean net = e == SpeechRecognizer.ERROR_NETWORK || e == SpeechRecognizer.ERROR_NETWORK_TIMEOUT || e == SpeechRecognizer.ERROR_SERVER;  // Part 123: 1, 2, 4 = no internet for the phone speech service: try again, do not give up
         boolean soft = net || e == 11 || e == 10 || e == SpeechRecognizer.ERROR_CLIENT;  // 11 = speech service disconnected, 10 = too many requests, 5 = client
@@ -103,8 +131,25 @@ class Ears implements RecognitionListener {
     }
 
     @Override public void onReadyForSpeech(Bundle p) { }
-    @Override public void onBeginningOfSpeech() { fails = 0; }
-    @Override public void onRmsChanged(float v) { }
+    @Override public void onBeginningOfSpeech() {
+        fails = 0;
+        if (barge) voice();  // Part 160: the speech service's own start-of-speech also counts (a little slower than the level)
+        if (held.length() > 0) { speaking = true; ui.removeCallbacks(flushJob); ui.postDelayed(flushJob, 12000L); }  // Part 161: you are talking again: keep the first part, add the next (12 s safety)
+    }
+    /** Part 160: while Jarvis speaks (interrupt mode) the page is told the moment your voice starts, from the mic LEVEL (about 0.1 to 0.2 s), before any word is known. The words follow later from the speech service. */
+    @Override public void onRmsChanged(float v) {
+        if (!barge) { floor = 99f; hot = 0; return; }
+        floor = Math.min(v, floor + 0.05f);
+        hot = (v > floor + 3.5f && v > 2.5f) ? hot + 1 : 0;
+        if (hot >= 2) voice();
+    }
+
+    private void voice() {
+        long now = System.currentTimeMillis();
+        if (now - lastVoice < 1500L) return;
+        lastVoice = now;
+        js("onVoice", "");
+    }
     @Override public void onBufferReceived(byte[] b) { }
     @Override public void onEndOfSpeech() { }
     @Override public void onPartialResults(Bundle b) {

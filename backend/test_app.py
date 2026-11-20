@@ -87,6 +87,79 @@ def _unit():
     ok("34: peeche jao / go back -> back, go home -> home", a("peeche jao")[1] == {"type": "back"} and a("go back")[1] == {"type": "back"} and a("go home")[1] == {"type": "home"})
     ok("34: neeche scroll karo / scroll up", a("neeche scroll karo")[1] == {"type": "scroll", "dir": "down"} and a("scroll up")[1] == {"type": "scroll", "dir": "up"})
     ok("34: Hindi (पीछे जाओ, नीचे स्क्रॉल करो)", a("पीछे जाओ")[1] == {"type": "back"} and a("नीचे स्क्रॉल करो")[1]["dir"] == "down")
+    ok("154: 'padhte hue scroll karo' and 'scroll karte raho' start the reading scroll", a("padhte hue scroll karo")[1] == {"type": "scroll", "dir": "down", "mode": "read"} and a("scroll karte raho")[1] == {"type": "scroll", "dir": "down", "mode": "read"} and a("upar scroll karte raho")[1] == {"type": "scroll", "dir": "up", "mode": "read"})
+    ok("154: 'scroll ruko' and 'scroll band karo' stop it", a("scroll ruko")[1] == {"type": "scroll", "mode": "stop"} and a("scroll band karo")[1] == {"type": "scroll", "mode": "stop"})
+    ok("154: plain 'neeche scroll karo' is still ONE normal scroll", AC.read_cmd("neeche scroll karo") is None and a("neeche scroll karo")[1] == {"type": "scroll", "dir": "down"})
+    ok("154: reading scroll needs Phone control ON, a question is not a command", a("padhte hue scroll karo", False)[1] is None and AC.read_cmd("scroll kya hota hai?") is None and AC.read_cmd("padhte hue book kholo") is None)
+    import cutoff as CO  # Part 160
+    ok("160: a cut-off sentence reaches the AI with what Jarvis was saying and how much was heard", "Mumbai" in CO.context({"said": "Aaj Mumbai me barish hai", "heard": "Aaj Mumbai"}) and "heard only up to" in CO.context({"said": "Aaj Mumbai me barish hai", "heard": "Aaj Mumbai"}))
+    ok("160: nothing or too little gives no extra text, and numbers are hidden", CO.context(None) == "" and CO.context({"said": "hi"}) == "" and CO.context("x") == "" and "483921" not in CO.context({"said": "Your OTP is 483921 ok", "heard": ""}))
+    ok("160: the text is capped and never keeps the whole long answer", len(CO.context({"said": "abc " * 500, "heard": "abc " * 500})) < 1300)
+    import sqlite3 as _sq, chatsum as CS, autolearn as AL, memory as _mem, learn as _ln  # Parts 158 + 155
+    _c = _sq.connect(":memory:")
+    _c.execute("CREATE TABLE messages(id INTEGER PRIMARY KEY, device INT, role TEXT, content TEXT, ts REAL)")
+    for _t in (_mem, _ln, CS, AL):
+        _t.init(_c)
+    for _i in range(35):
+        _c.execute("INSERT INTO messages(device, role, content, ts) VALUES(1,?,?,0)", ("user" if _i % 2 == 0 else "assistant", f"line {_i} bitcoin trading baat, my OTP is 483921" if _i == 4 else f"line {_i} bitcoin trading baat"))
+    _seen = []
+    _ask = lambda h, s, e: (_seen.append(h[0]["content"]) or "Hussain follows Bitcoin and trading; asked about charts.", "groq")
+    ok("158: older chat (beyond the last 20) is folded into a short summary", CS.update(_c, 1, _ask) and "Bitcoin" in CS.context(_c, 1) and "483921" not in _seen[0] and CS.get(_c, 1)[1] > 0)
+    ok("158: nothing new to fold -> no second AI call", not CS.update(_c, 1, _ask) and len(_seen) == 1)
+    ok("158: the mock provider never leaves a fake summary", not CS.update(_c, 2, _ask) and CS.get(_c, 2)[0] == "")
+    _c.execute("DELETE FROM chatsum"); _c.commit()
+    ok("158: a mock answer is not saved as a summary", not CS.update(_c, 1, lambda h, s, e: ("mock jawab: x", "mock")) and CS.get(_c, 1)[0] == "")
+    CS.update(_c, 1, _ask); CS.wipe(_c, 1)
+    ok("158: clear history wipes the summary", CS.get(_c, 1)[0] == "" and CS.context(_c, 1) == "")
+    _lines = ["mujhe bitcoin ka chart dekhna pasand hai", "mera cousin Arman cricket khelta hai", "meri dawai ka time hai", "loan ka EMI bharna hai", "kal 9 baje chai"]
+    _js = '[{"fact":"Hussain follows Bitcoin charts","sens":false},{"fact":"Hussain\'s cousin Arman plays cricket","sens":false},{"fact":"Hussain takes dawai daily","sens":true},{"fact":"Hussain pays a loan EMI","sens":false},{"fact":"Hussain loves astronomy","sens":false}]'
+    _c.execute("DELETE FROM autofacts"); _c.commit()
+    _s, _q = AL.take(_c, 1, _js, _lines)
+    ok("155: small facts from his own words are saved; money is never saved", _s == 2 and [t for _, t in AL.saved(_c, 1)] == ["Hussain follows Bitcoin charts", "Hussain's cousin Arman plays cricket"])
+    ok("155: a health fact is only queued, and a guess (astronomy) is dropped", _q == 1 and "dawai" not in AL.context(_c, 1) and "astronomy" not in AL.context(_c, 1) and "loan" not in AL.context(_c, 1))
+    ok("155: the queued fact is offered ONCE for a Yes, never twice", "dawai" in (AL.pending(_c, 1) or "") and AL.pending(_c, 1) is None)
+    ok("155: the same fact is not picked up twice", AL.take(_c, 1, _js, _lines) == (0, 0))
+    _id = _c.execute("SELECT id FROM autofacts WHERE text LIKE '%Bitcoin%'").fetchone()[0]
+    ok("155: `galat hai #N` forgets it for good (no text kept, not picked up again)", "forgotten" in AL.handle(_c, 1, f"galat hai #{_id}", False) and _c.execute("SELECT text FROM autofacts WHERE id=?", (_id,)).fetchone()[0] == "" and AL.take(_c, 1, _js, _lines)[0] == 0)
+    ok("155: `kya samjha` lists, `auto seekhna band karo` stops it, `auto seekha bhool jao` erases", "Arman" in AL.handle(_c, 1, "kya samjha", False) and "not pick up" in AL.handle(_c, 1, "auto seekhna band karo", False) and not AL.note(_c, 1, _ask) and AL.context(_c, 1) == "" and "erased" in AL.handle(_c, 1, "auto seekha bhool jao", False) and not AL.saved(_c, 1))
+    AL.handle(_c, 1, "auto seekhna chalu karo", False)
+    for _i in range(AL.EVERY - 1):
+        AL.note(_c, 1, lambda h, s, e: ("[]", "groq"))
+    _called = []
+    ok("155: the AI is asked only on every 8th chat, and a mock answer saves nothing", AL.note(_c, 1, lambda h, s, e: _called.append(1) or ("[]", "groq")) and len(_called) == 1 and not AL.saved(_c, 1))
+    import time as _tm, datetime as _dt, nudge as NG, habits as _hb  # Parts 156 + 157
+    NG.init(_c); _hb.init(_c)
+    _day = _tm.strftime("%Y-%m-%d"); _at = lambda d, hm: _tm.mktime(_tm.strptime(d + " " + hm, "%Y-%m-%d %H:%M"))
+    _yes, _yy = (_dt.date.today() - _dt.timedelta(days=1)).isoformat(), (_dt.date.today() - _dt.timedelta(days=2)).isoformat()
+    _c.execute("DELETE FROM autofacts"); _c.execute("DELETE FROM flags"); _c.commit()
+    for _n in ("gym", "padhai", "walk"):
+        _c.execute("INSERT INTO habits(device, name, day) VALUES(1,?,'')", (_n,))
+        for _d in (_yes, _yy):
+            _c.execute("INSERT INTO habits(device, name, day) VALUES(1,?,?)", (_n, _d))
+    _c.commit()
+    ok("157: no offer at night, even when a habit streak is open", NG.suggest(_c, 1, _at(_day, "03:00")) is None and NG.suggest(_c, 1, _at(_day, "06:30")) is None)
+    _o = NG.suggest(_c, 1, _at(_day, "21:00"))
+    ok("157: evening offer for a habit with a streak that is not marked today (only asks, command is the normal one)", _o and _o["id"] < 0 and _o["never"] and _o["cmd"] == "aaj gym gaya" and "streak 2" in _o["text"])
+    NG.act(_c, 1, _o["id"], "later", _at(_day, "21:00"))
+    _o2 = NG.suggest(_c, 1, _at(_day, "21:05"))
+    ok("157: `Not now` means not again today (the next kind is offered instead)", _o2 and _o2["cmd"] == "aaj padhai gaya")
+    NG.act(_c, 1, _o2["id"], "never", _at(_day, "21:05"))
+    ok("157: at most 2 answered offers a day", NG.suggest(_c, 1, _at(_day, "21:30")) is None)
+    _next = (_dt.date.today() + _dt.timedelta(days=1)).isoformat()
+    for _n in ("gym", "padhai", "walk"):
+        _c.execute("INSERT INTO habits(device, name, day) VALUES(1,?,?)", (_n, _day))  # you did them today, so tomorrow the streak is still alive
+    _c.commit()
+    _on = NG.suggest(_c, 1, _at(_next, "21:00"))
+    _on2 = NG.act(_c, 1, _on["id"], "later", _at(_next, "21:00")) if _on else None
+    ok("157: next day the `later` offer comes back, the `Never` one never does", _on and _on["cmd"] == "aaj gym gaya" and "padhai" not in str(NG.suggest(_c, 1, _at(_next, "21:10"))))
+    AL.take(_c, 1, '[{"fact":"Hussain follows Bitcoin charts","sens":false}]', ["mujhe bitcoin chart pasand hai", "x y z"])
+    ok("156: the last 24 hours list shows the new fact", AL.today(_c, 1) == ["Hussain follows Bitcoin charts"] and AL.today(_c, 1, _tm.time() + 90000) == [])
+    _fid = AL.saved(_c, 1)[0][0]
+    ok("156: Delete on the card forgets the fact for good (and a second delete does nothing)", AL.forget(_c, 1, _fid) and not AL.forget(_c, 1, _fid) and AL.saved(_c, 1) == [])
+    _c.execute("DELETE FROM nudges"); _c.commit()
+    ok("157: `sujhav band karo` stops every offer, `sujhav chalu karo` brings them back", "not suggest" in NG.handle(_c, 1, "sujhav band karo", False) and NG.suggest(_c, 1, _at(_next, "21:00")) is None and "only ask" in NG.handle(_c, 1, "sujhav chalu karo", False) and NG.suggest(_c, 1, _at(_next, "21:00")) is not None)
+    _ln.init(_c); _c.execute("INSERT OR REPLACE INTO learnset(device,on_) VALUES(1,0)"); _c.commit()
+    ok("157: `seekhna band karo` (learning off) also stops the offers", NG.suggest(_c, 1, _at(_next, "21:00")) is None)
     ok("34: Settings dabao -> click, is button ko dabao -> naam poochho", a("Settings dabao")[1] == {"type": "click", "name": "settings"} and a("is button ko dabao")[1] is None)
     ok("34: Send/Delete button par pehle Yes (then ke saath)", a("send button dabao")[1] == {"type": "confirm", "risk": "click", "then": {"type": "click", "name": "send"}} and a("delete button dabao")[1]["then"]["name"] == "delete")
     ok("34: type hello chalta hai, par OTP/PIN/card number kabhi nahi", a("type hello")[1] == {"type": "type", "text": "hello"} and a("type 1234")[1] is None and "never type" in a("type 1234")[0] and a("type 4111 1111 1111 1111")[1] is None)

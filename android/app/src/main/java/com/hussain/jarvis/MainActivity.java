@@ -192,6 +192,7 @@ public class MainActivity extends Activity {
                     if (Privacy.stopped) return "{\"ok\":false,\"err\":\"stopped\"}";
                     if (!Privacy.control) return "{\"ok\":false,\"err\":\"off\"}";
                     String ty = a.optString("type");
+                    if ("scroll".equals(ty) && "stop".equals(a.optString("mode"))) { ScreenService.stopRead = true; return "{\"ok\":true,\"stopped\":1,\"type\":\"scroll\"}"; }  // Part 154: "scroll ruko" works at once, nothing waits
                     if (java.util.Arrays.asList("click", "click_nth", "scroll", "swipe", "type", "back", "home", "current_app", "lock").contains(ty)) {  // Part 34: one step on the screen
                         if (ScreenService.live == null) { runOnUiThread(() -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))); return "{\"ok\":false,\"err\":\"perm\"}"; }
                         // a risky step runs only if the page says Hussain tapped Yes AND a real finger tap happened in the last 3 seconds

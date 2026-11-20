@@ -426,6 +426,7 @@ $('f').onsubmit=async e=>{
   if(GLQ.test(t)){add('user',t);add('bot',glassCmd(t));return;}  // Part 121
   if(HLQ.test(t)){add('user',t);add('bot',holoCmd(t));return;}  // Part 151
   if(THQ.test(t)){add('user',t);add('bot',skinCmd(t));return;}  // Part 153
+  if(readOn&&READSTOP.test(t)){add('user',t);readOn=false;try{JarvisApp.act(JSON.stringify({type:'scroll',mode:'stop'}));}catch(e){}add('bot',sty()=='hindi'?'ठीक है सर, स्क्रॉल रोक दिया।':'Okay sir, the scroll is stopped.');viaMic=false;if(wakeOn||convOn)heardBack();return;}  // Part 154
   if(SCRQ.test(t)||MAPQ.test(t)){add('user',t);add('bot',SCRQ.test(t)?scrollCmd(t):mapCmd(t));return;}  // Parts 115 + 116: phone-only, never sent to the server or the AI
   if(BATQ.test(t)&&!BATNO.test(t)&&t.length<70){const ph=pinfo();if(ph&&ph.battery!=null){const hi=sty()=='hindi',vm0=viaMic;viaMic=false;add('user',t);
     const a=hi?`सर, बैटरी ${ph.battery}% है और फ़ोन ${ph.charging?'चार्ज हो रहा है':'चार्ज नहीं हो रहा'}।`:`Battery is at ${ph.battery}% and the phone is ${ph.charging?'charging':'not charging'}, sir.`;
@@ -435,14 +436,23 @@ $('f').onsubmit=async e=>{
     if(r.stopped){add('user',t);add('err','Jarvis is stopped. Tap "Turn mic on" first.');return;}
     if(r.perm===false){add('user',t);add('bot','Turn on "Jarvis screen reader" in Accessibility settings (I opened it for you), then ask again.');return;}
     pendingMsg=t;add('bot','Switch to the app you want me to read. I will read it in '+r.wait+' seconds and come back.');return;}
-  const sc=screenData;screenData=null;const nf=notifData;notifData=null;const vm=viaMic;viaMic=false;add('user',t);const w=add('bot','...');homeSay(t,'…');
-  let sp=false;busy=true;try{const loc=(WHERE.test(t)||PSAVE.test(t))?await getLoc():null;const {s,d}=await api('/chat',{message:t,now:nowS(),style:sty(),loc,phone:(t.length<=90&&(PHQ.test(t)||/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)))?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,cal:CALQ2.test(t)?bridge('calendar',calSpec(t)):/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)?bridge('calendar','0,1'):null,screen:sc,notif:nf,app:inApp(),control:inApp()&&ctl(),mode:MODE,webauto:localStorage.getItem('jwebauto')!='0'});
+  const sc=screenData;screenData=null;const nf=notifData;notifData=null;const vm=viaMic;viaMic=false;add('user',t);const w=add('bot','...');homeSay(t,'…');const hmx=((vm||$('say').checked)&&MODE!='quiet')?hmmStart():null;  // Part 159
+  let sp=false;busy=true;try{const loc=(WHERE.test(t)||PSAVE.test(t))?await getLoc():null;const {s,d}=await api('/chat',{message:t,interrupted:vm?takeCut():null,now:nowS(),style:sty(),loc,phone:(t.length<=90&&(PHQ.test(t)||/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)))?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,cal:CALQ2.test(t)?bridge('calendar',calSpec(t)):/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)?bridge('calendar','0,1'):null,screen:sc,notif:nf,app:inApp(),control:inApp()&&ctl(),mode:MODE,webauto:localStorage.getItem('jwebauto')!='0'});
+    if(hmx)hmx();
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
     if(s==200&&'debate' in d)debateBar(d.debate);if(/^\s*debate\s+(?:stop|khatam|band|off)\s*$/i.test(t))debateBar('');
     if(s==200&&'guest' in d){const was=guestOn;guestBar(d.guest);if(!d.guest&&was)guestErase(d.reply);}
     if(s==200){w.textContent=d.reply;w.title='via '+d.via;if(d.mode)setMode(d.mode);if(d.timed)startTimed(d.timed);const said=d.action?(d.cool?await coolAct(d,w):await doAct(d.action,w)):d.reply.split('\n\nSources:')[0].split('\n\nस्रोत:')[0];if(said&&MODE!='quiet')speak(said,vm,d.action?'TASK_CONFIRMATION':'');if(d.remember)askSave(w,d.remember);if(d.ghost)ghostAsk(d.ghost);if(d.tablea)tableAsk(w,d.tablea);if(d.pw)pwPush(d.pw,true);extras(w,t);sp=MODE!='quiet'&&(vm||$('say').checked);}else{w.className='m err';w.textContent=d.error||'error';}
-  }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}finally{busy=false;homeSay(t,w.textContent);if((wakeOn||convOn)&&!sp)heardBack();}
+  }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}finally{busy=false;if(hmx)hmx();homeSay(t,w.textContent);if((wakeOn||convOn)&&!sp)heardBack();}
 };
+// Part 159: a soft "hmm" while Jarvis thinks. Made by the phone's own sound engine (no file, no internet). Only before a spoken answer that takes more than 0.8 s. Settings > Voice & Listening > Thinking sound.
+let hmmCtx=null;
+function hmmPlay(){try{if(localStorage.getItem('jhmm')=='0'||MODE=='quiet')return;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;hmmCtx=hmmCtx||new AC();if(hmmCtx.state=='suspended')hmmCtx.resume();
+  const c=hmmCtx,t0=c.currentTime,g=c.createGain(),f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=700;g.gain.setValueAtTime(0.0001,t0);g.gain.exponentialRampToValueAtTime(0.07,t0+0.12);g.gain.exponentialRampToValueAtTime(0.0001,t0+0.55);
+  [[190,1],[380,0.35]].forEach(([hz,k])=>{const o=c.createOscillator(),og=c.createGain();o.type='sine';o.frequency.setValueAtTime(hz*1.06,t0);o.frequency.linearRampToValueAtTime(hz*0.94,t0+0.5);og.gain.value=k;o.connect(og);og.connect(f);o.start(t0);o.stop(t0+0.6);});
+  f.connect(g);g.connect(c.destination);}catch(e){/* no sound is fine */}}
+function hmmStart(){const id=setTimeout(hmmPlay,800);return()=>clearTimeout(id);}
+let readOn=false;const READSTOP=/^\s*(?:ruko|roko|ruk\s*jao|ruk\s*ja|bas|bas\s*karo|stop\s*scroll(?:ing)?|रुको|रोको|रुक\s*जाओ|बस|बस\s*करो)\s*[.!]?\s*$/i;  // Part 154: while a reading scroll runs, one word stops it
 let viaMic=false,wakeOn=false,appListening=false,cmdNext=false,convOn=false,convMiss=0,convTurns=0;
 let convPause=false,netTry=0,lastEnd=0,hb={q:'',a:'',u:0};  // Part 134: conversation pause, retry count, when Jarvis last stopped talking. Part 141: reply shown on Home
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;
@@ -468,9 +478,17 @@ function intrBtn(){const b=$('intr');if(!b)return;b.hidden=!(window.JarvisApp&&J
 function bargeStart(){
   if(!intrOn||barging||cutWait||priv||cmdNext||appListening||!window.JarvisApp||!JarvisApp.listenBarge||!hasEarphones())return;
   barging=true;JarvisApp.listenBarge($('lang').value);}
+// Part 160: the moment your VOICE starts (before any word is known) Jarvis pauses. If the words turn out to be Jarvis's own voice, or nothing real follows in 1.8 s, he goes on.
+let vPause=0,vWas='',cutNote=null,cutAt=0;
+function resumeSay(){try{if(vWas=='aud'&&aud)aud.play();else if(vWas=='syn'&&window.speechSynthesis)speechSynthesis.resume();}catch(e){}vPause=0;vWas='';}
+window.onVoice=()=>{if(!barging||cutWait||vPause)return;
+  if(aud&&!aud.paused&&!aud.ended){aud.pause();vWas='aud';}else if(window.speechSynthesis&&speechSynthesis.speaking&&!speechSynthesis.paused){speechSynthesis.pause();vWas='syn';}else return;
+  vPause=Date.now();setTimeout(()=>{if(vPause&&barging&&!cutWait)resumeSay();},1800);};
+function markCut(){let said=lastSay||'',heard=said;try{if(aud&&aud.duration>0&&isFinite(aud.duration))heard=said.slice(0,Math.max(1,Math.round(said.length*Math.min(1,aud.currentTime/aud.duration))));}catch(e){}cutNote={said:said.slice(0,400),heard:heard.slice(0,400)};cutAt=Date.now();}
+function takeCut(){const n=cutNote&&Date.now()-cutAt<30000?cutNote:null;cutNote=null;return n;}
 window.onPartial=txt=>{  // the first words you say: cut Jarvis off now, keep listening for the rest of your sentence
-  if(!barging||cutWait||echoLike(txt))return;
-  barging=false;cutWait=true;skipEnd=true;setTimeout(()=>{skipEnd=false;},700);
+  if(!barging||cutWait)return;if(echoLike(txt)){if(vPause)resumeSay();return;}
+  vPause=0;vWas='';markCut();barging=false;cutWait=true;skipEnd=true;setTimeout(()=>{skipEnd=false;},700);
   if(aud)aud.pause();if(window.speechSynthesis)speechSynthesis.cancel();
   setTimeout(()=>{if(cutWait){cutWait=false;try{JarvisApp.stopListen();}catch(e){}resumeMic();}},9000);};  // safety: if no sentence arrives, go back to normal
 $('intr').onclick=()=>{
@@ -546,15 +564,23 @@ async function learnLoad(){try{const {s,d}=await api('/learn',{});if(s==200)LRN=
 async function learnAct(id,act){try{await api('/learn/act',{id:id,act:act});}catch(e){}learnLoad();}
 function learnCard(){const b=$('lrn');if(!b)return;b.textContent='';
   if(!LRN){b.textContent='Server offline: nothing to show.';return;}
-  b.appendChild(el('div','sm',LRN.on?'Learning is ON. It keeps counts only, never your words or screen. Say "seekhna band karo" to stop.':'Learning is OFF. Say "seekhna chalu karo" to start again.'));
-  if(!LRN.items.length){b.appendChild(el('p','','Nothing learned yet. It needs a call or an app you repeat around the same hour on a few days.'));return;}
+  b.appendChild(el('div','sm',LRN.on?'Learning is ON. It counts calls and apps only, never your words or screen. Say "seekhna band karo" to stop.':'Learning is OFF. Say "seekhna chalu karo" to start again.'));
+  if(!LRN.items.length)b.appendChild(el('p','','Nothing counted yet. It needs a call or an app you repeat around the same hour on a few days.'));
   LRN.items.forEach(x=>{const r=el('div','tr');r.appendChild(el('span','',x.text));r.style.flexWrap='wrap';
     const k=el('button','g',x.keep?'Kept ✓':'Keep');k.type='button';k.onclick=()=>learnAct(x.id,'keep');
-    const d=el('button','g','Delete');d.type='button';d.onclick=()=>learnAct(x.id,'delete');r.append(k,d);b.appendChild(r);});}
+    const d=el('button','g','Delete');d.type='button';d.onclick=()=>learnAct(x.id,'delete');r.append(k,d);b.appendChild(r);});
+  // Part 156: the facts Jarvis picked up from your own words (Part 155), the last 24 hours, and a Delete on each
+  b.appendChild(el('div','sm','Facts picked up from your talk. Only your own words, never money, banks, passwords or numbers. '+(LRN.facts_on?'Say "auto seekhna band karo" to stop.':'It is OFF: say "auto seekhna chalu karo".')));
+  if((LRN.today||[]).length)b.appendChild(el('p','','Last 24 hours, '+LRN.today.length+' new: '+LRN.today.join('; ')));
+  if(!(LRN.facts||[]).length)b.appendChild(el('p','','Nothing picked up yet.'));
+  (LRN.facts||[]).forEach(x=>{const r=el('div','tr');r.appendChild(el('span','',x.text));r.style.flexWrap='wrap';
+    const d=el('button','g','Wrong, delete');d.type='button';d.onclick=()=>learnAct(x.id,'fact_delete');r.appendChild(d);b.appendChild(r);});}
 function learnSug(){const b=$('lsg');if(!b)return;const s=LRN&&LRN.on&&LRN.suggest;b.hidden=!s;b.textContent='';if(!s)return;
   b.appendChild(el('div','',s.text));const row=el('div','sh');
   const y=el('button',null,'Yes');y.type='button';y.onclick=async()=>{await learnAct(s.id,'yes');ask(s.cmd);};
-  const n=el('button','g','Not now');n.type='button';n.onclick=()=>learnAct(s.id,'later');row.append(y,n);b.appendChild(row);}
+  const n=el('button','g','Not now');n.type='button';n.onclick=()=>learnAct(s.id,'later');row.append(y,n);
+  if(s.never){const v=el('button','g','Never');v.type='button';v.onclick=()=>learnAct(s.id,'never');row.appendChild(v);}  // Part 157: this kind of offer is gone for good
+  b.appendChild(row);}
 // Part 146: sentences Jarvis could not understand. Say a clear command right after an unclear one and Jarvis pairs them; one tap on Teach makes the unclear one mean it. Nothing runs by itself.
 let UNK=null;
 async function unkLoad(){try{const {s,d}=await api('/unknown',{});if(s==200)UNK=d;}catch(e){}unkCard();}
@@ -599,7 +625,7 @@ async function engine(t,intent,profile){
   const r=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text:t,intent:intent||'',profile:profile||'',lang:sty()})});
   if(!r.ok){let e={};try{e=await r.json()}catch(x){}throw new Error(e.error||'voice error');}
   const w=r.headers.get('X-Voice')||'';if(aud)aud.pause();if(window.speechSynthesis)speechSynthesis.cancel();
-  aud=new Audio(URL.createObjectURL(await r.blob()));aud.onended=aud.onerror=heardBack;await aud.play();bargeStart();const en=r.headers.get('X-Engine')||'';badge('Voice: '+(w=='tony'?'TONY':'JARVIS')+(en=='sarvam'?' (Sarvam)':en=='edge-fallback'?' (Edge, Sarvam failed)':' (Edge)')+(r.headers.get('X-Distinct')=='no'?' · same Hindi voice, only depth and speed differ':''));
+  aud=new Audio(URL.createObjectURL(await r.blob()));aud.onended=aud.onerror=heardBack;const pp=aud.play();bargeStart();await pp;const en=r.headers.get('X-Engine')||'';badge('Voice: '+(w=='tony'?'TONY':'JARVIS')+(en=='sarvam'?' (Sarvam)':en=='edge-fallback'?' (Edge, Sarvam failed)':' (Edge)')+(r.headers.get('X-Distinct')=='no'?' · same Hindi voice, only depth and speed differ':''));
 }
 async function voiceSave(p){  // saving stops the voice that is speaking now, so a switch is heard at once
   if(aud)aud.pause();if(window.speechSynthesis)speechSynthesis.cancel();
@@ -639,7 +665,7 @@ function voiceCard(){
 async function neural(t,v){
   const r=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text:t,voice:v,pitch:Math.round(($('pt').value-1)*100),rate:Math.round(($('rt').value-1)*100)})});
   if(!r.ok){let e={};try{e=await r.json()}catch(x){}throw new Error(e.error||'voice error');}
-  if(aud)aud.pause();aud=new Audio(URL.createObjectURL(await r.blob()));aud.playbackRate=+$('rt').value;if(fx)studio(aud);aud.onended=aud.onerror=heardBack;await aud.play();bargeStart();badge('Voice: classic');
+  if(aud)aud.pause();aud=new Audio(URL.createObjectURL(await r.blob()));aud.playbackRate=+$('rt').value;if(fx)studio(aud);aud.onended=aud.onerror=heardBack;const pp=aud.play();bargeStart();await pp;badge('Voice: classic');
 }
 function local(t){
   badge('Voice: phone voice (fallback)');
@@ -754,8 +780,9 @@ function listenCard(){const b=$('vlcard');if(!b)return;b.textContent='';
   const sw=(key,def,title,sub)=>{const r=el('div','srow');const t=el('span','',title);t.appendChild(el('small','',sub));const i=el('input');i.type='checkbox';i.checked=(localStorage.getItem(key)??(def?'1':'0'))!='0';
     i.onchange=()=>{localStorage.setItem(key,i.checked?'1':'0');bgSync();};r.append(t,i);b.appendChild(r);};
   sw('jbgmic',true,'Keep listening in background','Mic stays on when you press Home or lock the screen (Conversation / Hey Jarvis mode). A notification shows while it listens.');
+  sw('jhmm',true,'Thinking sound','A soft "hmm" if my answer takes more than a moment. Only before spoken answers.');  // Part 159
   sw('jwebauto',true,'Search the internet by itself','Price, news, score, weather: Jarvis looks it up without being told. Sources are shown under the answer.');
-  const r=el('div','srow');const t=el('span','','Wait after I stop talking');t.appendChild(el('small','','Shorter = faster answers. Longer = it lets you pause while thinking.'));
+  const r=el('div','srow');const t=el('span','','Wait after I stop talking');t.appendChild(el('small','','Shorter = faster answers. Longer = it lets you pause while thinking. If you pause inside this time and go on, Jarvis joins both parts into one sentence.'));
   const sel=el('select');[['1500','Fast (1.5 s)'],['2500','Normal (2.5 s)'],['4000','Patient (4 s)']].forEach(([v,n])=>{const o=el('option','',n);o.value=v;sel.appendChild(o);});
   sel.value=localStorage.getItem('jquiet')||'2500';sel.onchange=()=>{localStorage.setItem('jquiet',sel.value);bgSync();};r.append(t,sel);b.appendChild(r);
   b.appendChild(el('p','sm','Interrupting Jarvis while he speaks works with earphones. On the loudspeaker the mic would hear Jarvis himself.'));}
@@ -853,6 +880,7 @@ const ACTERR={no_torch:['सर, इस फ़ोन में टॉर्च �
   not_found:['सर, स्क्रीन पर वह बटन नहीं मिला। कुछ नहीं दबाया।','Sir, I could not find that button on the screen. I pressed nothing.'],
   many:['सर, इस नाम के एक से ज़्यादा बटन हैं। पूरा नाम बोलिए। कुछ नहीं दबाया।','Sir, more than one button matches. Please say the full name. I pressed nothing.'],
   no_scroll:['सर, यहाँ स्क्रॉल होने वाली जगह नहीं मिली।','Sir, I found nothing here that can scroll.'],
+  busy:['सर, स्क्रॉल पहले से चल रहा है। रोकने के लिए बोलिए: स्क्रॉल रुको।','Sir, a scroll is already running. Say: scroll ruko, to stop it.'],
   no_field:['सर, स्क्रीन पर टेक्स्ट बॉक्स नहीं मिला। कुछ नहीं लिखा।','Sir, I found no text box on the screen. I typed nothing.'],
   secret_field:['सर, यह पासवर्ड/OTP/PIN/कार्ड वाला बॉक्स है। मैं इसमें कभी नहीं लिखता। आप खुद लिखिए।','Sir, this looks like a password, OTP, PIN or card box. I never type in it. Please type it yourself.'],
   secret_text:['सर, मैं पासवर्ड, OTP, PIN या कार्ड नंबर नहीं लिखता।','Sir, I do not type passwords, OTPs, PINs or card numbers.'],
@@ -895,6 +923,8 @@ function actMsg(r,a){
     if(t=='settings')return say('सेटिंग का पेज खुल गया सर।','The settings page is open, sir.');
     if(t=='torch')return r.on?say('टॉर्च चालू हो गई सर।','The flashlight is on, sir.'):say('टॉर्च बंद हो गई सर।','The flashlight is off, sir.');
     if(t=='volume')return r.changed===false?say('सर, आवाज़ पहले से '+(lastAct&&lastAct.dir=='up'?'सबसे ज़्यादा':'सबसे कम')+' है।','Sir, the volume is already at the '+(lastAct&&lastAct.dir=='up'?'top':'bottom')+'.'):say('आवाज़ अब '+r.vol+'/'+r.max+' है सर।','The volume is now '+r.vol+' of '+r.max+', sir.');
+    if(t=='scroll'&&a&&a.mode=='stop')return say('ठीक है सर, स्क्रॉल रोक दिया।','Okay sir, the scroll is stopped.');
+    if(t=='scroll'&&r.steps!=null){readOn=false;const n=r.steps,wy=r.why;return n<1?say('सर, स्क्रीन पर कोई बदलाव नहीं दिखा, इसलिए कुछ स्क्रॉल नहीं हुआ। एक बार देख लीजिए।','Sir, the screen did not move, so nothing scrolled. Please check.'):say(n+' स्क्रीन स्क्रॉल हुईं सर। '+(wy=='end'?'पेज खत्म हो गया।':wy=='stopped'?'आपके कहने पर रुक गया।':wy=='limit'?'सीमा पूरी हुई, इसलिए रुका।':wy=='left'?'आप दूसरे ऐप में चले गए, इसलिए रुका।':'रुक गया।'),n+' screen(s) scrolled, sir. '+(wy=='end'?'The page ended.':wy=='stopped'?'Stopped because you said so.':wy=='limit'?'Stopped at the limit.':wy=='left'?'Stopped because you left the app.':'Stopped.'));}
     if(t=='back'||t=='home'||t=='swipe')return say('हो गया सर।','Done, sir.');
     return r.changed===false?say('सर, मैंने कर दिया, पर स्क्रीन पर कोई बदलाव नहीं दिखा। एक बार देख लीजिए।','Sir, I did it, but I saw no change on the screen. Please check.'):say('हो गया सर, स्क्रीन बदल गई।','Done, sir. The screen changed.');
   }
@@ -948,7 +978,9 @@ window.onTaskDone=s=>{
 async function doCall(a,w){
   const hi=sty()=='hindi',say=(h,e)=>hi?h:e,who=a.said||a.name||a.number||'';
   w.textContent=say('कॉन्टैक्ट ढूँढ रहा हूँ: '+who+'…','Looking for the contact: '+who+'...');await new Promise(z=>setTimeout(z,80));
-  if(a.type=='scroll'){if(a.dir=='again')a=Object.assign({},a,{dir:lastDir});lastDir=a.dir;}  // Part 128: "thoda aur scroll karo" repeats the last direction
+  if(a.type=='scroll'&&a.mode!='stop'){if(a.dir=='again')a=Object.assign({},a,{dir:lastDir});lastDir=a.dir;}
+  if(a.type=='scroll'&&a.mode=='read'){readOn=true;setTimeout(()=>{readOn=false;},125000);}  // Part 154: a reading scroll lasts 2 minutes at most
+  if(a.type=='scroll'&&a.mode=='stop')readOn=false;  // Part 128: "thoda aur scroll karo" repeats the last direction
   let r;try{r=JSON.parse(JarvisApp.act(JSON.stringify(a)));}catch(e){r={ok:false,err:'unknown'};}
   let t;
   if(r.ok)t='✔ '+(r.mode=='whatsapp'?say('व्हाट्सएप चैट खुल गई सर। भेजने का बटन आप खुद दबाइए।','The WhatsApp chat is open, sir. Please press send yourself.'):r.mode=='dial'?say('डायलर खुल गया सर। हरा कॉल बटन आप खुद दबाइए।','The dialer is open, sir. Please press the green call button yourself.'):say('ठीक है सर, '+r.name+' को कॉल कर रहा हूँ।','Calling '+r.name+', sir.'));
