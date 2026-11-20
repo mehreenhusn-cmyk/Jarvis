@@ -11,7 +11,7 @@ import lang
 
 STATES = ("CREATED", "PLANNING", "WAITING_FOR_PERMISSION", "WAITING_FOR_CONFIRMATION", "RUNNING", "VERIFYING", "COMPLETED", "PARTIAL", "FAILED", "CANCELLED")
 END = ("COMPLETED", "PARTIAL", "FAILED", "CANCELLED")
-OK_STEPS = ("open_app", "back", "home", "scroll", "click", "torch", "volume", "settings", "current_app", "lock")
+OK_STEPS = ("open_app", "back", "home", "scroll", "click", "torch", "volume", "settings", "current_app", "lock", "wait")  # Part 187: wait = a pause of 1 to 30 seconds (run by TaskRunner.java)
 MAX_STEPS = 6
 STALE = 600  # a RUNNING task with no news for 10 minutes is dead (app killed or phone restarted)
 SPLIT = re.compile(r"\s*(?:,|;|\band then\b|\bthen\b|\band\b|\bphir\b|\bfir\b|\baur\b|\buske baad\b|\bfir se\b|\bn\b|एंड|ऐंड|(?<!\S)(?:अने|आणि|मत्तु|मरियु|मर्रुम|अते|एबं)(?!\S)|फिर|और|उसके बाद)\s*", re.I)
@@ -46,12 +46,24 @@ def _no_ai(*a, **k):
     raise RuntimeError("no AI inside a task plan")
 
 
+# Part 187: "10 second wait karo", "5 सेकंड तक रुको", "wait 10 seconds". It becomes its own step WAIT#10, even in the middle of a sentence with no "and".
+_SEC = r"(?:seconds?|secs?|sec|सेकंड|सेकेंड|सेकण्ड|सैकंड|सैकेंड|सेक|सेकंड्स)"
+_WAITW = r"(?:wait|waiting|ruko|ruk|rukna|रुको|रुक|रुकना|वेट|इंतजार|इंतज़ार|intezaar)"
+WAIT_A = re.compile(r"(\d{1,2})\s*" + _SEC + r"\s*(?:तक|tak|ke liye|के लिए)?\s*" + _WAITW + r"(?:\s*(?:karo|kar|करो|कर|कीजिए|do|दो))?", re.I)
+WAIT_B = re.compile(_WAITW + r"\s*(?:karo|kar|करो|कर)?\s*(\d{1,2})\s*" + _SEC, re.I)
+NOISE_START = re.compile(r"^(?:(?:hey\s+)?(?:jarvis|जार्विस|जारविस|जार्विश|लिसन|listen|suno|सुनो|पहले|pehle|sabse pehle|सबसे पहले|first)\s+)+", re.I)  # the mic writes "Jarvis" or "listen" in front of a step
+_DIG = {ord(c): str(i) for i, c in enumerate("०१२३४५६७८९")}
+
+
 def split(msg):
-    """The message cut into step phrases, or [] if it is not a multi-step command."""
-    m = lang.norm((msg or "").strip())  # Part 63: other Indian languages are read as Devanagari
+    """The message cut into step phrases, or [] if it is not a multi-step command. A pause is the phrase WAIT#seconds."""
+    m = lang.norm((msg or "").strip()).translate(_DIG)  # Part 63: other Indian languages are read as Devanagari
     if not m or "?" in m or len(m) > 220 or TYPEWORD.search(m):
         return []
-    parts = [p.strip() for p in SPLIT.split(m) if p and p.strip()]
+    m = WAIT_A.sub(lambda x: " , WAIT#%d , " % max(1, min(30, int(x.group(1)))), m)  # Part 187
+    m = WAIT_B.sub(lambda x: " , WAIT#%d , " % max(1, min(30, int(x.group(1)))), m)
+    parts = [NOISE_START.sub("", p.strip()).strip() for p in SPLIT.split(m) if p and p.strip()]
+    parts = [p for p in parts if p]
     return parts if 2 <= len(parts) <= MAX_STEPS else []
 
 
@@ -63,6 +75,12 @@ def make(c, dev, msg, hindi, control, in_app, dry=False):
         return None
     steps, texts, refused = [], [], False
     for p in parts:
+        wm = re.fullmatch(r"WAIT#(\d{1,2})", p)
+        if wm:  # Part 187: a pause between two steps
+            n = int(wm.group(1))
+            steps.append({"type": "wait", "sec": n})
+            texts.append(say(f"{n} सेकंड रुक रहा हूँ।", f"Waiting {n} seconds."))
+            continue
         got = actions.handle(p, hindi, True, True, _no_ai)  # grammar only, the AI is never asked inside a task
         if not got:
             return None  # one piece is not a phone command, so this is normal talk
@@ -78,6 +96,8 @@ def make(c, dev, msg, hindi, control, in_app, dry=False):
             continue
         steps.append({k: act[k] for k in ("type", "name", "dir", "page", "on", "said") if k in act})
         texts.append(text)
+    if steps and all(s["type"] == "wait" for s in steps):
+        return None  # only pauses is not a task
     if refused:
         return say("सर, इस काम में ऐसा कदम है जो आपकी हाँ माँगता है (भेजना, पैसे, डिलीट) या जो मैं नहीं करता (पासवर्ड, OTP)। इन्हें एक-एक करके बोलिए। मैंने कुछ नहीं किया।",
                    "Sir, this task has a step that needs your own Yes (send, pay, delete) or that I never do (passwords, OTPs). Please give those one at a time. I did nothing."), None

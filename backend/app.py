@@ -205,13 +205,32 @@ def call(name, history, key=None, style="english", extra="", full=False):
     body = json.dumps(payload).encode()
     req = urllib.request.Request(base + "/chat/completions", body, {
         "Authorization": "Bearer " + key, "Content-Type": "application/json", "User-Agent": "jarvis/0.1"})
-    try:
-        with urllib.request.urlopen(req, timeout=120 if full else 60) as r:
-            return json.load(r)["choices"][0]["message"]["content"].strip()
-    except urllib.error.HTTPError as e:
-        raise RuntimeError(f"error {e.code}: {e.read()[:150].decode(errors='ignore')}")
-    except Exception as e:
-        raise RuntimeError("connect nahi hua: " + type(e).__name__)
+    for tries in (0, 1):  # Part 185: a busy or limited answer (429, 503) gets ONE more try after a short wait, then the next provider
+        try:
+            with urllib.request.urlopen(req, timeout=120 if full else 60) as r:
+                return json.load(r)["choices"][0]["message"]["content"].strip()
+        except urllib.error.HTTPError as e:
+            raw = e.read()[:150].decode(errors="ignore")
+            if e.code in (429, 503) and tries == 0:
+                try:
+                    wait = min(4, max(1, int(e.headers.get("Retry-After", "2"))))
+                except (TypeError, ValueError):
+                    wait = 2
+                time.sleep(wait)
+                continue
+            raise RuntimeError(nice_err(e.code, raw))
+        except Exception as e:
+            raise RuntimeError("connect nahi hua: " + type(e).__name__)
+
+
+def nice_err(code, raw):
+    """Part 185: one plain sentence for the usual HTTP errors. The start stays 'error CODE:' so older code that reads it still works."""
+    why = {429: "this key is at its limit (free quota or too many requests). Wait a minute or add another key",
+           402: "this key has no credit left",
+           401: "this key is not accepted", 403: "this key is not accepted",
+           500: "the AI service has a problem, try again later", 502: "the AI service has a problem, try again later",
+           503: "the AI service is busy, try again in a minute"}.get(code)
+    return f"error {code}: {why}" if why else f"error {code}: {raw}"
 
 
 def check(n, k):
@@ -268,6 +287,9 @@ def ask(history, style="english", extra="", full=False):
                 return out, n
             except RuntimeError as e:
                 errs.append(f"{n}: {e}")
+    if errs and all("error 429" in e for e in errs):  # Part 185: every key is at its limit
+        raise RuntimeError(("सर, आपकी सारी AI key की free limit अभी पूरी है। एक मिनट रुकिए या Settings में एक और key डालिए। (" if style == "hindi"
+                            else "Sir, every AI key is at its limit right now. Wait a minute or add one more key in Settings. (") + " | ".join(errs) + ")")
     raise RuntimeError(" | ".join(errs) or "koi key nahi - upar ⚙ Settings mein key paste karo")
 
 

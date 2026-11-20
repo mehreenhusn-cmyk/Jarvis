@@ -19,7 +19,7 @@ final class TaskRunner {
     private TaskRunner() {}
 
     static final String CANCEL = "com.hussain.jarvis.TASK_CANCEL", CH = "jarvis_task";
-    static final List<String> OK = Arrays.asList("open_app", "back", "home", "scroll", "click", "torch", "volume", "settings", "current_app", "lock");
+    static final List<String> OK = Arrays.asList("open_app", "back", "home", "scroll", "click", "torch", "volume", "settings", "current_app", "lock", "wait");  // Part 187: wait = pause
     static final List<String> SCREEN = Arrays.asList("back", "home", "scroll", "click", "current_app", "lock");
     static volatile boolean running, cancel;
     private static int id;
@@ -86,6 +86,11 @@ final class TaskRunner {
             Privacy.UI.postDelayed(() -> next(a, steps, i + 1), "open_app".equals(ty) ? 600 : 1000);
         };
         try {
+            if ("wait".equals(ty)) {  // Part 187: a pause of 1 to 30 seconds; Stop and Cancel are checked again by next() when it ends
+                int sec = Math.max(1, Math.min(30, st.optInt("sec", 1)));
+                Privacy.UI.postDelayed(() -> done.got(r(true, null)), sec * 1000L);
+                return;
+            }
             if (SCREEN.contains(ty)) { ScreenService.act(st, false, done); return; }  // false = no step here is ever "confirmed"; a risky button fails with need_yes
             if ("open_app".equals(ty)) {
                 JSONObject o = Apps.open(a, st.optString("name"), false);

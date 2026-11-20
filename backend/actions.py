@@ -233,9 +233,14 @@ def screen_cmd(msg):
 
 
 # ---- Part 139: loose commands. The command word may sit anywhere, filler and ONE stray word are ignored. Only safe steps: home, back, scroll. Never click, type, send, pay or delete. ----
-MOVE = set("go jao ja jaa jana jaana chalo chal le जाओ जा जाना चलो चल ले".split())
+MOVE = set("aa aao आ आओ go jao ja jaa jana jaana chalo chal le जाओ जा जाना चलो चल ले".split())
 VERBS = MOVE | set("open ओपन ओपेन kholo khol खोलो खोल dikhao दिखाओ show".split())
 SCREENW = {"screen", "स्क्रीन", "page"}
+# Part 186: loose words. "minimize" has many spellings, the mic writes them in Hindi letters too, so only the start of the word is compared. Seedha / aa / aao are filler like "seedha home screen par aa jao".
+MINI_PRE = ("minim", "mimim", "minem", "मिनिम", "मिनीम", "मिनम", "मीनीम")
+MORE186 = {"seedha", "seedhe", "direct", "सीधा", "सीधे", "aa", "aao", "आ", "आओ", "ab", "अब", "wapas", "वापस", "phir", "फिर", "to", "तो", "bas", "बस", "kar", "do", "दो"}
+FRONTW = {"front", "frnt", "selfie", "फ्रंट", "फ्रण्ट", "सेल्फी", "सेल्फ़ी"}
+CAMW = {"camera", "cam", "kaimara", "कैमरा", "कैमेरा", "कैमरे", "कैमरा"}
 
 
 def loose_cmd(msg):
@@ -247,7 +252,12 @@ def loose_cmd(msg):
     s = set(w)
     if not w or len(w) > 9 or s & QW or s & (CLICK_EN | CLICK_HI | BTN | CALLW | {"app", "ऐप", "एप", "type", "लिखो"}):
         return None
-    known = HOMEW | BACKW | SCRW | DOWN | UP | SCREENW | LOOSEF | VERBS
+    mini = [x for x in w if x.startswith(MINI_PRE)]  # Part 186: "YouTube minimize karo" = the app goes away and the home screen shows (same as the home step)
+    if mini and not (s & (BACKW | SCRW | DOWN | UP)):
+        rest = [x for x in w if x not in mini and x not in LOOSEF and x not in VERBS and x not in HOMEW and x not in SCREENW and x not in PREPS and x not in MORE186]
+        if len(rest) <= 2:
+            return {"type": "home"}, "Minimizing, going to the home screen, sir.", "ठीक है सर, ऐप को छोटा करके होम स्क्रीन पर जा रहा हूँ।"
+    known = HOMEW | BACKW | SCRW | DOWN | UP | SCREENW | LOOSEF | VERBS | MORE186  # Part 186: MORE186 = extra filler
     stray = [x for x in w if x not in known]
     if len(stray) > 1:
         return None
@@ -715,6 +725,10 @@ def handle(msg, hindi, control, in_app, ask):
         return say("फ़ोन कंट्रोल बंद है सर। Settings में \"Phone control\" चालू कीजिए।", "Phone control is OFF, sir. Turn it on in Settings, under Phone control."), None
     if not name:
         return say("कौन सा ऐप खोलूँ सर?", "Which app should I open, sir?"), None
+    ws = set(_words(msg))
+    if ws & FRONTW and ws & CAMW:  # Part 186: "front camera", "selfie camera": Camera opens; the front side by itself needs Java (planned, Part 202)
+        return say("ठीक है सर, Camera खोल रहा हूँ। Front camera सीधे खुलना अभी नहीं आता, flip बटन आप दबा दीजिए।",
+                   "Opening Camera, sir. Opening the front side by itself is not built yet, please tap the flip button."), {"type": "open_app", "name": "Camera"}
     label = canon(name)
     act = {"type": "open_app", "name": label}
     if not lang.is_latin(label):  # Part 62: not one of the known names, so search the phone's app list with a Latin spelling (Java also matches by consonants)
