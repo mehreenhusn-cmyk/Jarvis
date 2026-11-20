@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, socket, sqlite3, threading, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, assist, attach, autolearn, autostart, backup, brief, calls, capsule, chathist, chatsum, clock, cutoff, debate, decisions, deep, dreams, drift, events, ghost, guest, handoff, habits, learn, ledger, lens, lists, memory, modes, money, mood, notes, nudge, people, phone, place, placenote, phonetest, unknown, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
+import actions, assist, attach, autolearn, autostart, backup, brief, calls, capsule, chathist, chatsum, clock, cutoff, debate, decisions, deep, dreams, drift, events, ghost, guest, habits, handoff, learn, ledger, lens, lists, memory, modes, money, mood, notes, nudge, people, phone, phonetest, place, placenote, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, unknown, voiceengine, voices, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -91,6 +91,7 @@ def db():
     memory.init(c)
     notes.init(c)  # Part 71/72: voice notes (same database, one table)
     people.init(c)
+    voices.init(c)  # Part 144: voice prints (numbers only)
     remind.init(c)
     ledger.init(c)
     lists.init(c)  # Part 83: shopping and packing lists
@@ -495,6 +496,15 @@ class H(BaseHTTPRequestHandler):
             except (TypeError, ValueError):
                 return self.send(400, {"error": "bad id"})
             return self.send(200, {"ok": True})
+        if self.path == "/voices":  # Part 144: names of the voices Jarvis knows (never the numbers)
+            return self.send(200, {"voices": voices.rows(db(), dev), "guest": guest.on(dev)})
+        if self.path == "/voices/match":  # Part 144: who spoke? The page sends the 128 voice numbers; nothing is saved here
+            return self.send(200, {"state": "guest"} if guest.on(dev) else voices.match(db(), dev, data.get("vec")))
+        if self.path == "/voices/save":  # Part 144: only after a yes. Refused in a guest session
+            if guest.on(dev):
+                return self.send(200, {"ok": False, "why": "guest session: nothing is saved"})
+            ok = voices.save(db(), dev, str(data.get("name", "")), data.get("vec"), data.get("owner") is True)
+            return self.send(200, {"ok": ok is True, "why": "" if ok is True else ok})
         if self.path == "/hist":  # Part 174: all saved messages by day, or a word search over them (reading only)
             return self.send(200, chathist.query(db(), dev, data))
         if self.path == "/tablea":  # Part 177: the phone-test checklist screen (same table as the chat words `table a pass 12`)
@@ -743,6 +753,8 @@ class H(BaseHTTPRequestHandler):
                 mem = calls.handle(msg, data.get("calls"), data.get("contact"), style == "hindi", data.get("cal"))
             if mem is None:  # note about Faisal: ... / who is Faisal
                 mem = people.handle(c, dev, msg, style == "hindi")
+            if mem is None:  # Part 144: known voices list / awaaz bhoolo (the voice check itself is started by the page)
+                mem = voices.handle(c, dev, msg, style == "hindi")
             if mem is None:  # why is my phone slow
                 mem = phone.handle(msg, data.get("phone"), style == "hindi")
             if mem is None:  # where am I

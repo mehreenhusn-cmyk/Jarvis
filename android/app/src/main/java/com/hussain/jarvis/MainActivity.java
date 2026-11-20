@@ -320,6 +320,27 @@ public class MainActivity extends Activity {
                 WakeEngine.remove(MainActivity.this);
                 return "{\"ok\":true}";
             }
+            // Part 144: who is speaking. Voice numbers only (no recording kept). The model is downloaded only after your tap; the listening starts only when the page asks after you said the words.
+            @JavascriptInterface public String spkInfo() { if (AppLock.locked()) return "{\"locked\":true}"; return SpeakerId.info(MainActivity.this); }
+            @JavascriptInterface public String spkDownload() {
+                if (AppLock.locked() || System.currentTimeMillis() - touch > 3000) return "{\"ok\":false,\"err\":\"tap\"}";
+                SpeakerId.download(MainActivity.this);
+                return "{\"ok\":true}";
+            }
+            @JavascriptInterface public String spkDelete() {
+                if (AppLock.locked() || System.currentTimeMillis() - touch > 3000) return "{\"ok\":false}";
+                SpeakerId.remove(MainActivity.this);
+                return "{\"ok\":true}";
+            }
+            @JavascriptInterface public String spkCapture(int sec) {
+                if (AppLock.locked()) return "{\"ok\":false,\"err\":\"locked\"}";
+                if (Privacy.stopped) return "{\"ok\":false,\"err\":\"stopped\"}";
+                if (!allowed(Manifest.permission.RECORD_AUDIO, 1)) return "{\"ok\":false,\"err\":\"perm\"}";
+                if (!SpeakerId.ready(MainActivity.this)) return "{\"ok\":false,\"err\":\"model\"}";
+                runOnUiThread(() -> { if (ears != null) ears.stop(); ListenService.halt(MainActivity.this); });  // one microphone user at a time
+                boolean ok = SpeakerId.capture(MainActivity.this, sec, j -> web.post(() -> web.evaluateJavascript("window.onSpk&&onSpk(" + j + ")", null)));
+                return "{\"ok\":" + ok + "}";
+            }
             // Part 49a: clipboard, read only when you tap the button (Android also allows it only while Jarvis is on screen)
             @JavascriptInterface public String clipboard() {
                 if (AppLock.locked() || System.currentTimeMillis() - touch > 3000) return "";

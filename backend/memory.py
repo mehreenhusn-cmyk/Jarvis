@@ -85,7 +85,7 @@ def suggest(msg):
 
 # Part 88 (Memory Atlas): every table that holds personal data, in ONE list, so the Atlas, search (Part 89) and the guest guard (Part 118) use the same names.
 # (table, name, extra filter, how to remove)
-STORES = [("memories", "Memories", "", "Remove button"), ("people", "People notes", "", "Remove button"), ("notes", "Notes", "", "Remove button"),
+STORES = [("memories", "Memories", "", "Remove button"), ("people", "People notes", "", "Remove button"), ("voices", "Voice prints (numbers only)", "", "say: awaaz bhoolo NAME or sab awaaz mitao"), ("notes", "Notes", "", "Remove button"),
           ("messages", "Chat history", "", "say: clear history"), ("listitems", "List items", "", "say: list se doodh hatao"),
           ("habits", "Habits", " AND day=''", "delete everything"), ("spend", "Expenses", "", "say: kharcha hatao"),
           ("decisions", "Decisions and unfinished", " AND done=0", "say: decision ho gaya N / adhoora khatam N"), ("moods", "Mood check-ins", " AND day!='care'", "delete everything"),
