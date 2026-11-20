@@ -220,6 +220,7 @@ One row per Part, plain numbers only. Keep each row to ONE line. A new idea gets
 | 179 | Four tabs: Home, Talk, Timeline, More. The Assist tab is gone (its tiles stay on Home) and Memory + Settings are one page, More | `index.html`, `README.md` | about 4 | No | Built, not phone tested 🟢 |
 | 180 | One order on the More page, no copies: `Memory` (Your Data), `Settings` (Voice & Listening, Appearance, Notifications, Privacy & Security), `System` (Advanced). The nested `More` box is gone. Nothing was removed, every card keeps its id | `index.html`, `README.md` | about 12 (moved) | No | Built, not phone tested 🟢 |
 | 181 | Home: the 21 AI tools in 5 groups (Write, Plan, Think, Wellbeing, Utility) and the 12 shortcuts in 3 groups (Daily, Money, Tools); each group opens and closes on one tap. Same tiles, same actions | `index.html`, `README.md` | about 14 | No | Built, not phone tested 🟢 |
+| 182 | Premium look: one style layer (`premium`) on top of the old ones, so Dark, Light and Neon all keep their colors. One set of line icons (tabs, header buttons, AI tools, shortcuts, group and settings cards) instead of mixed emoji; calm headings in sentence case; one corner size scale and one soft shadow; the selected tab is a soft tint; focus ring; reduced motion respected. Nothing was deleted and no action changed | `index.html`, `README.md` | about 52 | No | Built, not phone tested 🟢 |
 
 ## 3. WHAT HUSSAIN DOES NOW
 
@@ -241,7 +242,7 @@ One row per Part, plain numbers only. Keep each row to ONE line. A new idea gets
 
 **Done 21 Nov (final): 171, 172, 173, 174, 176, 177 and 178 are built, not phone tested (no tests; only page syntax, the `import app` check and one short call of the two new server routes). Page and backend only, no Java, so NO new APK. All of them sit under the search button (magnifier) in the header: `Search all history`, `History`, `Copy chat`, `Phone tests`, `Error log`; the `Stop speaking` chip shows above the message bar while he talks. Still planned: 175 (Share to Jarvis, Java) and 144 (voice to person, risky, last). Phone-test rows: Table A 108 to 115. Do first: 162 (beep and mode, rows 103 to 105), then use `Phone tests` to answer the rest.**
 
-**Done 21 Nov (look): 179, 180 and 181 are built, not phone tested (no tests; only the page JS syntax and the `import app` check). Page only, no Java, so NO new APK. Four tabs (Home, Talk, Timeline, More), Memory and Settings merged into one clean More page, Home lists in groups. Still planned: 182 (premium look: one style layer and line icons), 175 (Share to Jarvis, Java; it is built in a different zip, check it is on GitHub) and 144 (voice to person, last). Phone-test rows: Table A 119 to 121 (rows 116 to 118 belong to 175).**
+**Done 21 Nov (look): 179, 180, 181 and 182 are built, not phone tested (no tests; only the page JS syntax and the `import app` check). Page only, no Java, so NO new APK. Four tabs (Home, Talk, Timeline, More), Memory and Settings merged into one clean More page, Home lists in groups. 182 (premium look: one style layer and line icons) is built the same way (page only, no APK, Table A row 122). Still planned: 175 (Share to Jarvis, Java; it is built in a different zip, check it is on GitHub) and 144 (voice to person, last). Phone-test rows: Table A 119 to 122 (rows 116 to 118 belong to 175).**
 
 **Build order (18 Nov):** 138, 149, 148, 139, 134, 140, 141, 142, 143, 135, 136, 137, 145, 146, 147, 144.
 
@@ -429,6 +430,7 @@ Nothing here is phone tested unless the Result says PASS. Build the APK first fo
 | 119 | Look at the bottom bar | Four tabs only: Home, Talk, Timeline, More. No Assist, no Memory, no Settings tab. The selected tab is highlighted. The header gear and `Open Settings` still open More | No (Part 179) | not tested |
 | 120 | Tap More | One page, three headings in this order: Memory (Your Data), Settings (Voice & Listening, Appearance, Notifications, Privacy & Security), System (Advanced). Each card opens and its content loads. Pasting an API key opens More as before | No (Part 180) | not tested |
 | 121 | Home: scroll to AI tools, then open Home > More > Smart shortcuts | AI tools: 5 groups (Write 4, Plan 5, Think 3, Wellbeing 3, Utility 6); Write is open, the rest open on a tap. Shortcuts: Daily 6, Money 2, Tools 4. Every tile still does what it did (for example Plan my day gives the briefing, Clipboard reads the clipboard) | No (Part 181) | not tested |
+| 122 | Look at Home, More and the bottom bar in Dark, then Light (Settings > Appearance), then Neon (old) | Same line icons everywhere (no emoji on tabs, header, tiles, shortcuts, settings cards). Text is readable in all three. The selected tab is tinted, the others are grey. Tiles, cards and groups have the same round corners. Nothing is cut off on a small phone. Every tile and tab still does what it did | No (Part 182) | not tested |
 
 ## 8. RULES FOR EVERY CLAUDE
 

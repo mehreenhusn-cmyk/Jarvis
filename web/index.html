@@ -325,6 +325,37 @@ body.hm #sq{background:rgba(7,11,26,.92);color:#eaf0ff;border-color:rgba(96,140,
 #htl,#hsc{display:block}#htl>.grp,#hsc>.grp{margin:0 0 10px}.scl{display:grid;gap:8px}#htl .tools{padding-top:4px}
 #set .sec{margin-top:18px}#set .sec:first-child{margin-top:6px}
 </style>
+<style id="premium">/* Part 182: one calm, premium layer. It only uses the theme colors (dark, light, neon), so every theme keeps its own look */
+:root{--r1:10px;--r2:16px;--r3:22px;--el:0 1px 2px rgba(0,0,0,.2),0 10px 26px -14px rgba(0,0,0,.45)}
+html[data-skin=light]{--el:0 1px 2px rgba(70,50,20,.06),0 12px 26px -16px rgba(70,50,20,.25)}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;letter-spacing:-.005em}
+html body :focus-visible{outline:2px solid var(--c1,var(--ac));outline-offset:2px}
+html body button{transition:transform .12s ease,background-color .15s ease,border-color .15s ease}html body button:active{transform:scale(.97)}
+.ico{display:inline-grid;place-items:center;flex:none;color:var(--c1,var(--ac))}
+.ico svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+html body #home h4,html body #set .sec{margin:24px 4px 10px;font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--mut)}
+html body #home .card,html body #set .card,html body .grp{border-radius:var(--r2);box-shadow:var(--el)}
+html body #home .card,html body #set .card{background:var(--sf);border:1px solid var(--line)}
+html body .grp{background:var(--sf);border:1px solid var(--line);margin-bottom:10px;overflow:hidden}
+html body #htl>.grp,html body #hsc>.grp{margin-bottom:10px}
+html body .grp>summary{min-height:58px}html body .grp>summary::after{transition:transform .2s}html body .grp[open]>summary::after{transform:rotate(90deg)}
+html body .grp[open]>summary{border-bottom:1px solid var(--line)}
+html body .grp>summary .gi.ico{width:38px;height:38px;border-radius:12px;background:var(--sf2);background:color-mix(in srgb,var(--c1,var(--ac)) 14%,transparent)}
+html body .grp>summary .gi.ico svg{width:20px;height:20px}
+html body #htl .tools{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+html body #htl .tools button{min-height:88px;padding:14px 4px 12px;gap:8px;border-radius:var(--r2);background:var(--sf2);border:1px solid var(--line);color:var(--fg);box-shadow:none;font-size:12px;font-weight:500}
+html body #htl .tools button .ico{width:40px;height:40px;border-radius:12px;background:var(--sf);background:color-mix(in srgb,var(--c1,var(--ac)) 14%,transparent)}
+html body .sc{border-radius:var(--r2);background:var(--sf2);border:1px solid var(--line);box-shadow:none;color:var(--fg)}
+html body .sc>.ico{width:38px;height:38px;border-radius:12px;background:var(--sf);background:color-mix(in srgb,var(--c1,var(--ac)) 14%,transparent)}
+html body .sc>.ico svg{width:20px;height:20px}
+html body #tabs{padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));gap:4px;box-shadow:0 -8px 24px -18px rgba(0,0,0,.5)}
+html body #tabs button{gap:3px;padding:8px 2px 6px;border-radius:14px;font-size:11px;font-weight:600;background:transparent;border:0;color:var(--mut)}
+html body #tabs button .ico{color:inherit}html body #tabs button .ico svg{width:23px;height:23px}
+html body #tabs button.on{background:var(--sf2);background:color-mix(in srgb,var(--c1,var(--ac)) 16%,transparent);color:var(--c1,var(--ac))}
+html body header #sbtn,html body header #vbtn,html body header #gear{display:grid;place-items:center;width:40px;height:40px;padding:0;border-radius:50%;color:var(--fg)}
+html body header .ico svg{width:20px;height:20px}html body header .ico{color:var(--fg)}
+@media(prefers-reduced-motion:reduce){html body button,html body .grp>summary::after{transition:none}html body button:active{transform:none}}
+</style>
 </head><body>
 <header><div class="logo"><svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><g class="rg" stroke-width="1.7"><path d="M16 3.5a12.5 12.5 0 0 1 10.8 6.2"/><path d="M28.5 16a12.5 12.5 0 0 1-6.2 10.8"/><path d="M16 28.5a12.5 12.5 0 0 1-10.8-6.2"/><path d="M3.5 16A12.5 12.5 0 0 1 9.7 5.2"/></g><circle cx="16" cy="16" r="8" stroke-width="1" opacity=".4"/><path d="M17.6 10.6v7a2.9 2.9 0 0 1-5.8 0" stroke-width="2.4"/></svg></div><div><b>JARVIS</b><span id="st">...</span><span id="stx"></span></div><span class="sp"></span><button id="sbtn" title="Search" aria-label="Search">🔍</button><button id="vbtn" title="Voice">🔊</button><button id="gear" title="Settings">⚙</button></header>
 <div id="sq" hidden><div class="sqr"><input id="sqi" type="search" placeholder="Search this chat" autocomplete="off"><button type="button" id="sqx" class="g" aria-label="Close">✕</button></div><div class="sqr"><button type="button" id="sqa" class="g">Search all history</button><button type="button" id="sqe" class="g">Search everywhere</button></div><div class="sqr sqt"><button type="button" id="sqh" class="g">📜 History</button><button type="button" id="sqc" class="g">Copy chat</button><button type="button" id="sqt" class="g">✅ Phone tests</button><button type="button" id="sql" class="g">🛠 Error log</button></div><div id="sqr"></div></div>
@@ -1428,6 +1459,27 @@ grouped($('htl'),[['Write',['Summarize','Translate','Write','Explain']],['Plan',
 [['☀️','Briefing','Your day in one look','briefing'],['⏰','My reminders','Today and later','my reminders'],['🔁','Routines','Saved task sentences','my routines'],['💰','Money ledger','Who owes what','show ledger'],['🛒','Shopping list','Small things by voice','list dikhao'],['💸','Spending','What I spent','kharcha'],['💪','Habits','Streaks and check-ins','my habits'],['📊','Day report','Today in numbers','aaj ka summary'],['🖥','Explain screen','Read the app on screen','explain this screen'],['📋','Clipboard','Use what you just copied','__clip'],['🔔','Notifications','Summary of the apps you chose','__ns'],['📱','Lost phone help','Steps if the phone is gone','phone kho gaya']]
   .forEach(([i,n,sub,q])=>{const b=el('button','sc');b.type='button';const w=el('span');w.append(n,el('small','',sub));b.append(el('span','',i),w,el('b','','›'));b.onclick=()=>q=='__clip'?clip():q=='__ns'?nsum():ask(q);(window.SCB=window.SCB||{})[n]=b;});
 grouped($('hsc'),[['Daily',['Briefing','My reminders','Routines','Shopping list','Habits','Day report']],['Money',['Money ledger','Spending']],['Tools',['Explain screen','Clipboard','Notifications','Lost phone help']]],{map:window.SCB,cls:'scl'},false);
+// Part 182: one set of line icons (same stroke, same size) instead of mixed emoji. Only the pictures change, never the actions.
+const IC={home:'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',chat:'M21 12a8 8 0 0 1-11.5 7.2L4 20l1-4.3A8 8 0 1 1 21 12z',clock:'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',grid:'M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5h-5z',
+doc:'M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h6',globe:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18',pen:'M4 20l4-1L19 8l-3-3L5 16zM14 7l3 3',bulb:'M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z',
+cal:'M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM4 10h16M8 3v4M16 3v4',send:'M12 16V4M7 9l5-5 5 5M5 14v5h14v-5',search:'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3',users:'M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9.5 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM21 20v-1a4 4 0 0 0-3-3.9M16 4.1a3.5 3.5 0 0 1 0 6.8',
+type:'M4 7V5h16v2M9 19h6M12 5v14',map:'M9 4L3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14',check:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM8 12.5l3 3 5-6',shield:'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',swap:'M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7',
+hour:'M6 3h12M6 21h12M7 3c0 5 3 6 5 9-2 3-5 4-5 9M17 3c0 5-3 6-5 9 2 3 5 4 5 9',todo:'M4 6h10M4 12h10M4 18h6M16 16l2 2 4-4',smile:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM8 14c1 1.5 2.3 2 4 2s3-.5 4-2M9 9.5h.01M15 9.5h.01',box:'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8',
+user:'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',timer:'M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM12 9v4l2 2M9 2h6',moon:'M20 14.5A8 8 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z',hash:'M5 9h14M5 15h14M10 3L8 21M16 3l-2 18',
+sun:'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',bell:'M18 16v-5a6 6 0 1 0-12 0v5l-2 2h16zM10 21h4',repeat:'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3',wallet:'M4 7a2 2 0 0 1 2-2h12v4M4 7v10a2 2 0 0 0 2 2h14V9H6a2 2 0 0 1-2-2zM16 14h.01',
+cart:'M3 4h2l2.5 11h10l2-8H6.5M9 20h.01M17 20h.01',down:'M3 7l6 6 4-4 8 8M21 11v6h-6',bolt:'M13 2L4 14h7l-1 8 9-12h-7z',bars:'M5 21V10M12 21V4M19 21v-8',screen:'M3 5h18v11H3zM8 21h8M12 16v5',clip:'M9 4h6v3H9zM8 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2',inbox:'M4 13l2-8h12l2 8M4 13v6h16v-6M4 13h5a3 3 0 0 0 6 0h5',phone:'M8 2h8a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM11 18h2',
+mic:'M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zM5 11a7 7 0 0 0 14 0M12 18v3',look:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 3v18',lock:'M6 11h12v9H6zM8 11V8a4 4 0 0 1 8 0v3',db:'M12 8c4.4 0 8-1.3 8-3s-3.6-3-8-3-8 1.3-8 3 3.6 3 8 3zM4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3',sliders:'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4',vol:'M4 9v6h4l5 4V5L8 9zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12'};
+function icoSet(sp,k){if(!sp||!IC[k])return;const N='http://www.w3.org/2000/svg',v=document.createElementNS(N,'svg'),q=document.createElementNS(N,'path');v.setAttribute('viewBox','0 0 24 24');v.setAttribute('aria-hidden','true');q.setAttribute('d',IC[k]);v.appendChild(q);sp.textContent='';sp.classList.add('ico');sp.appendChild(v);}
+{const TI={'Summarize':'doc','Translate':'globe','Write':'pen','Explain':'bulb','Plan my day':'cal','Handoff':'send','Search all':'search','Guest session':'users','Big text':'type','Make a plan':'map','Reliable info':'check','Red team':'shield','Debate':'swap','Decisions':'hour','Unfinished':'todo','Mood':'smile','Time capsule':'box','Body double':'user','Meeting mode':'timer','Dream journal':'moon','Signs log':'hash'},
+ SI={'Briefing':'sun','My reminders':'bell','Routines':'repeat','Money ledger':'wallet','Shopping list':'cart','Spending':'down','Habits':'bolt','Day report':'bars','Explain screen':'screen','Clipboard':'clip','Notifications':'inbox','Lost phone help':'phone'},
+ GI={'Write':'pen','Plan':'cal','Think':'bulb','Wellbeing':'smile','Utility':'sliders','Daily':'sun','Money':'wallet','Tools':'sliders'},
+ SG={'Your Data (Memory Atlas)':'db','Voice & Listening':'mic','Appearance':'look','Notifications':'bell','Privacy & Security':'lock','Advanced':'sliders'};
+ Object.entries(window.TOOLB||{}).forEach(([n,b])=>icoSet(b.firstChild,TI[n]));Object.entries(window.SCB||{}).forEach(([n,b])=>icoSet(b.firstChild,SI[n]));
+ document.querySelectorAll('#htl>.grp>summary,#hsc>.grp>summary').forEach(s=>{const g=el('span','gi');icoSet(g,GI[s.firstChild.firstChild.textContent]);s.insertBefore(g,s.firstChild);});
+ document.querySelectorAll('#set>.grp>summary').forEach(s=>icoSet(s.querySelector('.gi'),SG[s.querySelector('.gt').firstChild.textContent]));
+ $('tabs').querySelectorAll('button').forEach(b=>icoSet(b.firstChild,{home:'home',chat:'chat',tl:'clock',set:'grid'}[b.dataset.v]));
+ icoSet($('sbtn'),'search');icoSet($('vbtn'),'vol');icoSet($('gear'),'sliders');}
+
 [['⚙ Settings',()=>go('set')],['⏹ Stop everything',()=>{go('chat');add('bot',stopAll());}]]
   .forEach(([n,f])=>{const b=el('button','g',n);b.type='button';b.onclick=f;$('hq').appendChild(b);});
 // Part 48: Share to Jarvis (text from another app), handoff summary (copy or share), lost-phone links. Nothing leaves the phone until you tap.
