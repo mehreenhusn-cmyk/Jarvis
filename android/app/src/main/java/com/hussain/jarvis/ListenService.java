@@ -7,8 +7,10 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ServiceInfo;
+import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -37,6 +39,7 @@ public class ListenService extends Service implements RecognitionListener {
     SharedPreferences sp;
     long began;
     int bad;
+    boolean lowBatt;  // Part 166: true while the listening is paused because the battery is low
     String why = "stopped by you";
 
     static void halt(Context c) { c.stopService(new Intent(c, ListenService.class)); }
@@ -71,12 +74,56 @@ public class ListenService extends Service implements RecognitionListener {
             .putString("bg_err", "").putLong("bg_ended", 0).apply();
         Privacy.used("bg");
         sp.edit().putString("bg_eng", vosk ? "offline" : "google").apply();
+        sp.edit().putString("bg_batt", "").apply();
+        lowBatt = false;
+        begin();
+        ui.postDelayed(guard, 60000);  // Part 166
+        return START_NOT_STICKY;  // not restarted by Android: Stop stays stopped
+    }
+
+    /** Starts the listener (the offline engine or the phone's speech service). Also used again when the battery is back. */
+    void begin() {
         if (vosk) eng.start(this, new WakeEngine.Cb() {
             public void heard() { ui.post(() -> hit()); }
             public void failed(String m) { ui.post(() -> { why = m; sp.edit().putString("bg_err", m).apply(); stopSelf(); }); }
         });
         else listen();
-        return START_NOT_STICKY;  // not restarted by Android: Stop stays stopped
+    }
+
+    // ---- Part 166: battery guard. Below 15% and not charging the background mic stops and says so ONCE. It starts again at 20% or when a charger is plugged in. ----
+    final Runnable guard = new Runnable() {
+        @Override public void run() {
+            if (!up) return;
+            battCheck();
+            ui.postDelayed(this, lowBatt ? 30000 : 60000);
+        }
+    };
+
+    /** {percent, 1 if charging}. If Android gives nothing we assume a full battery, so the mic is never stopped by mistake. */
+    int[] battery() {
+        try {
+            Intent b = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+            if (b == null) return new int[]{100, 1};
+            int lv = b.getIntExtra(BatteryManager.EXTRA_LEVEL, 100), sc = b.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
+            return new int[]{sc > 0 ? lv * 100 / sc : 100, b.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0 ? 1 : 0};
+        } catch (Exception e) { return new int[]{100, 1}; }
+    }
+
+    void battCheck() {
+        int[] b = battery();
+        NotificationManager nm = getSystemService(NotificationManager.class);
+        if (!lowBatt && b[0] < 15 && b[1] == 0) {
+            lowBatt = true;
+            eng.stop();
+            if (sr != null) { sr.destroy(); sr = null; }
+            sp.edit().putString("bg_batt", "paused").apply();
+            nm.notify(79, note("Battery is " + b[0] + "%, so the background mic is paused. It starts again at 20% or on the charger. Tap Stop to end."));
+        } else if (lowBatt && (b[0] >= 20 || b[1] == 1)) {
+            lowBatt = false;
+            sp.edit().putString("bg_batt", "").apply();
+            nm.notify(79, note("Battery is back. Listening for \"Hey Jarvis\" again. Tap Stop to end."));
+            begin();
+        }
     }
 
     Notification note(String text) {
@@ -87,7 +134,7 @@ public class ListenService extends Service implements RecognitionListener {
     }
 
     void listen() {
-        if (!up) return;
+        if (!up || lowBatt) return;  // Part 166: nothing starts while the battery guard has paused the mic
         if (Privacy.stopped) { why = "Jarvis was stopped"; stopSelf(); return; }
         if (System.currentTimeMillis() - began > MAX) { why = "8 h limit reached"; stopSelf(); return; }
         try {
@@ -172,7 +219,7 @@ public class ListenService extends Service implements RecognitionListener {
             long since = sp.getLong("bg_since", 0);
             o.put("up", up).put("since", since).put("killed", since > 0 && !up).put("hits", sp.getInt("bg_hits", 0)).put("off", sp.getInt("bg_off", 0))
                 .put("bg", sp.getInt("bg_bg", 0)).put("last", sp.getLong("bg_last", 0)).put("err", sp.getString("bg_err", "")).put("ended", sp.getLong("bg_ended", 0))
-                .put("why", sp.getString("bg_why", "")).put("eng", sp.getString("bg_eng", "")).put("phone", Build.MANUFACTURER + " " + Build.MODEL).put("android", Build.VERSION.RELEASE)
+                .put("batt", sp.getString("bg_batt", "")).put("why", sp.getString("bg_why", "")).put("eng", sp.getString("bg_eng", "")).put("phone", Build.MANUFACTURER + " " + Build.MODEL).put("android", Build.VERSION.RELEASE)
                 .put("battery_ok", c.getSystemService(PowerManager.class).isIgnoringBatteryOptimizations(c.getPackageName()))
                 .put("notif", c.getSystemService(NotificationManager.class).areNotificationsEnabled());
         } catch (Exception e) { /* send what we have */ }

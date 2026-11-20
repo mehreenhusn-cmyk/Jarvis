@@ -170,6 +170,17 @@ public class ScreenService extends AccessibilityService {
             cb.got(r(sent, "refused"));
             return;
         }
+        if ("scroll".equals(t) && "video".equals(a.optString("mode"))) {  // Part 163: next / previous Short: ONE quick swipe through the middle of the screen, nothing is tapped
+            if (Build.VERSION.SDK_INT < 24) { cb.got(r(false, "old_android")); return; }
+            boolean nextVideo = !"up".equals(a.optString("dir"));
+            android.util.DisplayMetrics vm = s.getResources().getDisplayMetrics();
+            Path vp = new Path();
+            vp.moveTo(vm.widthPixels / 2f, vm.heightPixels * (nextVideo ? 0.72f : 0.28f));
+            vp.lineTo(vm.widthPixels / 2f, vm.heightPixels * (nextVideo ? 0.28f : 0.72f));
+            boolean sentV = s.dispatchGesture(new GestureDescription.Builder().addStroke(new GestureDescription.StrokeDescription(vp, 0, 220)).build(), null, null);
+            cb.got(r(sentV, "refused"));
+            return;
+        }
         if ("scroll".equals(t) && "read".equals(a.optString("mode"))) {  // Part 154: reading scroll, one screenful at a time with a pause to read
             readScroll(s, !"up".equals(a.optString("dir")), String.valueOf(root.getPackageName()), cb);
             return;

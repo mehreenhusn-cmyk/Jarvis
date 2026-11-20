@@ -31,6 +31,7 @@ class Ears implements RecognitionListener {
     private float floor = 99f;  // Part 160: the quiet level of the room (slowly follows the mic level)
     private int hot;             // Part 160: how many level readings in a row were clearly louder than the room
     private long lastVoice;      // Part 160: when the page was last told "a voice started"
+    static volatile boolean loud;  // Part 164: interrupt on the loudspeaker (set by the page): the mic LEVEL is not used then, because Jarvis's own voice would trigger it; only words count
     volatile boolean wake, on, barge;  // barge (Part 61): listening WHILE Jarvis speaks, partial words go to the page so it can stop talking
 
     Ears(Activity a, WebView w) { act = a; web = w; }
@@ -133,12 +134,12 @@ class Ears implements RecognitionListener {
     @Override public void onReadyForSpeech(Bundle p) { }
     @Override public void onBeginningOfSpeech() {
         fails = 0;
-        if (barge) voice();  // Part 160: the speech service's own start-of-speech also counts (a little slower than the level)
+        if (barge && !loud) voice();  // Part 160 (Part 164: not on the loudspeaker): the speech service's own start-of-speech also counts (a little slower than the level)
         if (held.length() > 0) { speaking = true; ui.removeCallbacks(flushJob); ui.postDelayed(flushJob, 12000L); }  // Part 161: you are talking again: keep the first part, add the next (12 s safety)
     }
     /** Part 160: while Jarvis speaks (interrupt mode) the page is told the moment your voice starts, from the mic LEVEL (about 0.1 to 0.2 s), before any word is known. The words follow later from the speech service. */
     @Override public void onRmsChanged(float v) {
-        if (!barge) { floor = 99f; hot = 0; return; }
+        if (!barge || loud) { floor = 99f; hot = 0; return; }
         floor = Math.min(v, floor + 0.05f);
         hot = (v > floor + 3.5f && v > 2.5f) ? hot + 1 : 0;
         if (hot >= 2) voice();

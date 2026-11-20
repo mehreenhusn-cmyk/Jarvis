@@ -416,7 +416,7 @@ let down=0,since='',srvUp=0;
 async function ping(){
   try{const {d}=await api('/status');
     if(boot&&d.boot&&d.boot!==boot){location.reload();return;}boot=d.boot||boot;down=0;srvUp=d.uptime||0;$('off').hidden=true;
-    $('st').textContent=d.configured?'● Online':'● Online · no API key yet';$('st').className=d.configured?'ok':'warn';$('stx').textContent=d.sync?'Last update: '+d.sync.split('|').join(' · '):'';  // Part 167: the update note is hidden until you tap the status
+    $('st').textContent=d.offline?'● No internet':d.configured?'● Online':'● Online · no API key yet';$('st').className=(d.configured&&!d.offline)?'ok':'warn';$('stx').textContent=d.offline?'No internet: phone commands, notes, lists, reminders and habits still work.':d.sync?'Last update: '+d.sync.split('|').join(' · '):'';  // Part 170:   // Part 167: the update note is hidden until you tap the status
   }catch(e){if(!down++)since=nowS().slice(11);$('st').textContent='● Server offline';$('st').className='bad';srvUp=0;
     if(down>=2){$('off').hidden=false;$('off').textContent='Jarvis server is not running (since '+since+'). Open the Termux app and wait 5 seconds. I keep trying every 5 seconds.';}}
 }
@@ -496,11 +496,13 @@ $('mic').onclick=()=>{
 // Only with earphones (wired, Bluetooth or USB), because without them the mic hears Jarvis' own voice. Opt-in, off by default. Words that match Jarvis' own sentence are ignored.
 let intrOn=true,barging=false,cutWait=false,skipEnd=false,lastSay='';
 const wd=s=>(String(s||'').toLowerCase().match(/[\w\u0900-\u097F]+/g)||[]);
-const echoLike=x=>{const a=wd(x);if(!a.length)return true;const b=new Set(wd(lastSay));const hit=a.filter(w=>b.has(w)).length;return a.length>=2?hit/a.length>=0.6:b.has(a[0]);};
+const spkMode=()=>localStorage.getItem('jspk')=='1'&&!hasEarphones();  // Part 164: experimental interrupt on the loudspeaker (no earphones): words only, stricter echo check
+const echoLike=x=>{const a=wd(x);if(!a.length)return true;const b=new Set(wd(lastSay));const hit=a.filter(w=>b.has(w)).length;if(spkMode())return a.length-hit<2&&!STOPW.test(String(x).trim());return a.length>=2?hit/a.length>=0.6:b.has(a[0]);};
 const hasEarphones=()=>{try{return !!(window.JarvisApp&&JarvisApp.headset&&JarvisApp.headset());}catch(e){return false;}};
 function intrBtn(){const b=$('intr');if(!b)return;b.hidden=!(window.JarvisApp&&JarvisApp.listenBarge);b.textContent='Interrupt: '+(intrOn?'on':'off');}
 function bargeStart(){
-  if(!intrOn||barging||cutWait||priv||cmdNext||appListening||!window.JarvisApp||!JarvisApp.listenBarge||!hasEarphones())return;
+  if(!intrOn||barging||cutWait||priv||cmdNext||appListening||!window.JarvisApp||!JarvisApp.listenBarge||!(hasEarphones()||spkMode()))return;
+  try{if(JarvisApp.setLoud)JarvisApp.setLoud(spkMode());}catch(e){}  // Part 164: on the loudspeaker the mic level is not used (Jarvis's own voice would trigger it), only the words
   barging=true;JarvisApp.listenBarge($('lang').value);}
 // Part 160: the moment your VOICE starts (before any word is known) Jarvis pauses. If the words turn out to be Jarvis's own voice, or nothing real follows in 1.8 s, he goes on.
 let vPause=0,vWas='',cutNote=null,cutAt=0;
@@ -805,6 +807,7 @@ function listenCard(){const b=$('vlcard');if(!b)return;b.textContent='';
     i.onchange=()=>{localStorage.setItem(key,i.checked?'1':'0');bgSync();};r.append(t,i);b.appendChild(r);};
   sw('jbgmic',true,'Keep listening in background','Mic stays on when you press Home or lock the screen (Conversation / Hey Jarvis mode). A notification shows while it listens.');
   sw('jdeep',true,'Full answers for code and long questions','When you ask for code, an audit, a long explanation or a plan (or send a file), Jarvis writes a complete answer with code blocks and a Copy button. Off: always 1 to 3 short sentences.');  // Part 169
+  sw('jspk',false,'Interrupt on the loudspeaker (experimental)','Lets you cut Jarvis off without earphones. It reacts to your WORDS, so it is slower than with earphones (about 1 second), and the phone speech service may beep. It can fail or stop Jarvis by mistake, because the mic also hears his voice. Earphones work best. Needs the Interrupt button ON.');  // Part 164
   sw('jhmm',true,'Thinking sound','A soft "hmm" if my answer takes more than a moment. Only before spoken answers.');  // Part 159
   sw('jwebauto',true,'Search the internet by itself','Price, news, score, weather: Jarvis looks it up without being told. Sources are shown under the answer.');
   const r=el('div','srow');const t=el('span','','Wait after I stop talking');t.appendChild(el('small','','Shorter = faster answers. Longer = it lets you pause while thinking. If you pause inside this time and go on, Jarvis joins both parts into one sentence.'));
@@ -989,6 +992,7 @@ function actMsg(r,a){
     if(t=='settings')return say('सेटिंग का पेज खुल गया सर।','The settings page is open, sir.');
     if(t=='torch')return r.on?say('टॉर्च चालू हो गई सर।','The flashlight is on, sir.'):say('टॉर्च बंद हो गई सर।','The flashlight is off, sir.');
     if(t=='volume')return r.changed===false?say('सर, आवाज़ पहले से '+(lastAct&&lastAct.dir=='up'?'सबसे ज़्यादा':'सबसे कम')+' है।','Sir, the volume is already at the '+(lastAct&&lastAct.dir=='up'?'top':'bottom')+'.'):say('आवाज़ अब '+r.vol+'/'+r.max+' है सर।','The volume is now '+r.vol+' of '+r.max+', sir.');
+    if(t=='scroll'&&a&&a.mode=='video')return say(a.dir=='up'?'पिछला वीडियो सर।':'अगला वीडियो सर।',a.dir=='up'?'Previous video, sir.':'Next video, sir.');  // Part 163
     if(t=='scroll'&&a&&a.mode=='stop')return say('ठीक है सर, स्क्रॉल रोक दिया।','Okay sir, the scroll is stopped.');
     if(t=='scroll'&&r.steps!=null){readOn=false;const n=r.steps,wy=r.why;return n<1?say('सर, स्क्रीन पर कोई बदलाव नहीं दिखा, इसलिए कुछ स्क्रॉल नहीं हुआ। एक बार देख लीजिए।','Sir, the screen did not move, so nothing scrolled. Please check.'):say(n+' स्क्रीन स्क्रॉल हुईं सर। '+(wy=='end'?'पेज खत्म हो गया।':wy=='stopped'?'आपके कहने पर रुक गया।':wy=='limit'?'सीमा पूरी हुई, इसलिए रुका।':wy=='left'?'आप दूसरे ऐप में चले गए, इसलिए रुका।':'रुक गया।'),n+' screen(s) scrolled, sir. '+(wy=='end'?'The page ended.':wy=='stopped'?'Stopped because you said so.':wy=='limit'?'Stopped at the limit.':wy=='left'?'Stopped because you left the app.':'Stopped.'));}
     if(t=='back'||t=='home'||t=='swipe')return say('हो गया सर।','Done, sir.');
@@ -1451,6 +1455,7 @@ function bgt(){
   if(i.killed)box.appendChild(el('p','bad','Android killed the test. Open Settings > Apps > Jarvis > Battery > No restriction, then test again.'));
   row('Battery limit',i.battery_ok?'not limited':'limited by Android',i.battery_ok?'ok':'warn');
   row('Notifications',i.notif?'allowed':'blocked',i.notif?'ok':'bad');
+  if(i.up&&i.batt=='paused')row('Battery guard','Paused: battery is below 15%. It starts again at 20% or on the charger.','warn');  // Part 166
   if(i.err)row('Last problem',i.err,'bad');
   if(bgMsg)box.appendChild(el('p','bad',bgMsg));
   let w={};try{w=JSON.parse(JarvisApp.wakeInfo())}catch(e){}  // Part 40: offline wake word (Vosk). Download only after your tap.

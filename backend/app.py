@@ -1,5 +1,5 @@
 """Jarvis backend - Part 1: chat + pairing + SQLite. Sirf Python stdlib, pip install nahi chahiye."""
-import hashlib, json, os, re, secrets, sqlite3, threading, time, urllib.request, urllib.error
+import hashlib, json, os, re, secrets, socket, sqlite3, threading, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import actions, assist, attach, autolearn, autostart, backup, brief, calls, capsule, chatsum, clock, cutoff, debate, decisions, deep, dreams, drift, events, ghost, guest, handoff, habits, learn, ledger, lens, lists, memory, modes, money, mood, notes, nudge, people, phone, place, placenote, phonetest, unknown, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
@@ -163,6 +163,35 @@ def names():
     return env or [n for n in [*PROVIDERS, "mock"] if getkey(n)]
 
 
+OFFLINE = "No internet right now, so I cannot answer this one. Phone commands, notes, lists, reminders and habits still work."  # Part 170
+OFFLINE_HI = "सर, अभी इंटरनेट नहीं है, इसलिए इसका जवाब नहीं दे सकता। फ़ोन कमांड, नोट्स, लिस्ट, रिमाइंडर और आदतें चलती हैं।"
+NET = {"at": 0.0, "up": True, "ai": 0.0}  # Part 170: last check time, last result, last time an AI call worked
+
+
+def online():
+    """Part 170: a quick yes/no (cached 20 s) so nothing waits 60 s for the internet. A working AI call in the last 2 minutes counts as online."""
+    now = time.time()
+    if now - NET["ai"] < 120:
+        return True
+    if now - NET["at"] < 20:
+        return NET["up"]
+    up = False
+    for host in ("1.1.1.1", "8.8.8.8"):
+        try:
+            socket.create_connection((host, 53), timeout=1.2).close()
+            up = True
+            break
+        except OSError:
+            pass
+    NET["at"], NET["up"] = now, up
+    return up
+
+
+def lookup_safe(*a):
+    """Part 170: the internet lookup is skipped when the phone is offline."""
+    return web.lookup(*a) if online() else ("", [])
+
+
 def call(name, history, key=None, style="english", extra="", full=False):
     if name == "mock":  # sirf testing ke liye
         return "mock jawab: " + history[-1]["content"]
@@ -224,6 +253,8 @@ def honest(reply, style):
 def ask(history, style="english", extra="", full=False):
     """PROVIDER=groq,openrouter,... : pehla jo chale uska jawab. Return (jawab, provider)."""
     errs = []
+    if "mock" not in names() and not online():
+        raise RuntimeError(OFFLINE)  # Part 170: one clear line at once, no 60 second wait
     for n in names():
         if n != "mock" and n not in PROVIDERS:
             errs.append(f"{n}: naam galat")
@@ -231,7 +262,9 @@ def ask(history, style="english", extra="", full=False):
             errs.append(f"{n}: key nahi")
         else:
             try:
-                return call(n, history, None, style, extra, full), n
+                out = call(n, history, None, style, extra, full)
+                NET["ai"] = time.time()  # Part 170
+                return out, n
             except RuntimeError as e:
                 errs.append(f"{n}: {e}")
     raise RuntimeError(" | ".join(errs) or "koi key nahi - upar ⚙ Settings mein key paste karo")
@@ -311,7 +344,7 @@ class H(BaseHTTPRequestHandler):
             return self.wfile.write(page)
         if self.path == "/status":
             ok = any(n == "mock" or bool(getkey(n)) for n in names())
-            return self.send(200, {"ok": True, "provider": ",".join(names()), "configured": ok, "boot": BOOT, "sync": sync_note(), "uptime": int(time.time()) - int(BOOT)})
+            return self.send(200, {"ok": True, "provider": ",".join(names()), "configured": ok, "offline": not online(), "boot": BOOT, "sync": sync_note(), "uptime": int(time.time()) - int(BOOT)})
         dev = self.device()
         if dev is None:
             return self.send(401, {"error": "pehle pair karo"})
@@ -741,11 +774,13 @@ class H(BaseHTTPRequestHandler):
             rows = deep.trim([x for x in rows if not (x[0] == "assistant" and x[1].startswith("(phone action)"))])  # Part 169: old long answers are cut  # Part 138: the AI must not copy an old fake label
             tctx = clock.context([(r, t) for r, _, t in reversed(rows)], prev_ts)
             prev_q = next((x[1] for x in rows[1:] if x[0] == "user"), "")  # Part 153: the question before this one ("net par search karke batana" means that one)
-            wtxt, srcs = web.lookup(msg, now, mode == "research" and len(msg) >= 8 and not screen.used(data.get("screen")), data.get("webauto") is not False and not screen.used(data.get("screen")), prev_q)  # Part 57 + 153: Research mode searches everything; live questions (price, news, score, weather) are searched by themselves
+            wtxt, srcs = lookup_safe(msg, now, mode == "research" and len(msg) >= 8 and not screen.used(data.get("screen")), data.get("webauto") is not False and not screen.used(data.get("screen")), prev_q)  # Part 57 + 153: Research mode searches everything; live questions (price, news, score, weather) are searched by themselves
             full = deep.wants(msg, data.get("deep"))  # Part 169: code, audit, long question: one full answer
             try:
                 reply, via = ask([{"role": r, "content": t} for r, t, _ in reversed(rows)], style, CAN + tctx + memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + replyideas.context(data.get("notif")) + wtxt + MOOD + debate.extra(dev) + modes.extra(mode) + cutoff.context(data.get("interrupted")) + chatsum.context(c, dev) + autolearn.context(c, dev) + attach.context(dev), full)  # Parts 160 + 168: what Jarvis was saying when you cut in
             except RuntimeError as e:
+                if str(e) == OFFLINE:  # Part 170: not an error, just no internet: say it clearly in his language
+                    return self.send(502, {"error": OFFLINE_HI if style == "hindi" else OFFLINE, "offline": True})
                 return self.send(502, {"error": str(e)})
             reply = untick(honest(reply, style))  # Part 138 + 147: no action ran on this path, so "done" from the AI is replaced
             if srcs:  # the list of sites comes from the real search result, not from the AI

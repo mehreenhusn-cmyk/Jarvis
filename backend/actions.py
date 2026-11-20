@@ -290,6 +290,29 @@ def read_cmd(msg):
     return None
 
 
+# ---- Part 163: YouTube Shorts / Reels. "agla video", "pichla video", "next short", "next reel": ONE swipe that moves to the next or the previous video. Only a swipe, never a tap. ----
+V_NEXT = {"agla", "agli", "next", "nxt", "अगला", "अगली", "नेक्स्ट"}
+V_PREV = {"pichla", "pichhla", "pichli", "pichhli", "previous", "prev", "पिछला", "पिछली"}
+V_NOUN = {"video", "videos", "vedio", "short", "shorts", "reel", "reels", "वीडियो", "शॉर्ट", "शॉर्ट्स", "रील", "रील्स"}
+V_FILL = {"dikhao", "dikha", "lagao", "laga", "chalao", "chala", "dekho", "dekhna", "चलाओ", "दिखाओ", "लगाओ", "dekhao", "wala", "wali", "वाला", "वाली"}
+
+
+def short_cmd(msg):
+    """(action, English text, Hindi text) for the next or previous Short, else None. A video word (video, short, reel) must be in the sentence."""
+    m = msg.strip()
+    if "?" in m or len(m) > 60 or risk_of(msg) or LABEL_RISK.search(m):
+        return None
+    w = _words(m)
+    s = set(w)
+    if not w or len(w) > 6 or s & QW or not s & V_NOUN or bool(s & V_NEXT) == bool(s & V_PREV):
+        return None
+    if s - (V_NEXT | V_PREV | V_NOUN | V_FILL | FILL | GO | LNOISE | PREPS):
+        return None  # something else in the sentence (a title, an app name): not a plain Shorts command
+    if s & V_NEXT:
+        return {"type": "scroll", "dir": "down", "mode": "video"}, "Next video, sir.", "अगला वीडियो सर।"
+    return {"type": "scroll", "dir": "up", "mode": "video"}, "Previous video, sir.", "पिछला वीडियो सर।"
+
+
 # Part 37: settings help. Only a FIXED list: open a settings page, flashlight, music volume. Wi-Fi, Bluetooth and location are never switched
 # by Jarvis (Android does not allow it): the page is opened and Jarvis says so.
 PAGES = {"wifi": ("wifi", "वाईफाई वायफाय वाईफ़ाई"), "bluetooth": ("bluetooth", "ब्लूटूथ ब्लूटुथ"), "location": ("location gps", "लोकेशन"),
@@ -657,7 +680,7 @@ def handle(msg, hindi, control, in_app, ask):
             if not control:
                 return say("फ़ोन कंट्रोल बंद है सर। Settings में \"Phone control\" चालू कीजिए।", "Phone control is OFF, sir. Turn it on in Settings, under Phone control."), None
             return say(got[2], got[1]), got[0]
-    sc = read_cmd(msg) or screen_cmd(msg) or device_cmd(msg) or loose_cmd(msg)  # Part 154 puts read_cmd first. Part 139 adds loose_cmd last. Part 34 (screen steps) and Part 37 (settings pages, flashlight, volume)
+    sc = short_cmd(msg) or read_cmd(msg) or screen_cmd(msg) or device_cmd(msg) or loose_cmd(msg)  # Part 163 puts short_cmd first. Part 154 read_cmd. Part 139 adds loose_cmd last. Part 34 (screen steps) and Part 37 (settings pages, flashlight, volume)
     if sc and sc[0] and sc[0]["type"] == "type" and not (control and in_app):
         sc = None  # "type hello" is only a command when phone control is ON in the app; otherwise it is normal chat
     rk = risk_of(msg) if (control and in_app) else None
