@@ -14,6 +14,9 @@ TEACH = re.compile(r"^\s*unknown (?:teach|sikhao)\s*#?(\d{1,6})\s*$", re.I)
 DROP = re.compile(r"^\s*unknown (?:hatao|delete|remove)\s*#?(\d{1,6})\s*$", re.I)
 PHONE = re.compile(r"torch|flash ?light|wi-?fi|bluetooth|volume|brightness|alarm|timer|\bhome\b|\bback\b|scroll|\bapp\b|chrome|youtube|whatsapp|टॉर्च|वाईफाई|ब्लूटूथ|वॉल्यूम|अलार्म|टाइमर|होम|स्क्रीन|ऐप|स्क्रॉल", re.I)
 TEACH_OK = {"open_app", "back", "home", "scroll", "settings", "torch", "volume", "media", "search", "timer", "current_app", "lock"}  # never: call, click, type, tap, look, confirm, task, alarm, swipe
+# Part 165: "galat samjha". You say `nahi, woh nahi` after a sentence Jarvis got wrong, then the right command. Jarvis offers: remember this meaning? Yes = taught (same as `unknown teach N`).
+WRONG = re.compile(r"^\s*(?:(?:nahi|nahin|no|nope)[\s,]+)?(?:(?:woh|wo|vo|yeh|ye|that|this)(?:\s+wala)?\s+(?:nahi|nahin|galat|wrong)|not that(?: one)?|wrong one|galat (?:samjha|samjhe|samjhi)|you (?:got|understood) (?:it|that) wrong|that'?s wrong|गलत समझा|वो नहीं|यह नहीं)\s*[.!]?\s*$", re.I)
+PREV, ARM = {}, {}  # device -> (last sentence, time) / (the sentence you said was misread, time). RAM only
 LAST = {}  # device -> (sentence, time). RAM only: the pairing window is 5 minutes
 WINDOW, KEEP_N, EXPIRE = 300, 40, 30
 
@@ -48,6 +51,12 @@ def _day():
     return time.strftime("%Y-%m-%d")
 
 
+def _prev(dev, msg):
+    s = norm(msg)
+    if s and not WRONG.match(msg) and _safe(s):
+        PREV[dev] = (s, time.time())
+
+
 def note(c, dev, msg, in_app):
     """Keep one sentence the grammar missed. Only in the Jarvis app, only a command-looking one, never a secret, never when off."""
     if not in_app or not is_on(c, dev) or not isinstance(msg, str):
@@ -55,6 +64,7 @@ def note(c, dev, msg, in_app):
     s = norm(msg)
     if not s or not looks_like_command(msg) or not _safe(s):
         return
+    _prev(dev, msg)  # Part 165
     r = c.execute("SELECT taught FROM unknown WHERE device=? AND said=?", (dev, s)).fetchone()
     if r is None:
         c.execute("INSERT INTO unknown(device, said, day) VALUES(?,?,?)", (dev, s, _day()))
@@ -70,14 +80,26 @@ def note(c, dev, msg, in_app):
 
 def pair(c, dev, msg, action):
     """The message after an unclear one worked as a plain command: remember it as the possible meaning. Nothing is taught yet."""
+    arm = ARM.pop(dev, None)
     last = LAST.pop(dev, None)
-    if not last or time.time() - last[1] > WINDOW or not is_on(c, dev) or not isinstance(action, dict):
-        return
     m = norm(msg)
-    if action.get("type") not in TEACH_OK or action.get("raw") or not m or m == last[0] or not _safe(m):
+    okact = is_on(c, dev) and isinstance(action, dict) and action.get("type") in TEACH_OK and not action.get("raw") and bool(m) and _safe(m)
+    if arm and time.time() - arm[1] <= WINDOW and okact and arm[0] != m and _safe(arm[0]):  # Part 165: you said `nahi, woh nahi`, then this right command: offer to remember
+        r = c.execute("SELECT id FROM unknown WHERE device=? AND said=?", (dev, arm[0])).fetchone()
+        if r is None:
+            c.execute("INSERT INTO unknown(device, said, meaning, day) VALUES(?,?,?,?)", (dev, arm[0], m, _day()))
+            r = c.execute("SELECT id FROM unknown WHERE device=? AND said=?", (dev, arm[0])).fetchone()
+        else:
+            c.execute("UPDATE unknown SET meaning=?, taught=0, day=? WHERE id=? AND device=?", (m, _day(), r[0], dev))
+        c.commit()
+        PREV.pop(dev, None)
+        return {"id": r[0], "said": arm[0], "meaning": m}
+    _prev(dev, msg)
+    if not last or time.time() - last[1] > WINDOW or not okact or m == last[0]:
         return
     c.execute("UPDATE unknown SET meaning=? WHERE device=? AND said=? AND taught=0", (m, dev, last[0]))
     c.commit()
+    return None
 
 
 def expand(c, dev, msg):
@@ -107,6 +129,13 @@ def handle(c, dev, msg, hindi):
     if len(msg) > 40:
         return None
     say = lambda hi, en: hi if hindi else en
+    if WRONG.match(msg):  # Part 165
+        p = PREV.pop(dev, None)
+        if not is_on(c, dev) or not p or time.time() - p[1] > WINDOW:
+            return say("ठीक है सर, माफ़ कीजिए। बताइए आपको क्या चाहिए।", "Okay sir, sorry. Tell me what you wanted.")
+        ARM[dev] = (p[0], time.time())
+        return say("माफ़ कीजिए सर। अब सही कमांड बोलिए, जैसे \"open youtube\"। मैं उसे कर दूँगा और पूछूँगा कि \"" + p[0] + "\" का यही मतलब याद रखूँ या नहीं।",
+                   "Sorry, sir. Now say the right command, like \"open youtube\". I will do it and then ask if I should remember that \"" + p[0] + "\" means it.")
     if OFF.match(msg):
         c.execute("INSERT OR REPLACE INTO unkset(device,on_) VALUES(?,0)", (dev,))
         c.commit()

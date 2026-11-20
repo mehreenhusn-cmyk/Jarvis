@@ -22,6 +22,7 @@ class Ears implements RecognitionListener {
     final Handler ui = new Handler(Looper.getMainLooper());
     SpeechRecognizer sr;
     String lang = "en-IN";
+    int boff;            // Part 162: Hey Jarvis never gives up: the pause after an error grows 3, 6, 12, 30, 60 s (back to 0 when a voice or a result comes)
     int fails;           // soft errors in a row (speech service disconnected); reset when you actually speak
     boolean retrying;    // true when again() calls start(), so the counter is not reset by our own retry
     static volatile long quiet = 2500L;  // Part 153: how long Jarvis waits in silence before he answers (Settings > Voice & Listening)
@@ -36,6 +37,42 @@ class Ears implements RecognitionListener {
 
     Ears(Activity a, WebView w) { act = a; web = w; }
 
+    // ---- Part 162: no restart beep. The phone speech service beeps each time it starts; the notification and system sounds are muted for about 1 s around the start and given back (music that is playing is never touched). Some phones ignore it. ----
+    private static final android.os.Handler HUSH = new android.os.Handler(Looper.getMainLooper());
+    private static final ArrayList<Integer> MUTED = new ArrayList<>();
+    private static Context hushCtx;
+    private static final Runnable GIVE_BACK = () -> unhush();
+
+    static synchronized void hush(Context c, boolean allowMusic) {
+        try {
+            if (!c.getSharedPreferences("j", 0).getBoolean("hush", true)) return;
+            hushCtx = c.getApplicationContext();
+            AudioManager am = (AudioManager) hushCtx.getSystemService(Context.AUDIO_SERVICE);
+            ArrayList<Integer> st = new ArrayList<>();  // never the ring stream: on many phones that would touch the ringer mode
+            st.add(AudioManager.STREAM_NOTIFICATION);
+            st.add(AudioManager.STREAM_SYSTEM);
+            if (allowMusic && !am.isMusicActive()) st.add(AudioManager.STREAM_MUSIC);  // the beep is on this stream on some phones; only when nothing plays
+            for (int s : st) {
+                if (MUTED.contains(s) || am.isStreamMute(s)) continue;
+                am.adjustStreamVolume(s, AudioManager.ADJUST_MUTE, 0);
+                MUTED.add(s);
+            }
+            HUSH.removeCallbacks(GIVE_BACK);
+            HUSH.postDelayed(GIVE_BACK, 1100);
+        } catch (Exception e) { /* Do Not Disturb or the phone refuses: the beep stays, nothing else happens */ }
+    }
+
+    /** Gives every sound back. Called after 1 s, and whenever listening stops, so nothing stays muted. */
+    static synchronized void unhush() {
+        HUSH.removeCallbacks(GIVE_BACK);
+        if (hushCtx == null) { MUTED.clear(); return; }
+        try {
+            AudioManager am = (AudioManager) hushCtx.getSystemService(Context.AUDIO_SERVICE);
+            for (int s : MUTED) am.adjustStreamVolume(s, AudioManager.ADJUST_UNMUTE, 0);
+        } catch (Exception e) { /* nothing more to do */ }
+        MUTED.clear();
+    }
+
     /** Main thread only. wakeMode: keep listening again and again, and the page looks for "Hey Jarvis". */
     void start(String l, boolean wakeMode) { start(l, wakeMode, false); }
 
@@ -49,6 +86,7 @@ class Ears implements RecognitionListener {
         lang = l; wake = wakeMode; on = true; barge = bargeMode;
         sr = SpeechRecognizer.createSpeechRecognizer(act);
         sr.setRecognitionListener(this);
+        hush(act, !barge);  // Part 162
         sr.startListening(listenIntent());
         Privacy.used(wake ? "wake" : "mic");
     }
@@ -66,6 +104,7 @@ class Ears implements RecognitionListener {
         on = false; barge = false; speaking = false; held.setLength(0);
         ui.removeCallbacksAndMessages(null);
         if (sr != null) { sr.destroy(); sr = null; }
+        unhush();  // Part 162
     }
 
     void js(String fn, String text) {
@@ -77,7 +116,7 @@ class Ears implements RecognitionListener {
         ui.postDelayed(() -> {
             if (!on) return;
             if (sr == null) { retrying = true; start(lang, wake, barge); return; }
-            try { sr.cancel(); sr.startListening(listenIntent()); Privacy.used(wake ? "wake" : "mic"); }
+            try { sr.cancel(); hush(act, !barge); sr.startListening(listenIntent()); Privacy.used(wake ? "wake" : "mic"); }
             catch (Exception x) { try { sr.destroy(); } catch (Exception y) { /* gone already */ } sr = null; retrying = true; start(lang, wake, barge); }
         }, ms);
     }
@@ -94,6 +133,7 @@ class Ears implements RecognitionListener {
     }
 
     @Override public void onResults(Bundle b) {
+        boff = 0;
         ArrayList<String> r = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         String t = r == null || r.isEmpty() ? "" : r.get(0).trim();
         if (wake) { js("onHeard", t); again(400); return; }
@@ -124,6 +164,12 @@ class Ears implements RecognitionListener {
             again(Math.min(1200L * fails, 6000L));
             return;
         }
+        if (wake && e != SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {  // Part 162: Hey Jarvis does not die on an error: a fresh recognizer after 3, 6, 12, 30, 60 s
+            if (sr != null) { try { sr.destroy(); } catch (Exception x) { /* gone already */ } sr = null; }
+            long[] gap = {3000L, 6000L, 12000L, 30000L, 60000L};
+            again(gap[Math.min(boff++, 4)]);
+            return;
+        }
         on = false;
         js("onHeardErr", quiet ? "I did not hear anything" : e == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ? "allow the microphone permission for Jarvis"
             : net ? "the phone speech service has no internet right now (error " + e + "). Check Wi-Fi or mobile data, then tap the mic again"
@@ -133,7 +179,7 @@ class Ears implements RecognitionListener {
 
     @Override public void onReadyForSpeech(Bundle p) { }
     @Override public void onBeginningOfSpeech() {
-        fails = 0;
+        fails = 0; boff = 0;
         if (barge && !loud) voice();  // Part 160 (Part 164: not on the loudspeaker): the speech service's own start-of-speech also counts (a little slower than the level)
         if (held.length() > 0) { speaking = true; ui.removeCallbacks(flushJob); ui.postDelayed(flushJob, 12000L); }  // Part 161: you are talking again: keep the first part, add the next (12 s safety)
     }

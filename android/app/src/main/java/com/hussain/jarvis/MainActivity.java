@@ -134,6 +134,7 @@ public class MainActivity extends Activity {
                 });
             }
             @JavascriptInterface public boolean keepOn() { return KeepAlive.on; }
+            @JavascriptInterface public void setHush(boolean b) { getSharedPreferences("j", 0).edit().putBoolean("hush", b).apply(); }  // Part 162
             @JavascriptInterface public void setLoud(boolean b) { Ears.loud = b; }  // Part 164
             @JavascriptInterface public void setQuiet(int ms) { Ears.quiet = Math.max(1000, Math.min(6000, ms)); }
             // Part 39: background listening TEST. Starts only after a real finger tap, never while locked or stopped. Counts only, keeps no words.

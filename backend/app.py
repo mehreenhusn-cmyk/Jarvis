@@ -754,12 +754,13 @@ class H(BaseHTTPRequestHandler):
             if mem is None:  # "app ka kaam kahan tak pahuncha" / "mission": three honest counts read from the README (Part 87)
                 mem = progress.handle(msg, style == "hindi", c, dev)
             action = None
+            teach_off = None  # Part 165
             if mem is None:  # Part 30: "WhatsApp kholo" (only proposes; the app checks the switch and Stop)
                 got = tasks.routine(c, dev, msg, style == "hindi", data.get("control") is True, data.get("app") is True) or tasks.make(c, dev, msg, style == "hindi", data.get("control") is True, data.get("app") is True) or actions.handle(msg, style == "hindi", data.get("control") is True, data.get("app") is True, ask)  # Part 41: several steps in one sentence become one task
                 if got:
                     mem, action = got
                     learn.note(c, dev, action)  # Part 143: one more count for this call or app, in this hour
-                    unknown.pair(c, dev, msg, action)  # Part 146: this clear command may be what the last unclear sentence meant
+                    teach_off = unknown.pair(c, dev, msg, action)  # Parts 146 + 165: this clear command may be what the last unclear sentence meant
             gq = ghost.ask(c, dev, action, gapp) if mem is not None else None  # Part 107: the saved reason, asked once
             if mem is not None and gnote and action:
                 mem += "\n" + gnote
@@ -768,7 +769,7 @@ class H(BaseHTTPRequestHandler):
                 c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", keep, time.time()))
                 c.commit()
                 cl = actions.cool_take(dev, action)  # Part 102: asked once, because it uses the switch up
-                return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {}), **({"cool": cl} if cl else {}), **({"ghost": gq} if gq else {}), **({"pw": pwc} if (pwc := placenote.take(c, dev)) else {}), **({"tablea": tq} if (tq := phonetest.take(dev)) else {})))
+                return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {}), **({"cool": cl} if cl else {}), **({"ghost": gq} if gq else {}), **({"teach": teach_off} if teach_off else {}), **({"pw": pwc} if (pwc := placenote.take(c, dev)) else {}), **({"tablea": tq} if (tq := phonetest.take(dev)) else {})))
             unknown.note(c, dev, msg, data.get("app") is True)  # Part 146: no command matched and it goes to the AI, so the sentence is kept for you to teach
             rows = c.execute("SELECT role, content, ts FROM messages WHERE device=? ORDER BY id DESC LIMIT 20", (dev,)).fetchall()  # Part 126: 20 turns, not 10
             rows = deep.trim([x for x in rows if not (x[0] == "assistant" and x[1].startswith("(phone action)"))])  # Part 169: old long answers are cut  # Part 138: the AI must not copy an old fake label

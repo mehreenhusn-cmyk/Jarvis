@@ -141,6 +141,7 @@ public class ListenService extends Service implements RecognitionListener {
             if (sr != null) sr.destroy();
             sr = SpeechRecognizer.createSpeechRecognizer(this);
             sr.setRecognitionListener(this);
+            Ears.hush(this, true);  // Part 162: no restart beep
             sr.startListening(new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
                 .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                 .putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-IN").putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
@@ -164,7 +165,8 @@ public class ListenService extends Service implements RecognitionListener {
 
     void fail(String m) {
         sp.edit().putString("bg_err", m).apply();
-        if (++bad >= 10) { why = "too many speech errors"; stopSelf(); } else again(3000);
+        long[] gap = {3000L, 6000L, 12000L, 30000L, 60000L};  // Part 162: an error never ends the mic (only Stop or the 8 h limit): the pause grows 3, 6, 12, 30, 60 s
+        again(gap[Math.min(bad++, 4)]);
     }
 
     /** One "Jarvis" was heard. Counts it (numbers only). With the offline engine it also acts: on screen it opens the mic; otherwise a notification says "Tap to talk". */
@@ -206,6 +208,7 @@ public class ListenService extends Service implements RecognitionListener {
         ui.removeCallbacksAndMessages(null);
         eng.stop();
         if (sr != null) { sr.destroy(); sr = null; }
+        Ears.unhush();  // Part 162
         if (sp != null) sp.edit().putLong("bg_since", 0).putLong("bg_ended", System.currentTimeMillis()).putString("bg_why", why).apply();
         stopForeground(true);
         super.onDestroy();
