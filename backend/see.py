@@ -5,13 +5,17 @@ import json, os, re, urllib.request, urllib.error
 VISION = {"groq": "meta-llama/llama-4-scout-17b-16e-instruct", "openrouter": "openai/gpt-4o-mini",
           "mistral": "pixtral-12b-2409", "nvidia": "meta/llama-3.2-11b-vision-instruct"}
 IMG = re.compile(r"^data:image/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$")
+FULL = ("You are Jarvis, a calm personal assistant. Look at the image and do what the user asks, in a complete, well organised answer (simple markdown is fine). "
+        "Read ALL the text in it when asked. If it shows code, copy it exactly in a fenced block and review it when asked. Do not identify real people from their faces. "
+        "Do not guess private details. If the image is unclear, say so. For a medicine, form or money matter: say only what is written, never advise a dose or a payment, "
+        "and end with: doctor ya pharmacist se confirm karo.")
 PROMPT = ("You are Jarvis, a calm personal assistant. Look at the photo and answer the user's question in simple words, "
           "1 to 4 short sentences, no markdown. Do not identify real people from their faces. Do not guess private details. "
           "If the photo is unclear, say so. If it shows a form, bill, message or text, read what is printed and translate or explain it simply when asked. "
           "For a medicine, form or money matter: say only what is written, never advise a dose or a payment, and end with: doctor ya pharmacist se confirm karo.")
 
 
-def look(image, question, hindi, providers, getkey, names):
+def look(image, question, hindi, providers, getkey, names, full=False):
     """Return (answer, provider). Tries each provider that has a key and a known vision model."""
     if not isinstance(image, str) or len(image) > 1_400_000 or not IMG.match(image):
         raise RuntimeError("the photo is missing, too big, or not a JPEG/PNG/WEBP image")
@@ -23,8 +27,8 @@ def look(image, question, hindi, providers, getkey, names):
         if n not in VISION or n not in providers or not getkey(n):
             continue
         base = providers[n][0]
-        body = json.dumps({"model": os.environ.get("MODEL_VISION_" + n.upper()) or VISION[n], "max_tokens": 500, "messages": [
-            {"role": "system", "content": PROMPT},
+        body = json.dumps({"model": os.environ.get("MODEL_VISION_" + n.upper()) or VISION[n], "max_tokens": 1500 if full else 500, "messages": [
+            {"role": "system", "content": FULL if full else PROMPT},
             {"role": "user", "content": [{"type": "text", "text": q}, {"type": "image_url", "image_url": {"url": image}}]}]}).encode()
         req = urllib.request.Request(base + "/chat/completions", body, {
             "Authorization": "Bearer " + getkey(n), "Content-Type": "application/json", "User-Agent": "jarvis/0.1"})

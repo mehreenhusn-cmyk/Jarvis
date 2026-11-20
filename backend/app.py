@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, sqlite3, threading, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, assist, autolearn, autostart, backup, brief, calls, capsule, chatsum, clock, cutoff, debate, decisions, dreams, drift, events, ghost, guest, handoff, habits, learn, ledger, lens, lists, memory, modes, money, mood, notes, nudge, people, phone, place, placenote, phonetest, unknown, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
+import actions, assist, attach, autolearn, autostart, backup, brief, calls, capsule, chatsum, clock, cutoff, debate, decisions, deep, dreams, drift, events, ghost, guest, handoff, habits, learn, ledger, lens, lists, memory, modes, money, mood, notes, nudge, people, phone, place, placenote, phonetest, unknown, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -163,17 +163,20 @@ def names():
     return env or [n for n in [*PROVIDERS, "mock"] if getkey(n)]
 
 
-def call(name, history, key=None, style="english", extra=""):
+def call(name, history, key=None, style="english", extra="", full=False):
     if name == "mock":  # sirf testing ke liye
         return "mock jawab: " + history[-1]["content"]
     base, key_env, model = PROVIDERS[name]
     key = key or getkey(name)
-    body = json.dumps({"model": os.environ.get("MODEL_" + name.upper()) or model,
-                       "messages": [{"role": "system", "content": PERSONA.get(style, SYSTEM) + extra}] + history}).encode()
+    system = (deep.DEEP.get(style, deep.DEEP["english"]) if full else PERSONA.get(style, SYSTEM)) + extra  # Part 169: a full answer uses its own prompt
+    payload = {"model": os.environ.get("MODEL_" + name.upper()) or model, "messages": [{"role": "system", "content": system}] + history}
+    if full:
+        payload["max_tokens"] = 3000
+    body = json.dumps(payload).encode()
     req = urllib.request.Request(base + "/chat/completions", body, {
         "Authorization": "Bearer " + key, "Content-Type": "application/json", "User-Agent": "jarvis/0.1"})
     try:
-        with urllib.request.urlopen(req, timeout=60) as r:
+        with urllib.request.urlopen(req, timeout=120 if full else 60) as r:
             return json.load(r)["choices"][0]["message"]["content"].strip()
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"error {e.code}: {e.read()[:150].decode(errors='ignore')}")
@@ -218,7 +221,7 @@ def honest(reply, style):
     return "Sir, I did nothing on the phone: no action ran. Say the short words, for example: torch chalu karo, home jao, or Chrome kholo."
 
 
-def ask(history, style="english", extra=""):
+def ask(history, style="english", extra="", full=False):
     """PROVIDER=groq,openrouter,... : pehla jo chale uska jawab. Return (jawab, provider)."""
     errs = []
     for n in names():
@@ -228,7 +231,7 @@ def ask(history, style="english", extra=""):
             errs.append(f"{n}: key nahi")
         else:
             try:
-                return call(n, history, None, style, extra), n
+                return call(n, history, None, style, extra, full), n
             except RuntimeError as e:
                 errs.append(f"{n}: {e}")
     raise RuntimeError(" | ".join(errs) or "koi key nahi - upar ⚙ Settings mein key paste karo")
@@ -343,7 +346,7 @@ class H(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self.allowed():
             return self.send(403, {"error": "blocked"})
-        data = self.body(1500000 if self.path in ("/see", "/lookat") and self.headers.get("Authorization") else 20000)
+        data = self.body(1500000 if self.path in ("/see", "/lookat", "/attach") and self.headers.get("Authorization") else 60000 if self.path == "/chat" and self.headers.get("Authorization") else 20000)  # Parts 168 + 169
         if not isinstance(data, dict):
             return self.send(400, {"error": "galat request"})
         if self.path == "/newcode":  # Part 37: the pairing screen asks Termux to show the code again (the code is NEVER sent to the page)
@@ -555,6 +558,22 @@ class H(BaseHTTPRequestHandler):
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
             return self.send(200, dict(res, via=via))
+        if self.path == "/attach":  # Part 168: one file from the paperclip (text, code, PDF, Word, image). RAM only; never saved as a file
+            if guest.on(dev):
+                return self.send(400, {"error": "Attachments are off in a guest session."})
+            q, nm, kind = str(data.get("question", "")).strip()[:600], attach.clean(data.get("name")), str(data.get("kind", ""))
+            try:
+                if kind == "image":
+                    ans, via = see.look(data.get("data"), q, data.get("style") == "hindi", PROVIDERS, getkey, names(), True)
+                else:
+                    ans, via = attach.answer(dev, nm, kind, data.get("data"), q, str(data.get("style", "")), ask)
+            except RuntimeError as e:
+                return self.send(502, {"error": str(e)})
+            c = db()
+            c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "user", "(file) " + nm + (": " + q if q else ""), time.time()))
+            c.execute("INSERT INTO messages(device, role, content, ts) VALUES(?,?,?,?)", (dev, "assistant", ans, time.time()))
+            c.commit()
+            return self.send(200, {"reply": ans, "via": via, "deep": True})
         if self.path == "/see":
             try:
                 ans, via = see.look(data.get("image"), data.get("question"), data.get("style") == "hindi", PROVIDERS, getkey, names())
@@ -567,7 +586,7 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, {"reply": ans, "via": via})
         if self.path == "/chat":
             msg = str(data.get("message", "")).strip()
-            if not msg or len(msg) > 4000:
+            if not msg or len(msg) > 12000:  # Part 169: pasted code is allowed
                 return self.send(400, {"error": "message khali ya bahut bada"})
             hi = str(data.get("style", "")) == "hindi"
             g = guest.command(dev, msg, hi)  # Part 118: guest session words. Checked BEFORE anything is saved
@@ -595,6 +614,7 @@ class H(BaseHTTPRequestHandler):
                 c.execute("DELETE FROM messages WHERE device=?", (dev,))
                 c.commit()
                 chatsum.wipe(c, dev)  # Part 158: the short summary of the old chat goes too
+                attach.clear(dev)  # Part 168: and the file you sent
                 return self.send(200, {"reply": "Okay sir, the chat history and its short summary are deleted. Saved memories, people and reminders are not touched.", "via": "memory"})
             style = str(data.get("style", ""))
             if re.search(r"[\u0900-\u097F]", msg):
@@ -718,12 +738,13 @@ class H(BaseHTTPRequestHandler):
                 return self.send(200, dict({"reply": mem, "via": "memory"}, **({"action": action} if action else {}), **({"cool": cl} if cl else {}), **({"ghost": gq} if gq else {}), **({"pw": pwc} if (pwc := placenote.take(c, dev)) else {}), **({"tablea": tq} if (tq := phonetest.take(dev)) else {})))
             unknown.note(c, dev, msg, data.get("app") is True)  # Part 146: no command matched and it goes to the AI, so the sentence is kept for you to teach
             rows = c.execute("SELECT role, content, ts FROM messages WHERE device=? ORDER BY id DESC LIMIT 20", (dev,)).fetchall()  # Part 126: 20 turns, not 10
-            rows = [x for x in rows if not (x[0] == "assistant" and x[1].startswith("(phone action)"))]  # Part 138: the AI must not copy an old fake label
+            rows = deep.trim([x for x in rows if not (x[0] == "assistant" and x[1].startswith("(phone action)"))])  # Part 169: old long answers are cut  # Part 138: the AI must not copy an old fake label
             tctx = clock.context([(r, t) for r, _, t in reversed(rows)], prev_ts)
             prev_q = next((x[1] for x in rows[1:] if x[0] == "user"), "")  # Part 153: the question before this one ("net par search karke batana" means that one)
             wtxt, srcs = web.lookup(msg, now, mode == "research" and len(msg) >= 8 and not screen.used(data.get("screen")), data.get("webauto") is not False and not screen.used(data.get("screen")), prev_q)  # Part 57 + 153: Research mode searches everything; live questions (price, news, score, weather) are searched by themselves
+            full = deep.wants(msg, data.get("deep"))  # Part 169: code, audit, long question: one full answer
             try:
-                reply, via = ask([{"role": r, "content": t} for r, t, _ in reversed(rows)], style, CAN + tctx + memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + replyideas.context(data.get("notif")) + wtxt + MOOD + debate.extra(dev) + modes.extra(mode) + cutoff.context(data.get("interrupted")) + chatsum.context(c, dev) + autolearn.context(c, dev))  # Part 160: what Jarvis was saying when you cut in
+                reply, via = ask([{"role": r, "content": t} for r, t, _ in reversed(rows)], style, CAN + tctx + memory.context(c, dev) + people.context(c, dev, msg) + place.context(msg, data.get("loc")) + screen.context(data.get("screen")) + replyideas.context(data.get("notif")) + wtxt + MOOD + debate.extra(dev) + modes.extra(mode) + cutoff.context(data.get("interrupted")) + chatsum.context(c, dev) + autolearn.context(c, dev) + attach.context(dev), full)  # Parts 160 + 168: what Jarvis was saying when you cut in
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
             reply = untick(honest(reply, style))  # Part 138 + 147: no action ran on this path, so "done" from the AI is replaced
@@ -735,7 +756,7 @@ class H(BaseHTTPRequestHandler):
             sug = None if quiet_turn else (memory.suggest(msg) or autolearn.pending(c, dev))  # Part 54 + 155: only an offer (Yes / No), nothing is saved here
             if not quiet_turn:
                 threading.Thread(target=after_chat, args=(dev,), daemon=True).start()  # Parts 155 + 158: after the answer is ready, so the chat is never slower
-            return self.send(200, dict({"reply": reply, "via": via}, **({"remember": sug} if sug else {}), **({"debate": debate.label(dev)} if debate.label(dev) else {})))
+            return self.send(200, dict({"reply": reply, "via": via}, **({"deep": True} if full else {}), **({"remember": sug} if sug else {}), **({"debate": debate.label(dev)} if debate.label(dev) else {})))
         self.send(404, {"error": "not found"})
 
 

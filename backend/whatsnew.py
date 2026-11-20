@@ -1,4 +1,4 @@
-"""Jarvis what's new (Part 117): "last update", "kya kya add hua", "last 5 updates" are answered from the zips this phone already
+"""Jarvis what's new (Part 117; Part 167 adds "update kiya?", "update hua?"): "last update", "kya kya add hua", "last 5 updates" are answered from the zips this phone already
 processed (~/.jarvis_done: name, time, files inside) and that Part's row in README section 2. No AI and no GitHub call:
 Jarvis only knows what this phone received and pushed."""
 import os, re, time, zipfile
@@ -11,8 +11,20 @@ PROJ = re.compile(r"\b(?:jarvis|github|zips?|parts?|files?|implement\w*|pushed?)
 BARE = re.compile(r"^\s*(?:(?:last|latest)\s+(?:\d{1,2}\s+)?updates?|kya\s+(?:kya\s+)?(?:add|update|naya)\s*(?:hua|hui|aaya)|what(?:'s| is) new)\s*[?.]?\s*$", re.I)
 
 
+# Part 167: short questions like "update kiya?", "kya update hua", "update aaya?", "tune update kiya" (Hinglish and Hindi). Questions about the
+# phone, Android or other apps being updated are left alone unless Jarvis is named.
+UPD = re.compile(r"(?:update|updated|updates|\u0905\u092a\u0921\u0947\u091f)\s*(?:kiya|kia|kya|hua|hui|ho\s*gaya|ho\s*gya|aaya|aya|mila|check|status|\u0939\u0941\u0906|\u0915\u093f\u092f\u093e)"
+                 r"|(?:kiya|kia|hua|hui|aaya|mila|kya|\u0939\u0941\u0906|\u0915\u093f\u092f\u093e)\s+(?:\w+\s+)?(?:update|updates|\u0905\u092a\u0921\u0947\u091f)\b"
+                 r"|^\s*(?:updates?|\u0905\u092a\u0921\u0947\u091f)\s*[?.]?\s*$", re.I)
+OTHER = re.compile(r"\b(?:phone|android|whatsapp|windows|ios|play\s*store|software|termux|chrome|youtube)\b", re.I)
+
+
 def asked(msg):
-    return len(msg) <= 140 and bool(BARE.match(msg) or (LAST.search(msg) and THING.search(msg) and PROJ.search(msg)))
+    if len(msg) > 140:
+        return False
+    if BARE.match(msg) or (LAST.search(msg) and THING.search(msg) and PROJ.search(msg)):
+        return True
+    return len(msg) <= 60 and bool(UPD.search(msg)) and not (OTHER.search(msg) and not re.search(r"\bjarvis\b", msg, re.I))
 
 
 def updates():
