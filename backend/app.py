@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, socket, sqlite3, threading, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, assist, attach, autolearn, autostart, backup, brief, calls, capsule, chatsum, clock, cutoff, debate, decisions, deep, dreams, drift, events, ghost, guest, handoff, habits, learn, ledger, lens, lists, memory, modes, money, mood, notes, nudge, people, phone, place, placenote, phonetest, unknown, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
+import actions, assist, attach, autolearn, autostart, backup, brief, calls, capsule, chathist, chatsum, clock, cutoff, debate, decisions, deep, dreams, drift, events, ghost, guest, handoff, habits, learn, ledger, lens, lists, memory, modes, money, mood, notes, nudge, people, phone, place, placenote, phonetest, unknown, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, voiceengine, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -495,6 +495,10 @@ class H(BaseHTTPRequestHandler):
             except (TypeError, ValueError):
                 return self.send(400, {"error": "bad id"})
             return self.send(200, {"ok": True})
+        if self.path == "/hist":  # Part 174: all saved messages by day, or a word search over them (reading only)
+            return self.send(200, chathist.query(db(), dev, data))
+        if self.path == "/tablea":  # Part 177: the phone-test checklist screen (same table as the chat words `table a pass 12`)
+            return self.send(200, phonetest.api(db(), dev, data))
         if self.path == "/guest":  # Part 118: is a guest session on (the page shows the badge after a reload)
             return self.send(200, {"on": guest.on(dev)})
         if self.path == "/snooze":  # Part 82: the 10 min button under a reminder

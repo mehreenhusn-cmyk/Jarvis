@@ -311,6 +311,7 @@ body.hm #vmc button{background:rgba(255,255,255,.06);color:#eaf0ff}body.hm #vmc 
 #sq{padding:10px 14px;background:var(--sf);border-bottom:1px solid var(--line)}#sq[hidden]{display:none}.sqr{display:flex;gap:8px;margin-bottom:8px}.sqr input{flex:1;min-width:0}
 #sqr{max-height:40vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px}.sqh{text-align:left;font-size:13px;font-weight:400}.sqn{color:var(--mut);margin:0;font-size:13px}
 .m.flash{outline:2px solid var(--ac);outline-offset:2px}
+#stsp{align-self:center;margin:0 0 6px;padding:7px 14px;border-radius:18px;font-size:13px;background:var(--sf2);color:var(--bad);border:1px solid var(--line)}#stsp[hidden]{display:none}.sqt{flex-wrap:wrap}.sqt button,.sqr button.cpb{padding:6px 10px;font-size:13px}.tlr{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;text-align:left}.tlr.fail{border-color:var(--bad)}.tlr p{margin:4px 0}.hd2{color:var(--mut);font-size:12px;margin:2px 0}
 body.hm #sq{background:rgba(7,11,26,.92);color:#eaf0ff;border-color:rgba(96,140,255,.22)}
 /* Parts 168 + 169: paperclip chip, code blocks, copy buttons */
 #att{width:38px;height:38px;border-radius:50%;padding:0;flex:none;background:transparent;border:0;color:var(--mut);display:flex;align-items:center;justify-content:center}body.hm #chat button#att.g{background:transparent;border:0;color:#9fb4d9}
@@ -321,7 +322,7 @@ body.hm #sq{background:rgba(7,11,26,.92);color:#eaf0ff;border-color:rgba(96,140,
 </style>
 </head><body>
 <header><div class="logo"><svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><g class="rg" stroke-width="1.7"><path d="M16 3.5a12.5 12.5 0 0 1 10.8 6.2"/><path d="M28.5 16a12.5 12.5 0 0 1-6.2 10.8"/><path d="M16 28.5a12.5 12.5 0 0 1-10.8-6.2"/><path d="M3.5 16A12.5 12.5 0 0 1 9.7 5.2"/></g><circle cx="16" cy="16" r="8" stroke-width="1" opacity=".4"/><path d="M17.6 10.6v7a2.9 2.9 0 0 1-5.8 0" stroke-width="2.4"/></svg></div><div><b>JARVIS</b><span id="st">...</span><span id="stx"></span></div><span class="sp"></span><button id="sbtn" title="Search" aria-label="Search">🔍</button><button id="vbtn" title="Voice">🔊</button><button id="gear" title="Settings">⚙</button></header>
-<div id="sq" hidden><div class="sqr"><input id="sqi" type="search" placeholder="Search this chat" autocomplete="off"><button type="button" id="sqx" class="g" aria-label="Close">✕</button></div><div class="sqr"><button type="button" id="sqe" class="g">Search everywhere: notes, memory, people, lists</button></div><div id="sqr"></div></div>
+<div id="sq" hidden><div class="sqr"><input id="sqi" type="search" placeholder="Search this chat" autocomplete="off"><button type="button" id="sqx" class="g" aria-label="Close">✕</button></div><div class="sqr"><button type="button" id="sqa" class="g">Search all history</button><button type="button" id="sqe" class="g">Search everywhere</button></div><div class="sqr sqt"><button type="button" id="sqh" class="g">📜 History</button><button type="button" id="sqc" class="g">Copy chat</button><button type="button" id="sqt" class="g">✅ Phone tests</button><button type="button" id="sql" class="g">🛠 Error log</button></div><div id="sqr"></div></div>
 <div id="tbar" hidden><span><b id="tn"></b><br><small>No voice, short replies, reminders as text.</small></span><button type="button" id="tend">End</button></div>
 <div id="dbar" hidden><span><b>Debate: <i id="dn"></i></b> · 10 minutes<br><small>Jarvis is arguing a side on purpose. It is not advice.</small></span><button type="button" id="dend">Stop</button></div>
 <div id="gbar" hidden><span><b>Guest: temporary</b> · Memory saved: No · Session: Private<br><small>Text still goes to the AI provider. Nothing is kept here.</small></span><button type="button" id="gend">End &amp; erase</button></div>
@@ -357,7 +358,7 @@ body.hm #sq{background:rgba(7,11,26,.92);color:#eaf0ff;border-color:rgba(96,140,
 <div class="vp-head"><b>🔊 Voice settings</b><span class="sp"></span><button type="button" id="vpclose" aria-label="Close">✕</button></div>
 <div class="vp-row"><select id="lang"><option value="hi-IN">Speak: Hindi</option><option value="en-IN">Speak: English</option><option value="ta-IN">Speak: Tamil</option><option value="gu-IN">Speak: Gujarati</option><option value="mr-IN">Speak: Marathi</option><option value="te-IN">Speak: Telugu</option><option value="kn-IN">Speak: Kannada</option><option value="ml-IN">Speak: Malayalam</option><option value="bn-IN">Speak: Bengali</option><option value="pa-IN">Speak: Punjabi</option><option value="ur-IN">Speak: Urdu</option></select>
 <select id="voice"></select><select id="pre"><option value="">Voice style</option><option value="k">Khattar (deep, Hindi dub)</option><option value="r">Rolex (very deep)</option><option value="d">Jarvis studio (Hindi)</option><option value="b">Jarvis studio (British English)</option><option value="n">Normal</option></select></div>
-<div class="vp-row"><label><input type="checkbox" id="say" style="width:auto"> Speak replies</label><label>Depth <input type="range" id="pt" min="0.5" max="1.5" step="0.05" style="width:80px;padding:0"></label><label>Speed <input type="range" id="rt" min="0.6" max="1.4" step="0.05" style="width:80px;padding:0"></label></div>
+<div class="vp-row"><label><input type="checkbox" id="say" style="width:auto"> Speak replies</label><label><input type="checkbox" id="onlyv" style="width:auto"> Speak only when I spoke</label><label>Depth <input type="range" id="pt" min="0.5" max="1.5" step="0.05" style="width:80px;padding:0"></label><label>Speed <input type="range" id="rt" min="0.6" max="1.4" step="0.05" style="width:80px;padding:0"></label></div>
 <div class="vp-row" id="vmrow" hidden><div id="vmc"><button type="button" data-v="off"><b>Off</b><small>The mic works only when you tap the mic button.</small></button><button type="button" data-v="hey"><b>Hey Jarvis</b><small>Jarvis waits quietly. Say "Hey Jarvis", then ask once.</small></button><button type="button" data-v="conv"><b>Conversation</b><small>Talk back and forth. Jarvis listens again after every answer.</small></button></div><select id="vmode" hidden><option value="off">Off</option><option value="hey">Hey Jarvis</option><option value="conv">Conversation</option></select></div>
 <div class="vp-row"><button type="button" id="tv" class="g">Test voice</button><button type="button" id="mon" class="g" hidden>Turn mic on</button></div>
 <div hidden><button type="button" id="wake">Hey Jarvis: off</button><button type="button" id="conv">Conversation: off</button><button type="button" id="intr">Interrupt: off</button></div>
@@ -366,12 +367,17 @@ body.hm #sq{background:rgba(7,11,26,.92);color:#eaf0ff;border-color:rgba(96,140,
 <div id="vstat"><span id="vs">Idle</span><select id="mode" title="Mode"><option value="normal">Normal</option><option value="research">Research</option><option value="quiet">Quiet</option><option value="focus">Focus</option></select></div>
 <div id="log"></div>
 <div id="achip" hidden><span id="acn"></span><button type="button" id="acx" class="g" aria-label="Remove the file">✕</button></div>
-<form id="f"><button type="button" id="stop" title="Stop" aria-label="Stop"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg></button><div id="box"><input id="msg" autocomplete="off" placeholder="Message Jarvis..."><button type="button" id="att" title="Attach a file" aria-label="Attach a file" class="g"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5l-8.2 8.2a5 5 0 0 1-7-7l8.6-8.6a3.4 3.4 0 0 1 4.8 4.8l-8.6 8.6a1.8 1.8 0 0 1-2.5-2.5l7.9-7.9"/></svg></button><button type="button" id="cam" title="Camera" aria-label="Camera" class="g"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5h3l1.6-2.5h6.8L17 8.5h3V19H4z"/><circle cx="12" cy="13.5" r="3.6"/></svg></button></div><button id="send" title="Send" aria-label="Send"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button><button type="button" id="mic" title="Speak" aria-label="Speak"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button><input type="file" id="pic" accept="image/*" capture="environment" hidden><input type="file" id="attf" hidden accept="image/*,.pdf,.docx,.txt,.md,.csv,.json,.py,.js,.java,.kt,.dart,.html,.css,.xml,.yml,.yaml,.log,.sh,.sql,.ini,.toml,.gradle,.ts,.tsx,.jsx,.c,.cpp,.h,.go,.rs,.php,.rb,.swift"></form></div>
+<button type="button" id="stsp" hidden>⏹ Stop speaking</button><form id="f"><button type="button" id="stop" title="Stop" aria-label="Stop"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg></button><div id="box"><input id="msg" autocomplete="off" placeholder="Message Jarvis..."><button type="button" id="att" title="Attach a file" aria-label="Attach a file" class="g"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5l-8.2 8.2a5 5 0 0 1-7-7l8.6-8.6a3.4 3.4 0 0 1 4.8 4.8l-8.6 8.6a1.8 1.8 0 0 1-2.5-2.5l7.9-7.9"/></svg></button><button type="button" id="cam" title="Camera" aria-label="Camera" class="g"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5h3l1.6-2.5h6.8L17 8.5h3V19H4z"/><circle cx="12" cy="13.5" r="3.6"/></svg></button></div><button id="send" title="Send" aria-label="Send"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button><button type="button" id="mic" title="Speak" aria-label="Speak"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button><input type="file" id="pic" accept="image/*" capture="environment" hidden><input type="file" id="attf" hidden accept="image/*,.pdf,.docx,.txt,.md,.csv,.json,.py,.js,.java,.kt,.dart,.html,.css,.xml,.yml,.yaml,.log,.sh,.sql,.ini,.toml,.gradle,.ts,.tsx,.jsx,.c,.cpp,.h,.go,.rs,.php,.rb,.swift"></form></div>
 <script>
 const $=id=>document.getElementById(id);
 function chatBottom(){const l=document.getElementById('log');if(l)l.scrollTop=l.scrollHeight;}  // Part 153: Talk always opens at the newest message
 
-const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;};  // Part 56: global (the system card needs it too)
+const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;};
+// Part 176: the last 50 page errors stay in this page's storage only; the search panel > Error log copies them
+const ELOG=[];try{JSON.parse(localStorage.getItem('jelog')||'[]').forEach(x=>ELOG.push(String(x).slice(0,300)));}catch(e){}
+function elog(k,m){try{ELOG.push(new Date().toLocaleString('en-GB')+' '+k+': '+String(m).slice(0,300));while(ELOG.length>50)ELOG.shift();localStorage.setItem('jelog',JSON.stringify(ELOG));}catch(e){}}
+window.addEventListener('error',e=>elog('js',(e.message||'error')+' @'+String(e.filename||'').split('/').pop()+':'+(e.lineno||0)));
+window.addEventListener('unhandledrejection',e=>elog('promise',(e.reason&&e.reason.message)||e.reason));  // Part 56: global (the system card needs it too)
 const dur=s=>{const m=Math.round(s/60);return m<60?m+' min':Math.floor(m/60)+' h '+(m%60)+' min';};  // over 60 minutes: hours and minutes
 let view='home';  // Part 48: the app opens on the Home dashboard (chat, home or set)
 let token=localStorage.getItem('jtoken')||'';
@@ -389,7 +395,7 @@ let guestOn=false,lastPic=null;  // Part 119: lastPic = the last photo, kept in 
 let dTimer=0;function debateBar(s){clearTimeout(dTimer);$('dbar').hidden=!s;$('dn').textContent=s||'';if(s)dTimer=setTimeout(()=>debateBar(''),600000);}  // Part 92: badge for 10 minutes
 function guestBar(on){guestOn=!!on;$('gbar').hidden=!on;}
 function guestErase(msg){lastPic=null;document.querySelectorAll('#log .gst').forEach(x=>x.remove());add('bot',msg);}  // Part 118: the guest bubbles leave the page too
-function add(role,text,ts){const d=ts?new Date(ts*1000):new Date(),day=d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();
+function add(role,text,ts){if(role=='err')elog('err',text);const d=ts?new Date(ts*1000):new Date(),day=d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();
   if(day!=lastDay){lastDay=day;const x=document.createElement('div');x.className='ds';x.textContent=dayName(d);$('log').appendChild(x);}
   const m=document.createElement('div');m.className='m '+role+(guestOn?' gst':'');m.dataset.t=p2(d.getHours())+':'+p2(d.getMinutes());if(role!='user'&&role!='err'&&text&&(text.includes('```')||text.length>300))rich(m,text);else m.textContent=text;$('log').appendChild(m);m.scrollIntoView();return m;}
 let ncAuto=false;
@@ -433,7 +439,7 @@ $('go').onclick=async()=>{
 };
 const BATQ=/(battery|charging|charge|बैटरी|चार्जिंग|चार्ज)/i,BATNO=/(settings|setting|सेटिंग|kholo|खोलो|open|ओपन|saver|सेवर|kaise bachao|tips|health|kharab|jaldi|drain|problem|dikkat|garam)/i;
 $('f').onsubmit=async e=>{
-  e.preventDefault();let t=$('msg').value.trim();if(!t&&!ATT)return;$('msg').value='';
+  e.preventDefault();typedAt=viaMic?0:Date.now();let t=$('msg').value.trim();if(!t&&!ATT)return;$('msg').value='';
   if(ATT){const a=ATT;ATT=null;attShow();if(a.kind=='image')lastPic=a.data;add('user','📎 '+a.name+(t?': '+t:''));const w=add('bot','Reading the file...');busy=true;  // Part 168
     try{const {s,d}=await api('/attach',{name:a.name,kind:a.kind,data:a.data,question:t,style:sty()});
       if(s==200){setBot(w,d.reply);w.title='via '+d.via;const x=spk(d.reply,true);if(MODE!='quiet'&&$('say').checked)speak(x,false,'INFORMATION');}else{w.className='m err';w.textContent=d.error||'error';}
@@ -460,14 +466,14 @@ $('f').onsubmit=async e=>{
     if(r.stopped){add('user',t);add('err','Jarvis is stopped. Tap "Turn mic on" first.');return;}
     if(r.perm===false){add('user',t);add('bot','Turn on "Jarvis screen reader" in Accessibility settings (I opened it for you), then ask again.');return;}
     pendingMsg=t;add('bot','Switch to the app you want me to read. I will read it in '+r.wait+' seconds and come back.');return;}
-  const sc=screenData;screenData=null;const nf=notifData;notifData=null;const vm=viaMic;viaMic=false;add('user',t);const w=add('bot','...');homeSay(t,'…');const hmx=((vm||$('say').checked)&&MODE!='quiet')?hmmStart():null;  // Part 159
+  const sc=screenData;screenData=null;const nf=notifData;notifData=null;const vm=viaMic;viaMic=false;add('user',t);const w=add('bot','...');homeSay(t,'…');const hmx=((vm||($('say').checked&&!onlyTyped()))&&MODE!='quiet')?hmmStart():null;  // Part 159
   let sp=false;busy=true;try{const loc=(WHERE.test(t)||PSAVE.test(t))?await getLoc():null;const {s,d}=await api('/chat',{message:t,interrupted:vm?takeCut():null,now:nowS(),style:sty(),loc,phone:(t.length<=90&&(PHQ.test(t)||/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)))?pinfo():null,calls:CALLQ.test(t)?bridge('calls',/today|aaj|आज/i.test(t)?1:/week/i.test(t)?7:3):null,contact:CNQ.test(t)?bridge('contact',t.match(CNQ)[1]):null,cal:CALQ2.test(t)?bridge('calendar',calSpec(t)):/^\s*(?:briefing|brief karo|aaj ka plan|my plan today)\s*$/i.test(t)?bridge('calendar','0,1'):null,screen:sc,notif:nf,app:inApp(),control:inApp()&&ctl(),mode:MODE,deep:localStorage.getItem('jdeep')=='0'?false:null,webauto:localStorage.getItem('jwebauto')!='0'});
     if(hmx)hmx();
     if(s==401){token='';localStorage.removeItem('jtoken');show();return;}
     if(s==200&&'debate' in d)debateBar(d.debate);if(/^\s*debate\s+(?:stop|khatam|band|off)\s*$/i.test(t))debateBar('');
     if(s==200&&'guest' in d){const was=guestOn;guestBar(d.guest);if(!d.guest&&was)guestErase(d.reply);}
-    if(s==200){setBot(w,d.reply);w.title='via '+d.via;if(d.mode)setMode(d.mode);if(d.timed)startTimed(d.timed);const said=d.action?(d.cool?await coolAct(d,w):await doAct(d.action,w)):spk(d.reply.split('\n\nSources:')[0].split('\n\nस्रोत:')[0],d.deep);if(said&&MODE!='quiet')speak(said,vm,d.action?'TASK_CONFIRMATION':'');if(d.remember)askSave(w,d.remember);if(d.teach)teachAsk(w,d.teach);if(d.ghost)ghostAsk(d.ghost);if(d.tablea)tableAsk(w,d.tablea);if(d.pw)pwPush(d.pw,true);extras(w,t);sp=MODE!='quiet'&&(vm||$('say').checked);}else{w.className='m err';w.textContent=d.error||'error';}
-  }catch(e){w.className='m err';w.textContent='Cannot reach the server.';}finally{busy=false;if(hmx)hmx();homeSay(t,w.textContent);if((wakeOn||convOn)&&!sp)heardBack();}
+    if(s==200){setBot(w,d.reply);w.title='via '+d.via;if(d.mode)setMode(d.mode);if(d.timed)startTimed(d.timed);const said=d.action?(d.cool?await coolAct(d,w):await doAct(d.action,w)):spk(d.reply.split('\n\nSources:')[0].split('\n\nस्रोत:')[0],d.deep);if(said&&MODE!='quiet')speak(said,vm,d.action?'TASK_CONFIRMATION':'');if(d.remember)askSave(w,d.remember);if(d.teach)teachAsk(w,d.teach);if(d.ghost)ghostAsk(d.ghost);if(d.tablea)tableAsk(w,d.tablea);if(d.pw)pwPush(d.pw,true);extras(w,t);sp=MODE!='quiet'&&(vm||($('say').checked&&!onlyTyped()));}else{w.className='m err';w.textContent=d.error||'error';setTimeout(()=>retryBtn(w,t),0);}
+  }catch(e){w.className='m err';w.textContent='Cannot reach the server.';setTimeout(()=>retryBtn(w,t),0);}finally{busy=false;if(hmx)hmx();homeSay(t,w.textContent);if((wakeOn||convOn)&&!sp)heardBack();}
 };
 // Part 159: a soft "hmm" while Jarvis thinks. Made by the phone's own sound engine (no file, no internet). Only before a spoken answer that takes more than 0.8 s. Settings > Voice & Listening > Thinking sound.
 let hmmCtx=null;
@@ -707,7 +713,7 @@ const lt=(a,i,x)=>(LT[a.lang]||[])[i]?.replace('{x}',x);
 async function speak(t,force,intent,profile){
   lastSay=t||'';
   const qx=MODE=='quiet'&&TIMED&&(TIMED.ex||[]).some(w=>(t||'').toLowerCase().includes(w));  // Part 137: `quiet mode 2 hours except namaz, Ammi`: a spoken alert with such a word is still read aloud
-  if(!force&&(!$('say').checked||(MODE=='quiet'&&!qx)))return;if(TIMED&&MODE=='quiet'&&intent=='REMINDER'&&!qx)return;  // Part 100: in a timed mode reminders are text only
+  if(!force&&(!$('say').checked||onlyTyped()||(MODE=='quiet'&&!qx)))return;if(TIMED&&MODE=='quiet'&&intent=='REMINDER'&&!qx)return;  // Part 100: in a timed mode reminders are text only
  if(wakeOn&&appEars())JarvisApp.stopListen();const v=$('voice').value||'neural:hi-IN-MadhurNeural';
   const sv=scriptVoice(t);if(sv){try{await neural(t,sv);return;}catch(e){add('err','Voice for this language failed: '+e.message+'. Trying the phone voice.');}}
   const eng=localStorage.getItem('jeng')!='0';  // Part 52: Tony / JARVIS voices are ON unless you switch to the classic voice
@@ -927,6 +933,69 @@ function sqFind(){const q=$('sqi').value.trim().toLowerCase(),box=$('sqr');box.t
 $('sqi').oninput=sqFind;
 $('sqi').onkeydown=e=>{if(e.key=='Enter'){e.preventDefault();sqFind();}};
 $('sqe').onclick=()=>{const q=$('sqi').value.trim().slice(0,60);if(q.length<2)return;sqOpen(false);go('chat');$('msg').value='sab jagah dhundo '+q;$('f').dispatchEvent(new Event('submit',{cancelable:true}));};
+// Part 171: a small chip while Jarvis speaks. It stops only the voice; Conversation, Hey Jarvis, the mic and the chat stay as they are.
+const talkNow=()=>!!((aud&&!aud.paused&&!aud.ended)||(window.speechSynthesis&&speechSynthesis.speaking));
+setInterval(()=>{try{$('stsp').hidden=!talkNow()||view!='chat';}catch(e){}},500);
+$('stsp').onclick=()=>{const wasAud=!!(aud&&!aud.paused&&!aud.ended);try{if(aud)aud.pause();if(window.speechSynthesis)speechSynthesis.cancel();}catch(e){}vPause=0;vWas='';$('stsp').hidden=true;if(wasAud&&(wakeOn||convOn))heardBack();};
+// Part 172: when you TYPE, the reply is text only (a reminder or a reply to your voice is still spoken). Switch in Settings > Voice.
+let typedAt=0;const ONLYV=()=>localStorage.getItem('jonlyv')!='0';const onlyTyped=()=>ONLYV()&&Date.now()-typedAt<120000;
+$('onlyv').checked=ONLYV();$('onlyv').onchange=()=>localStorage.setItem('jonlyv',$('onlyv').checked?'1':'0');
+// Parts 173, 174, 176, 177: the tools under the search box. Everything is drawn with textContent (never innerHTML).
+const HOFF=()=>-new Date().getTimezoneOffset()*60;
+const clk=ts=>{const d=new Date((ts||0)*1000);return p2(d.getHours())+':'+p2(d.getMinutes());};
+const dkey=ts=>{const d=new Date((ts||0)*1000);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());};
+const mline=m=>(m.role=='user'?'You':'Jarvis')+(m.ts?' '+clk(m.ts):'')+': '+m.content;
+function sqClear(t){const b=$('sqr');b.textContent='';if(t)b.appendChild(el('p','hd2',t));return b;}
+function histText(ms){let last='';const o=[];ms.forEach(m=>{const k=dkey(m.ts);if(k!=last){last=k;o.push('','== '+k+' ==');}o.push(mline(m));});return o.join('\n').trim();}
+function chatText(){const o=[];document.querySelectorAll('#log > *').forEach(n=>{if(n.classList.contains('ds'))o.push('','== '+n.textContent+' ==');else if(n.classList.contains('m')){const c=n.cloneNode(true);c.querySelectorAll('button').forEach(b=>b.remove());o.push((n.classList.contains('user')?'You':n.classList.contains('err')?'Error':'Jarvis')+(n.dataset.t?' '+n.dataset.t:'')+': '+c.textContent.trim());}});return o.join('\n').trim();}
+$('sqc').onclick=()=>{const t=chatText(),n=document.querySelectorAll('#log .m').length,b=sqClear(n?n+' messages on the screen.':'');  // Part 173
+  if(!t){b.appendChild(el('p','sqn','The chat is empty.'));return;}
+  b.appendChild(cpBtn('Copy chat',()=>t));
+  if(navigator.share){const x=el('button','g cpb','Share');x.type='button';x.onclick=()=>navigator.share({title:'Jarvis chat',text:t}).catch(()=>{});b.appendChild(x);}
+  b.appendChild(el('p','hd2','This is only what is on the screen. For older days use History > Copy all history.'));};
+async function histDays(){const b=sqClear('Loading...');  // Part 174
+  try{const {s,d}=await api('/hist',{off:HOFF()});b.textContent='';
+    if(s!=200||!d.days||!d.days.length){b.appendChild(el('p','sqn','No saved messages yet.'));return;}
+    const ab=el('button','g cpb','Copy all history');ab.type='button';
+    ab.onclick=async()=>{ab.textContent='Loading...';try{const r=await api('/hist',{day:'all',off:HOFF()});if(r.s==200){copyText(histText(r.d.msgs||[]),ab);ab.textContent='Copied';}else ab.textContent='Failed';}catch(e){ab.textContent='Failed';}setTimeout(()=>{ab.textContent='Copy all history';},1800);};
+    b.appendChild(ab);b.appendChild(el('p','hd2','Tap a day to read it. Only saved messages (the last 3000 can be copied).'));
+    d.days.forEach(x=>{const k=el('button','g sqh',dayName(new Date(x.day+'T12:00:00'))+' · '+x.n+' messages');k.type='button';k.onclick=()=>histDay(x.day);b.appendChild(k);});
+  }catch(e){sqClear('Server not reachable.');}}
+async function histDay(day,mark){const b=sqClear('Loading...');
+  try{const {s,d}=await api('/hist',{day,off:HOFF()});b.textContent='';const ms=(s==200&&d.msgs)||[];
+    const top=el('div','sqr');const bk=el('button','g cpb','← Days');bk.type='button';bk.onclick=histDays;top.append(bk,cpBtn('Copy this day',()=>histText(ms)));b.appendChild(top);
+    if(!ms.length)b.appendChild(el('p','sqn','Nothing saved on this day.'));
+    let hit=null;ms.forEach(m=>{const x=el('p','sqn',mline(m).slice(0,700)+(m.content.length>700?' ...':''));x.style.whiteSpace='pre-wrap';if(m.role=='user')x.style.color='var(--fg)';if(mark&&m.content.toLowerCase().includes(mark.toLowerCase())){x.style.outline='2px solid var(--ac)';x.style.borderRadius='6px';if(!hit)hit=x;}b.appendChild(x);});
+    if(hit)hit.scrollIntoView({block:'center'});
+  }catch(e){sqClear('Server not reachable.');}}
+$('sqh').onclick=histDays;
+$('sqa').onclick=async()=>{const q=$('sqi').value.trim().slice(0,60);if(q.length<2){sqClear('Type at least 2 letters in the box above, then tap Search all history.');return;}
+  const b=sqClear('Searching...');
+  try{const {s,d}=await api('/hist',{q,off:HOFF()});b.textContent='';const ms=(s==200&&d.msgs)||[];
+    if(!ms.length){b.appendChild(el('p','sqn','Nothing found in all saved messages.'));return;}
+    ms.forEach(m=>{const i=m.content.toLowerCase().indexOf(q.toLowerCase()),sn=(i>40?'...':'')+m.content.slice(Math.max(0,i-40),i+q.length+60).replace(/\s+/g,' ');const k=el('button','g sqh',dkey(m.ts)+' '+clk(m.ts)+' '+(m.role=='user'?'You':'Jarvis')+': '+sn);k.type='button';k.onclick=()=>histDay(dkey(m.ts),q);b.appendChild(k);});
+  }catch(e){sqClear('Server not reachable.');}};
+function elogText(){const st=(($('st').textContent||'')+' '+($('stx').textContent||'')).trim();return ['Jarvis error log '+new Date().toLocaleString('en-GB'),'Page: '+(navigator.userAgent||'').slice(0,160),'App: '+(window.JarvisApp?'Jarvis app':'browser')+' · '+st,'Entries: '+ELOG.length,''].concat(ELOG.length?ELOG:['(no errors saved)']).join('\n');}
+$('sql').onclick=()=>{const b=sqClear('Last '+ELOG.length+' errors. Copy and send them to Claude; no keys or chat text are in this list.');  // Part 176
+  b.appendChild(cpBtn('Copy error log',elogText));const c=el('button','g cpb','Clear');c.type='button';c.onclick=()=>{ELOG.length=0;try{localStorage.removeItem('jelog');}catch(e){}$('sql').onclick();};b.appendChild(c);
+  ELOG.slice().reverse().forEach(x=>{const p=el('p','sqn',x);p.style.whiteSpace='pre-wrap';p.style.wordBreak='break-word';b.appendChild(p);});};
+let tlAll=false;
+async function testList(mark){const b0=$('sqr'),keep=b0.scrollTop,b=sqClear('Loading...');  // Part 177: same answers as the chat words `table a pass 12`
+  try{const {s,d}=await api('/tablea',mark||{});b.textContent='';if(s!=200||d.error){b.appendChild(el('p','sqn',(d&&d.error)||'The server did not answer.'));return;}
+    const k=d.counts,rows=d.rows.slice().reverse();
+    b.appendChild(el('p','hd2',k.ok+' of '+k.tests+' PASS · '+k.fail+' FAIL · '+k.skip+' skipped. Newest tests first.'));
+    (tlAll?rows:rows.slice(0,12)).forEach(r=>{const c=el('div','tlr'+(r.res=='fail'?' fail':''));
+      c.appendChild(el('b','',(r.res=='fail'?'FAIL · ':r.res=='skip'?'Skipped · ':'')+'Test '+r.n+' · APK: '+r.apk));
+      c.appendChild(el('p','','Do: '+r.try));c.appendChild(el('p','hd2','Expect: '+r.exp));
+      if(r.note)c.appendChild(el('p','hd2','Note: '+r.note));
+      btns(c,[['PASS',()=>testList({row:r.n,res:'pass'})],['FAIL',()=>testList({row:r.n,res:'fail'})],['Skip',()=>testList({row:r.n,res:'skip'})]]);b.appendChild(c);});
+    if(!tlAll&&rows.length>12){const m=el('button','g cpb','Show all '+rows.length+' tests');m.type='button';m.onclick=()=>{tlAll=true;testList();};b.appendChild(m);}
+    if(!rows.length)b.appendChild(el('p','sqn','All tests are PASS.'));
+    b.scrollTop=mark?keep:0;
+  }catch(e){sqClear('Server not reachable.');}}
+$('sqt').onclick=()=>{tlAll=false;testList();};
+// Part 178: a failed message gets one button, Try again (it sends the same words again; nothing is sent by itself)
+function retryBtn(w,t){elog('chat',w.textContent);if(!t||!w.isConnected)return;btns(w,[['↻ Try again',()=>{const r=w.querySelector('.sh');if(r)r.remove();ask(t);}]]);}
 // Part 30 and 31: phone actions. The server only proposes; the app (Java) checks the switch, Stop and the real app list, then tells us what happened.
 const inApp=()=>!!(window.JarvisApp&&JarvisApp.act);
 const ctl=()=>{try{return JSON.parse(JarvisApp.privacy()).control===true}catch(e){return false}};

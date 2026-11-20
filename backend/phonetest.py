@@ -113,3 +113,27 @@ def handle(c, dev, msg, hindi):
         out += " " + say("चाहें तो नोट लिखिए: table a note <क्या हुआ>", "If you want, add a note: table a note <what happened>")
     nx = _next(rows)
     return out + ("\n\n" + _show(nx, k, hindi) if nx else "\n" + say("सारे टेस्ट हो गए।", "All tests are answered."))
+
+
+def api(c, dev, d):
+    """Part 177: the checklist screen in the page. {} = the counts and every row that is not PASS yet.
+    {row, res: pass|fail|skip, note?} = save one answer first (same table as the chat words, so both always agree)."""
+    rows = merged(c, dev)
+    res = str(d.get("res") or "")
+    if d.get("row") is not None and res in ("pass", "fail", "skip"):
+        try:
+            n = int(d.get("row"))
+        except (TypeError, ValueError):
+            return {"error": "bad row"}
+        by = {r["n"]: r for r in rows}
+        if n not in by:
+            return {"error": "no such row"}
+        old = c.execute("SELECT note FROM tablea WHERE device=? AND row=?", (dev, n)).fetchone()
+        note = str(d.get("note") or "").strip()[:200] or (old[0] if old and old[0] else "")
+        c.execute("INSERT OR REPLACE INTO tablea(device,row,result,note,day) VALUES(?,?,?,?,?)", (dev, n, res, note, time.strftime("%Y-%m-%d")))
+        c.commit()
+        by[n]["res"], by[n]["note"] = res, note
+    k = _count(rows)
+    todo = [{"n": r["n"], "try": r["try"][:300], "exp": r["exp"][:300], "apk": r["apk"][:40], "res": r["res"] if r["res"] in ("fail", "skip") else "", "note": r["note"]}
+            for r in rows if r["res"] != "pass"][:120]
+    return {"counts": k, "rows": todo}
