@@ -82,7 +82,7 @@ WARM = {"running": False, "done": 0, "total": 0, "stop": ""}  # progress of "sav
 
 def meter():
     """The numbers of this month. A new month starts again at 0 used."""
-    m = {"month": time.strftime("%Y-%m"), "used": 0, "limit": 0, "silent": False, "short": False, "edge": False, "collect": False}  # Part 200a: collect = save text + audio of new Sarvam sentences for an own voice set (off by default). Part 193: edge = the Edge voice may speak when Sarvam fails (off by default)
+    m = {"month": time.strftime("%Y-%m"), "used": 0, "limit": 0, "silent": False, "short": False, "edge": False, "collect": False, "own": False}  # Part 200a: collect = save text + audio of new Sarvam sentences for an own voice set (off by default). Part 193: edge = the Edge voice may speak when Sarvam fails (off by default)
     try:
         with open(METER) as fh:
             m.update(json.load(fh))
@@ -101,7 +101,7 @@ def meter_save(m):
         pass
 
 
-def meter_set(limit=None, silent=None, short=None, edge=None, collect=None):
+def meter_set(limit=None, silent=None, short=None, edge=None, collect=None, own=None):
     with LOCK:
         m = meter()
         if limit is not None:
@@ -114,6 +114,8 @@ def meter_set(limit=None, silent=None, short=None, edge=None, collect=None):
             m["edge"] = bool(edge)
         if collect is not None:
             m["collect"] = bool(collect)
+        if own is not None:
+            m["own"] = bool(own)
         meter_save(m)
         return m
 

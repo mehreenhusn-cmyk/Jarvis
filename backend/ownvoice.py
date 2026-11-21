@@ -1,7 +1,7 @@
 """Part 200a: a voice set for an own small copy of the Sarvam voice (personal use). Every sentence that Sarvam speaks for Jarvis is saved here WITH its text
 (the normal saved audio has no text, so it cannot train anything). Only when the switch is ON. Stays on this phone until you tap Export, which writes ONE zip
 to Downloads (wavs + metadata.csv, the usual `id|text` form) that you take to Colab (Part 200b). Nothing is sent anywhere by this file."""
-import hashlib, os, re, threading, time, wave, zipfile, io
+import hashlib, os, re, shutil, subprocess, sys, tempfile, threading, time, wave, zipfile, io
 
 SET = os.path.expanduser("~/.jarvis_voiceset")  # SET/<speaker>/<id>.wav and SET/index.tsv (id, speaker, seconds, text)
 INDEX = os.path.join(SET, "index.tsv")
@@ -107,3 +107,68 @@ def clear():
         except OSError:
             pass
     return n
+
+
+# ---- Part 200c: speak with the trained copy (Piper ONNX from Colab, Part 200b) as a backup after the saved audio and Sarvam ----
+MODEL_DIR = os.path.expanduser("~/.jarvis_ownvoice")
+MODEL = os.path.join(MODEL_DIR, "jarvis_voice.onnx")  # the .onnx.json file must sit next to it
+
+
+def ready():
+    return os.path.exists(MODEL) and os.path.exists(MODEL + ".json")
+
+
+def model_info():
+    return {"model": ready(), "model_mb": round(os.path.getsize(MODEL) / 1048576, 1) if ready() else 0}
+
+
+def install():
+    """Take jarvis_voice.zip (the Colab download) or jarvis_voice.onnx + .onnx.json from Downloads and put them in MODEL_DIR."""
+    dl = os.environ.get("JARVIS_DL") or os.path.expanduser("~/storage/downloads")
+    if not os.path.isdir(dl):
+        return {"ok": False, "error": "Downloads folder not found. Run once in Termux: termux-setup-storage"}
+    try:
+        os.makedirs(MODEL_DIR, exist_ok=True)
+        z = os.path.join(dl, "jarvis_voice.zip")
+        if os.path.exists(z):
+            with zipfile.ZipFile(z) as zf:
+                for n in ("jarvis_voice.onnx", "jarvis_voice.onnx.json"):
+                    with zf.open(n) as a, open(os.path.join(MODEL_DIR, n), "wb") as b:
+                        shutil.copyfileobj(a, b)
+        elif os.path.exists(os.path.join(dl, "jarvis_voice.onnx")) and os.path.exists(os.path.join(dl, "jarvis_voice.onnx.json")):
+            for n in ("jarvis_voice.onnx", "jarvis_voice.onnx.json"):
+                shutil.copy(os.path.join(dl, n), os.path.join(MODEL_DIR, n))
+        else:
+            return {"ok": False, "error": "jarvis_voice.zip not found in Downloads. Take it from Colab (Part 200b) first."}
+    except (OSError, KeyError, zipfile.BadZipFile) as e:
+        return {"ok": False, "error": "Could not read the voice files: " + type(e).__name__}
+    return dict(model_info(), ok=True)
+
+
+def speak(text):
+    """wav bytes from the trained voice. RuntimeError if anything is missing or slow (the caller then goes on to the next backup)."""
+    if not ready():
+        raise RuntimeError("own voice file is not installed")
+    t = re.sub(r"[*_`#\r\n]+", " ", text or "").strip()[:400]
+    if not t:
+        raise RuntimeError("no text to speak")
+    fd, out = tempfile.mkstemp(suffix=".wav")
+    os.close(fd)
+    try:
+        r = subprocess.run([sys.executable, "-m", "piper", "-m", MODEL, "-f", out], input=t.encode("utf-8"), capture_output=True, timeout=60)
+        err = r.stderr.decode(errors="ignore")
+        if "No module named" in err:
+            raise RuntimeError("Piper is not installed. In Termux run: pip install piper-tts")
+        if r.returncode != 0 or os.path.getsize(out) < 200:
+            raise RuntimeError("own voice failed: " + err.strip()[-120:])
+        with open(out, "rb") as fh:
+            return fh.read()
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("own voice took too long")
+    except OSError as e:
+        raise RuntimeError("own voice failed: " + type(e).__name__)
+    finally:
+        try:
+            os.remove(out)
+        except OSError:
+            pass

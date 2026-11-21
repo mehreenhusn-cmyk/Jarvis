@@ -698,11 +698,27 @@ class H(BaseHTTPRequestHandler):
             out = {}
             if data.get("on") is not None:
                 tts.meter_set(collect=bool(data.get("on")))
-            if data.get("action") == "export":
+            if data.get("own") is not None:  # Part 200c: speak with the trained copy when Sarvam is not available
+                tts.meter_set(own=bool(data.get("own")))
+            if data.get("action") == "install":
+                out = ownvoice.install()
+            elif data.get("action") == "export":
                 out = ownvoice.export()
             elif data.get("action") == "clear":
                 out = {"ok": True, "deleted": ownvoice.clear()}
-            return self.send(200, dict(ownvoice.info(), collect=bool(tts.meter().get("collect")), **{"result": out}))
+            return self.send(200, dict(ownvoice.info(), **dict(ownvoice.model_info(), collect=bool(tts.meter().get("collect")), own=bool(tts.meter().get("own")), result=out)))
+        if self.path == "/voice/owntest":  # Part 200c: say one test sentence with the trained copy (Piper) and report how long it took
+            t0 = time.time()
+            try:
+                audio = ownvoice.speak("नमस्ते, मैं जार्विस हूँ। आज मैं आपकी क्या मदद करूँ?")
+            except RuntimeError as e:
+                return self.send(502, {"error": str(e)})
+            self.send_response(200)
+            self.send_header("X-Seconds", "%.1f" % (time.time() - t0))
+            self.send_header("Content-Type", "audio/wav")
+            self.send_header("Content-Length", str(len(audio)))
+            self.end_headers()
+            return self.wfile.write(audio)
         if self.path == "/voice/warm":  # Part 197: make and save the common lines once (uses Sarvam credit one time)
             k = getkey("sarvam")
             if not k:
@@ -728,12 +744,18 @@ class H(BaseHTTPRequestHandler):
                             audio, was = tts.sarvam_cached(txt, getkey("sarvam"), v["speaker"], "english" if data.get("lang") == "english" else "hindi", v["rate"])  # Part 197: saved audio first
                             mime, eng = "audio/wav", "sarvam-saved" if was else "sarvam"
                         except RuntimeError as e:
-                            if tts.meter()["silent"]:  # Part 198: Sarvam voice or silence, never the Edge voice
-                                return self.send(502, {"error": "Sarvam voice is not available (" + str(e) + "). Text only.", "silent": True})
-                            self.log_message("Sarvam failed: %s", e)
-                            if not tts.meter().get("edge"):  # Part 193: the Edge voice only if you allowed it; otherwise the phone speaks (the page asks Android for its own voice)
-                                return self.send(502, {"error": "Sarvam voice is not available (" + str(e) + ")", "phone": True})
-                            eng = "edge-fallback"
+                            if tts.meter().get("own") and data.get("lang") != "english" and ownvoice.ready():  # Part 200c: the trained copy of the voice, after the saved audio and Sarvam
+                                try:
+                                    audio, mime, eng = ownvoice.speak(txt), "audio/wav", "own"
+                                except RuntimeError as e2:
+                                    self.log_message("Own voice failed: %s", e2)
+                            if audio is None:
+                                if tts.meter()["silent"]:  # Part 198: Sarvam voice or silence, never the Edge voice
+                                    return self.send(502, {"error": "Sarvam voice is not available (" + str(e) + "). Text only.", "silent": True})
+                                self.log_message("Sarvam failed: %s", e)
+                                if not tts.meter().get("edge"):  # Part 193: the Edge voice only if you allowed it; otherwise the phone speaks (the page asks Android for its own voice)
+                                    return self.send(502, {"error": "Sarvam voice is not available (" + str(e) + ")", "phone": True})
+                                eng = "edge-fallback"
                     if audio is None:
                         audio = tts.speak(txt, v["voice"], v["pitch"], v["rate"])
             except RuntimeError as e:
