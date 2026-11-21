@@ -964,11 +964,21 @@ function listenCard(){const b=$('vlcard');if(!b)return;b.textContent='';
   const rv=el('div','srow');const tv=el('span','','Voice match limit');tv.appendChild(el('small','','How close a voice must be to a saved voice (owner or a person). Strict = fewer wrong matches, may not know you in noise. Loose = knows you more often, may confuse two people. It is never a password.'));
   const sv=el('select');[['1','Strict'],['2','Normal'],['3','Loose']].forEach(([v,n])=>{const o=el('option','',n);o.value=v;sv.appendChild(o);});sv.value='2';
   api('/voices/limit',{}).then(r=>{if(r&&r.d&&r.d.level)sv.value=String(r.d.level);}).catch(()=>{});sv.onchange=()=>{api('/voices/limit',{level:+sv.value}).catch(()=>{});};rv.append(tv,sv);b.appendChild(rv);  // Part 192
+  hiRow(b);  // Part 196
   sw('jwebauto',true,'Search the internet by itself','Price, news, score, weather: Jarvis looks it up without being told. Sources are shown under the answer.');
   const r=el('div','srow');const t=el('span','','Wait after I stop talking');t.appendChild(el('small','','Shorter = faster answers. Longer = it lets you pause while thinking. If you pause inside this time and go on, Jarvis joins both parts into one sentence.'));
   const sel=el('select');[['1500','Fast (1.5 s)'],['2500','Normal (2.5 s)'],['4000','Patient (4 s)']].forEach(([v,n])=>{const o=el('option','',n);o.value=v;sel.appendChild(o);});
   sel.value=localStorage.getItem('jquiet')||'2500';sel.onchange=()=>{localStorage.setItem('jquiet',sel.value);bgSync();};r.append(t,sel);b.appendChild(r);
   b.appendChild(el('p','sm','Interrupting Jarvis while he speaks works with earphones. On the loudspeaker the mic would hear Jarvis himself.'));}
+// Part 196: offline Hindi listening. One download after your tap; used only when the phone speech service has no internet or breaks, and only when Speak is Hindi.
+function hiRow(b){let h=null;try{h=JSON.parse(JarvisApp.hiInfo());}catch(e){return;}if(!h||h.ready===undefined)return;
+  const r=el('div','srow'),t=el('span','','Offline Hindi listening');t.appendChild(el('small','','Hindi is heard on the phone itself when the phone speech service has no internet or keeps failing. Works only when Speak is Hindi and you tap the mic. One time download of about 42 MB (use Wi-Fi). It is less exact than Google, English words may come in Hindi letters. Nothing you say is saved or sent.'));
+  const st=el('small','','');t.appendChild(st);const bt=el('button','g','');bt.style.marginTop='6px';
+  const draw=()=>{let k={};try{k=JSON.parse(JarvisApp.hiInfo());}catch(e){}h=k;st.textContent=k.err?'Problem: '+k.err:k.downloading?'Downloading '+k.pct+'%':k.ready?(k.use?'ON':'Model ready, switch is OFF'):'Model not downloaded';
+    bt.textContent=k.downloading?'Downloading...':k.ready?(k.use?'Turn OFF':'Turn ON'):'Download model (42 MB)';if(k.downloading)setTimeout(draw,1500);};
+  bt.onclick=()=>{if(h.downloading)return;if(!h.ready){try{JarvisApp.hiDownload();}catch(e){}setTimeout(draw,800);}else{try{JarvisApp.hiUse(!h.use);}catch(e){}draw();}};
+  r.append(t,bt);if(h.ready){const d=el('button','g','Delete model');d.style.marginLeft='8px';d.onclick=()=>{try{JarvisApp.hiDelete();}catch(e){}setTimeout(draw,300);};bt.after(d);}
+  b.appendChild(r);draw();}
 // Part 112: note after a call. Off until you say `call note on`. Jarvis never sees the number or the voice, only that a call of 30 seconds or more ended.
 let CNW=0;const CNOTE=/^\s*call note\s*(on|off|chalu|band)?\s*$/i;
 function callNoteAsk(){go('chat');const b=add('bot','Call ended. Kuch yaad rakhna hai? Type or say your note now.');CNW=Date.now()+5*60000;btns(b,[['Skip',()=>{CNW=0;b.textContent='Okay, no note.';}]]);}

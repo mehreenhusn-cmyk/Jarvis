@@ -339,6 +339,23 @@ public class MainActivity extends Activity {
                 WakeEngine.remove(MainActivity.this);
                 return "{\"ok\":true}";
             }
+            // Part 196: offline Hindi listening model (download only after your tap) and its switch
+            @JavascriptInterface public String hiInfo() { if (AppLock.locked()) return "{\"locked\":true}"; return WakeEngine.hiInfo(MainActivity.this); }
+            @JavascriptInterface public String hiDownload() {
+                if (AppLock.locked() || System.currentTimeMillis() - touch > 3000) return "{\"ok\":false,\"err\":\"tap\"}";
+                WakeEngine.hiDownload(MainActivity.this);
+                return "{\"ok\":true}";
+            }
+            @JavascriptInterface public String hiUse(boolean on) {
+                if (AppLock.locked() || (on && !WakeEngine.hiReady(MainActivity.this))) return "{\"ok\":false}";
+                getSharedPreferences("j", 0).edit().putBoolean("off_hi", on).apply();
+                return "{\"ok\":true}";
+            }
+            @JavascriptInterface public String hiDelete() {
+                if (AppLock.locked() || System.currentTimeMillis() - touch > 3000) return "{\"ok\":false}";
+                WakeEngine.hiRemove(MainActivity.this);
+                return "{\"ok\":true}";
+            }
             // Part 144: who is speaking. Voice numbers only (no recording kept). The model is downloaded only after your tap; the listening starts only when the page asks after you said the words.
             @JavascriptInterface public String spkInfo() { if (AppLock.locked()) return "{\"locked\":true}"; return SpeakerId.info(MainActivity.this); }
             @JavascriptInterface public String spkDownload() {

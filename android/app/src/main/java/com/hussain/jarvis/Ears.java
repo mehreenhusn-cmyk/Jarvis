@@ -52,6 +52,7 @@ class Ears implements RecognitionListener {
     private int hot;             // Part 160: how many level readings in a row were clearly louder than the room
     private long lastVoice;      // Part 160: when the page was last told "a voice started"
     static volatile boolean loud;  // Part 164: interrupt on the loudspeaker (set by the page): the mic LEVEL is not used then, because Jarvis's own voice would trigger it; only words count
+    private WakeEngine.Dictate dict;  // Part 196: offline Hindi listening, used when the phone speech service has no internet or breaks
     volatile boolean wake, on, barge;  // barge (Part 61): listening WHILE Jarvis speaks, partial words go to the page so it can stop talking
 
     Ears(Activity a, WebView w) { act = a; web = w; }
@@ -100,7 +101,11 @@ class Ears implements RecognitionListener {
         if (!retrying) fails = 0;
         retrying = false;
         if (Privacy.stopped) { js("onHeardErr", "Jarvis is stopped. Tap Turn mic on first"); return; }
-        if (!SpeechRecognizer.isRecognitionAvailable(act)) { js("onHeardErr", "this phone has no speech service"); return; }
+        if (!SpeechRecognizer.isRecognitionAvailable(act)) {
+            lang = l; wake = wakeMode; barge = bargeMode;
+            if (offlineGo()) return;  // Part 196
+            js("onHeardErr", "this phone has no speech service"); return;
+        }
         if (ListenService.up) ListenService.halt(act);  // Part 39: only one listener at a time; opening the mic here ends the background test
         lang = l; wake = wakeMode; on = true; barge = bargeMode;
         sr = SpeechRecognizer.createSpeechRecognizer(act);
@@ -150,10 +155,30 @@ class Ears implements RecognitionListener {
             .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, wake ? 1500L : Math.max(1000L, quiet - 500L)));  // (some phone speech services ignore these two numbers)
     }
 
+    /** Part 196: Hindi with no internet. Only for a normal mic tap (never Hey Jarvis or interrupt), only when the switch is on, the Hindi model is downloaded and "Speak" is Hindi. */
+    private boolean offlineGo() {
+        if (wake || barge || Privacy.stopped || !lang.toLowerCase().startsWith("hi")) return false;
+        if (!act.getSharedPreferences("j", 0).getBoolean("off_hi", false) || !WakeEngine.hiReady(act)) return false;
+        stop();
+        if (ListenService.up) ListenService.halt(act);
+        on = true;
+        Privacy.used("mic");
+        dict = new WakeEngine.Dictate();
+        dict.start(act, 25, (t, err) -> ui.post(() -> {
+            if (!on) return;  // stopped by you while it listened
+            on = false;
+            if (err != null) js("onHeardErr", err);
+            else if (t.isEmpty()) js("onHeard", "");
+            else js("onHeard", t);
+        }));
+        return true;
+    }
+
     void stop() {
         on = false; barge = false; speaking = false; held.setLength(0); lastPartial = "";
         ui.removeCallbacksAndMessages(null);
         if (sr != null) { sr.destroy(); sr = null; }
+        if (dict != null) { dict.stop(); dict = null; }  // Part 196
         unhush();  // Part 162
     }
 
@@ -215,6 +240,7 @@ class Ears implements RecognitionListener {
         if (wake && quiet) { again(e == SpeechRecognizer.ERROR_RECOGNIZER_BUSY ? 1500 : 300); return; }
         boolean net = e == SpeechRecognizer.ERROR_NETWORK || e == SpeechRecognizer.ERROR_NETWORK_TIMEOUT || e == SpeechRecognizer.ERROR_SERVER;  // Part 123: 1, 2, 4 = no internet for the phone speech service: try again, do not give up
         boolean soft = net || e == 11 || e == 10 || e == SpeechRecognizer.ERROR_CLIENT;  // 11 = speech service disconnected, 10 = too many requests, 5 = client
+        if (net && offlineGo()) return;  // Part 196: no internet for the speech service: Hindi is heard on the phone itself, if you turned that on
         if (soft && fails < (net ? 8 : 4)) {  // Part 134: error 2 (no internet for the speech service) gets 8 tries, the pause grows up to 6 seconds  // a fresh recognizer after a short, growing pause; Jarvis shows nothing unless it keeps failing
             fails++;
             if (sr != null) { try { sr.destroy(); } catch (Exception x) { /* gone already */ } sr = null; }
@@ -227,6 +253,7 @@ class Ears implements RecognitionListener {
             again(gap[Math.min(boff++, 4)]);
             return;
         }
+        if (!quiet && e != SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS && offlineGo()) return;  // Part 196: the speech service keeps failing
         on = false;
         js("onHeardErr", quiet ? "I did not hear anything" : e == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ? "allow the microphone permission for Jarvis"
             : net ? "the phone speech service has no internet right now (error " + e + "). Check Wi-Fi or mobile data, then tap the mic again"
