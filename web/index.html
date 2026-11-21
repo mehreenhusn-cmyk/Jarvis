@@ -806,7 +806,7 @@ function voiceCard(){
     try{const {d}=await api('/voice/key',{key:k});if(d.ok){await api('/voice/set',{provider:'sarvam'});ki.value='';await voiceLoad();}else{kr.className='bad';kr.textContent='Not saved: '+d.error;}}catch(e){kr.className='bad';kr.textContent='Cannot reach the server';}};
   p.append(ki,el('br'),kb);
   if(VS.sarvam_saved){const kd=el('button','g','Remove key');kd.type='button';kd.style.marginLeft='6px';kd.onclick=async()=>{try{await api('/voice/key/delete',{});}catch(e){}await voiceLoad();};p.append(kd);}
-  p.append(kr);rows.push(p);if(VS.sarvam_saved)rows.push(sarvamBox());rows.push(romanBox());
+  p.append(kr);rows.push(p);if(VS.sarvam_saved){rows.push(sarvamBox());rows.push(ownBox());}rows.push(romanBox());
   const b=el('p','');b.append('Now: ',el('b','vbadge','Voice: -'));rows.push(b);box.replaceChildren(...rows);
 }
 
@@ -830,6 +830,17 @@ function sarvamBox(){
   lim.onchange=()=>load({limit:+lim.value||0});c1.onchange=()=>load({silent:c1.checked});c2.onchange=()=>load({short:c2.checked});c3.onchange=()=>load({edge:c3.checked});
   wb.onclick=async()=>{info.textContent='Starting... (this uses a little Sarvam credit, one time)';try{const {d}=await api('/voice/warm',{});if(d.ok===false){info.textContent=d.error;return;}draw(d);}catch(e){info.textContent='Cannot reach the server';}};
   c.append(info,ord,lim,el('br'),l1,el('br'),l3,el('br'),l2,el('br'),wb);load();return c;}
+/* Part 200a: voice set for an own copy of the Sarvam voice (personal use). Sentences stay on this phone until you tap Export. */
+function ownBox(){
+  const c=el('div','dr');c.append(el('b',null,'My own voice set (for a copy of this voice)'));
+  const info=el('small',null,'Loading...'),res=el('small',null,'');
+  const l=el('label',null,'');const k=el('input');k.type='checkbox';l.append(k,' Collect every NEW sentence that Sarvam speaks, with its text. Stays on this phone. It adds no Sarvam credit: only sentences that are spoken anyway. Never numbers, codes or secrets.');
+  const eb=el('button','g','Export for training (zip in Downloads)');eb.type='button';const db=el('button','g','Delete the set');db.type='button';db.style.marginLeft='6px';
+  const draw=d=>{k.checked=!!d.collect;info.textContent='Collected: '+d.n+' sentences, '+d.minutes+' minutes (a guess: about '+d.need+' minutes or more are needed for a good copy).';
+    const r=d.result||{};if(r.ok&&r.path)res.textContent='Saved: '+r.path+' ('+r.n+' sentences, '+r.minutes+' min). Next: Part 200b (Colab).';else if(r.ok===false)res.textContent=r.error||'';else if(r.deleted!==undefined)res.textContent='Deleted '+r.deleted+' files.';};
+  const load=async b=>{try{const {d}=await api('/voice/ownset',b||{});draw(d);}catch(e){info.textContent='Cannot reach the server';}};
+  k.onchange=()=>load({on:k.checked});eb.onclick=()=>load({action:'export'});db.onclick=()=>{if(confirm('Delete the whole voice set?'))load({action:'clear'});};
+  c.append(info,el('br'),l,el('br'),eb,db,el('br'),res);load();return c;}
 function romanBox(){const c=el('div','dr');c.append(el('b',null,'Text on the screen'));const l=el('label',null,'');const k=el('input');k.type='checkbox';k.checked=ROMAN;
   k.onchange=()=>{ROMAN=k.checked;try{localStorage.setItem('jroman',ROMAN?'1':'0');}catch(e){}};
   l.append(k,' Show Hindi in Roman letters (screen only; Jarvis still hears and speaks Hindi). New messages only.');c.append(l);return c;}

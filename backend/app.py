@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, socket, sqlite3, threading, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, appnames, assist, attach, autolearn, autostart, backup, brief, calls, capsule, chathist, chatsum, clock, cutoff, debate, decisions, deep, dreams, drift, events, ghost, guest, habits, handoff, learn, ledger, lens, lists, memory, modes, money, mood, notes, nudge, people, phone, phonetest, place, placenote, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, unknown, voiceengine, voices, web, whatsnew
+import actions, appnames, ownvoice, assist, attach, autolearn, autostart, backup, brief, calls, capsule, chathist, chatsum, clock, cutoff, debate, decisions, deep, dreams, drift, events, ghost, guest, habits, handoff, learn, ledger, lens, lists, memory, modes, money, mood, notes, nudge, people, phone, phonetest, place, placenote, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, unknown, voiceengine, voices, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -694,6 +694,15 @@ class H(BaseHTTPRequestHandler):
                 except (TypeError, ValueError):
                     return self.send(200, {"ok": False, "error": "That is not a number"})
             return self.send(200, voice_state())
+        if self.path == "/voice/ownset":  # Part 200a: the voice set for an own copy of the voice: switch, numbers, export (one zip in Downloads), delete
+            out = {}
+            if data.get("on") is not None:
+                tts.meter_set(collect=bool(data.get("on")))
+            if data.get("action") == "export":
+                out = ownvoice.export()
+            elif data.get("action") == "clear":
+                out = {"ok": True, "deleted": ownvoice.clear()}
+            return self.send(200, dict(ownvoice.info(), collect=bool(tts.meter().get("collect")), **{"result": out}))
         if self.path == "/voice/warm":  # Part 197: make and save the common lines once (uses Sarvam credit one time)
             k = getkey("sarvam")
             if not k:
