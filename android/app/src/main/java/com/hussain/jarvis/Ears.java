@@ -29,6 +29,19 @@ class Ears implements RecognitionListener {
     final StringBuilder held = new StringBuilder();  // Part 161: the parts of ONE sentence heard so far (you paused in the middle)
     volatile boolean speaking;  // Part 161: true while you talk again inside the waiting time
     final Runnable flushJob = this::flush;
+    /** Part 189: words that cannot end a sentence. If the heard text ends with one, or with a comma, Jarvis waits longer before answering. */
+    private static final java.util.Set<String> OPEN = new java.util.HashSet<>(java.util.Arrays.asList(
+        "जो", "कि", "और", "तो", "क्योंकि", "मतलब", "लेकिन", "पर", "या", "की", "का", "के", "को", "में", "से", "फिर", "जैसे", "अगर", "जब", "तब", "हम", "मैं", "मेरा", "मेरी", "मेरे",
+        "jo", "ki", "aur", "to", "kyunki", "lekin", "ya", "ka", "ke", "ko", "mein", "se", "phir", "jaise", "agar", "jab", "tab", "hum", "main",
+        "and", "or", "the", "a", "of", "that", "because", "but", "if", "so", "with", "for", "in", "on", "my"));
+    static boolean endsOpen(String s) {
+        String t = s == null ? "" : s.trim().toLowerCase();
+        if (t.isEmpty()) return false;
+        if (t.endsWith(",") || t.endsWith("...")) return true;
+        String[] w = t.split("\\s+");
+        String last = w[w.length - 1].replaceAll("[^\\p{L}\\p{M}]", "");
+        return OPEN.contains(last);
+    }
     private float floor = 99f;  // Part 160: the quiet level of the room (slowly follows the mic level)
     private int hot;             // Part 160: how many level readings in a row were clearly louder than the room
     private long lastVoice;      // Part 160: when the page was last told "a voice started"
@@ -141,6 +154,7 @@ class Ears implements RecognitionListener {
         if (t.isEmpty() && held.length() == 0) { on = false; js("onHeard", ""); return; }
         if (!t.isEmpty()) { if (held.length() > 0) held.append(' '); held.append(t); }
         long extra = Math.max(0L, quiet - 1300L);  // Part 161: the speech service already waited about 1.3 s of silence by itself; we wait the rest, and join what you say next
+        if (endsOpen(held.toString())) extra += 3000L;  // Part 189: the sentence ends in a joining word (hum jo, aur, ki, to...): wait 3 more seconds for the rest
         if (extra < 150L) { flush(); return; }
         ui.removeCallbacks(flushJob);
         ui.postDelayed(flushJob, extra);

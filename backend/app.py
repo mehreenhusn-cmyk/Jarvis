@@ -159,9 +159,82 @@ def mask(k):
     return k[:4] + "…" + k[-4:] if len(k) > 10 else "…"
 
 
+LAST = {"ai": "", "cool": {}}  # Part 195: the provider that answered last, and providers resting after error 429 (name -> until when)
+
+
 def names():
     env = [n.strip().lower() for n in os.environ.get("PROVIDER", "").split(",") if n.strip()]
-    return env or [n for n in [*PROVIDERS, "mock"] if getkey(n)]
+    if env:
+        return env  # an order you wrote in PROVIDER is kept
+    ns = [n for n in [*PROVIDERS, "mock"] if getkey(n)]
+    if LAST["ai"] in ns:  # Part 195: the one that worked last goes first
+        ns.remove(LAST["ai"])
+        ns.insert(0, LAST["ai"])
+    return ns
+
+
+def ai_busy():
+    """Part 194: True when every saved AI key is resting after error 429 (about 60 seconds)."""
+    real = [n for n in names() if n != "mock"]
+    return bool(real) and all(LAST["cool"].get(n, 0) > time.time() for n in real)
+
+
+def ask_cmd(*a, **k):
+    """Part 194: a phone command never waits for an AI that is at its limit. The grammar needs no AI; only an unclear sentence asks the AI for an app name."""
+    if ai_busy():
+        raise RuntimeError("AI is resting")
+    return ask(*a, **k)
+
+
+def voice_state():
+    """Part 197 and 198: everything the Sarvam card shows."""
+    m = tts.meter()
+    n, mb = tts.cache_info()
+    return {"ok": True, "used": m["used"], "limit": m["limit"], "pct": tts.pct(m), "silent": m["silent"], "short": m["short"], "files": n, "mb": mb, "warm": dict(tts.WARM)}
+
+
+WARM_CMDS = ["home jao", "peeche jao", "neeche scroll karo", "upar scroll karo", "scroll ruko", "minimize karo", "phone lock karo", "torch on karo"]
+WARM_APPS = ["YouTube", "WhatsApp", "Chrome", "Camera", "Instagram", "Gmail", "Maps", "Settings", "Calculator", "Clock", "Phone", "Messages"]
+WARM_FIXED = ["Good morning, sir. How can I help you?", "Good afternoon, sir. How can I help you?", "Good evening, sir. How can I help you?", "Good night, sir. How can I help you?",
+              "Yes, sir?", "I am listening, sir.", "Done, sir.", "Sorry sir, I did not catch that. Could you say it again?",
+              "सर, मैं आपके लिए हमेशा यहाँ हूँ।", "जी सर?", "ठीक है सर।", "सर, मैं सुन रहा हूँ।", "सर, माफ़ कीजिए, मैं समझ नहीं पाया। क्या आप फिर से कह सकते हैं?"]
+
+
+def warm_jobs():
+    """Part 197: the sentences Jarvis says all day, in both languages, for Tony and JARVIS. Only the ones not saved yet are made."""
+    def no_ai(*a, **k):
+        raise RuntimeError("no AI")
+    lines = list(WARM_FIXED)
+    for hindi in (True, False):
+        for c in WARM_CMDS:
+            try:
+                got = actions.handle(c, hindi, True, True, no_ai)
+            except Exception:
+                got = None
+            if got and got[0]:
+                lines.append(got[0])
+    for x in WARM_APPS:
+        lines += [f"Opening {x}, sir.", f"ठीक है सर, {x} खोल रहा हूँ।"]
+    jobs, seen = [], set()
+    for line in lines:
+        lang = "hindi" if re.search(r"[\u0900-\u097F]", line) else "english"
+        for prof in ("tony", "jarvis"):
+            v = voiceengine.pick(line, "", prof, lang)
+            if v["provider"] != "sarvam":
+                return []
+            key = (line, v["speaker"], lang, v["rate"])
+            if key not in seen and not tts.cached(*key):
+                seen.add(key)
+                jobs.append(key)
+    return jobs
+
+
+def limit_msg(style, errs):
+    wait = max([int(LAST["cool"].get(n, 0) - time.time()) for n in names()] + [0])
+    tail = " | ".join(errs)
+    if style == "hindi":
+        return "सर, आपकी सारी AI key की free limit अभी पूरी है। एक मिनट रुकिए या Settings में एक और key डालिए। (" + tail + ")"
+    return "Sir, every AI key is at its limit right now" + (f" (about {wait} seconds to wait)" if wait > 0 else "") + ". Wait a minute or add one more key in Settings. (" + tail + ")"
 
 
 OFFLINE = "No internet right now, so I cannot answer this one. Phone commands, notes, lists, reminders and habits still work."  # Part 170
@@ -275,7 +348,11 @@ def ask(history, style="english", extra="", full=False):
     errs = []
     if "mock" not in names() and not online():
         raise RuntimeError(OFFLINE)  # Part 170: one clear line at once, no 60 second wait
-    for n in names():
+    order = names()
+    rest = [n for n in order if LAST["cool"].get(n, 0) > time.time()]  # Part 195: a key that just said 429 goes to the end of the line for 60 seconds
+    if rest and len(rest) == len(order) and "mock" not in order:
+        raise RuntimeError(limit_msg(style, [f"{n}: error 429: resting" for n in rest]))  # all of them are resting: answer at once, no waiting
+    for n in [x for x in order if x not in rest] + rest:
         if n != "mock" and n not in PROVIDERS:
             errs.append(f"{n}: naam galat")
         elif n != "mock" and not getkey(n):
@@ -284,12 +361,14 @@ def ask(history, style="english", extra="", full=False):
             try:
                 out = call(n, history, None, style, extra, full)
                 NET["ai"] = time.time()  # Part 170
+                LAST["ai"] = n  # Part 195
                 return out, n
             except RuntimeError as e:
                 errs.append(f"{n}: {e}")
+                if "error 429" in str(e):
+                    LAST["cool"][n] = time.time() + 60
     if errs and all("error 429" in e for e in errs):  # Part 185: every key is at its limit
-        raise RuntimeError(("सर, आपकी सारी AI key की free limit अभी पूरी है। एक मिनट रुकिए या Settings में एक और key डालिए। (" if style == "hindi"
-                            else "Sir, every AI key is at its limit right now. Wait a minute or add one more key in Settings. (") + " | ".join(errs) + ")")
+        raise RuntimeError(limit_msg(style, errs))
     raise RuntimeError(" | ".join(errs) or "koi key nahi - upar ⚙ Settings mein key paste karo")
 
 
@@ -595,8 +674,27 @@ class H(BaseHTTPRequestHandler):
             store("sarvam", "")
             voiceengine.save({"provider": "edge"})
             return self.send(200, {"ok": True})
+        if self.path == "/voice/meter":  # Part 198: the numbers, and your limit and two switches
+            if any(k in data for k in ("limit", "silent", "short")):
+                try:
+                    tts.meter_set(data.get("limit"), data.get("silent"), data.get("short"))
+                except (TypeError, ValueError):
+                    return self.send(200, {"ok": False, "error": "That is not a number"})
+            return self.send(200, voice_state())
+        if self.path == "/voice/warm":  # Part 197: make and save the common lines once (uses Sarvam credit one time)
+            k = getkey("sarvam")
+            if not k:
+                return self.send(200, {"ok": False, "error": "Add your Sarvam key first"})
+            if not tts.WARM["running"]:
+                jobs = warm_jobs()
+                if not jobs:
+                    return self.send(200, {"ok": False, "error": "Choose the Sarvam voice first"})
+                tts.warm_start(k, jobs)
+            return self.send(200, voice_state())
         if self.path == "/tts":  # Part 7: neural awaaz. Part 51: intent se awaaz. Part 53: Sarvam pehle (agar chuna ho), na chale to Edge
             txt, mime, eng = str(data.get("text", "")), "audio/mpeg", "edge"
+            if tts.meter()["short"] and not data.get("voice"):
+                txt = tts.first_sentences(txt)  # Part 198: long replies speak only their first 2 sentences
             try:
                 if data.get("voice"):
                     audio, who = tts.speak(txt, str(data.get("voice", "")), data.get("pitch", -8), data.get("rate", -6)), "classic"
@@ -605,8 +703,11 @@ class H(BaseHTTPRequestHandler):
                     who, audio = v["profile"], None
                     if v["provider"] == "sarvam":  # Part 71: both personalities use Sarvam, each with its own speaker
                         try:
-                            audio, mime, eng = tts.sarvam(txt, getkey("sarvam"), v["speaker"], "english" if data.get("lang") == "english" else "hindi", v["rate"]), "audio/wav", "sarvam"
+                            audio, was = tts.sarvam_cached(txt, getkey("sarvam"), v["speaker"], "english" if data.get("lang") == "english" else "hindi", v["rate"])  # Part 197: saved audio first
+                            mime, eng = "audio/wav", "sarvam-saved" if was else "sarvam"
                         except RuntimeError as e:
+                            if tts.meter()["silent"]:  # Part 198: Sarvam voice or silence, never the Edge voice
+                                return self.send(502, {"error": "Sarvam voice is not available (" + str(e) + "). Text only.", "silent": True})
                             eng = "edge-fallback"
                             self.log_message("Sarvam failed: %s", e)
                     if audio is None:
@@ -616,7 +717,8 @@ class H(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("X-Voice", who)
             self.send_header("X-Engine", eng)
-            self.send_header("X-Distinct", "no" if (not data.get("voice") and eng != "sarvam" and not v["distinct"]) else "yes")  # "no" = Tony and JARVIS are the same voice with pitch/speed only
+            self.send_header("X-Sarvam-Pct", str(tts.pct(tts.meter())) if eng.startswith("sarvam") else "0")  # Part 198
+            self.send_header("X-Distinct", "no" if (not data.get("voice") and not eng.startswith("sarvam") and not v["distinct"]) else "yes")  # "no" = Tony and JARVIS are the same voice with pitch/speed only
             self.send_header("Content-Type", mime)
             self.send_header("Content-Length", str(len(audio)))
             self.end_headers()
@@ -794,7 +896,7 @@ class H(BaseHTTPRequestHandler):
             action = None
             teach_off = None  # Part 165
             if mem is None:  # Part 30: "WhatsApp kholo" (only proposes; the app checks the switch and Stop)
-                got = tasks.routine(c, dev, msg, style == "hindi", data.get("control") is True, data.get("app") is True) or tasks.make(c, dev, msg, style == "hindi", data.get("control") is True, data.get("app") is True) or actions.handle(msg, style == "hindi", data.get("control") is True, data.get("app") is True, ask)  # Part 41: several steps in one sentence become one task
+                got = tasks.routine(c, dev, msg, style == "hindi", data.get("control") is True, data.get("app") is True) or tasks.make(c, dev, msg, style == "hindi", data.get("control") is True, data.get("app") is True) or actions.handle(msg, style == "hindi", data.get("control") is True, data.get("app") is True, ask_cmd)  # Part 41: several steps in one sentence become one task
                 if got:
                     mem, action = got
                     learn.note(c, dev, action)  # Part 143: one more count for this call or app, in this hour

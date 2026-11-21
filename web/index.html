@@ -421,8 +421,34 @@ function chatBottom(){const l=document.getElementById('log');if(l)l.scrollTop=l.
 
 const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;};
 /* Part 183: Home bubble = small "You" line, then Jarvis with the J badge */
-function homeBub(q,a){const b=$('bub');b.textContent='';if(q){b.appendChild(el('span','hbl','You'));b.appendChild(el('div','hbq',q));}
-  const j=el('div','hbj');j.appendChild(el('i','hbd','J'));j.appendChild(el('span','',a));b.appendChild(j);}
+function homeBub(q,a){const b=$('bub');b.textContent='';if(q){b.appendChild(el('span','hbl','You'));b.appendChild(el('div','hbq',rom(q)));}
+  const j=el('div','hbj');j.appendChild(el('i','hbd','J'));j.appendChild(el('span','',rom(a)));b.appendChild(j);}
+/* Part 190: Hindi letters are SHOWN in Roman letters on the screen (display only; what Jarvis hears, sends and speaks stays Hindi) */
+let ROMAN=true;try{ROMAN=localStorage.getItem('jroman')!='0';}catch(e){}
+const C190={'क':'k','ख':'kh','ग':'g','घ':'gh','ङ':'n','च':'ch','छ':'chh','ज':'j','झ':'jh','ञ':'n','ट':'t','ठ':'th','ड':'d','ढ':'dh','ण':'n','त':'t','थ':'th','द':'d','ध':'dh','न':'n','प':'p','फ':'f','ब':'b','भ':'bh','म':'m','य':'y','र':'r','ल':'l','ळ':'l','व':'v','श':'sh','ष':'sh','स':'s','ह':'h'};
+const M190={'ा':'a','ि':'i','ी':'i','ु':'u','ू':'u','ृ':'ri','े':'e','ै':'ai','ो':'o','ौ':'au','ॉ':'o','ॅ':'e'};
+const V190={'अ':'a','आ':'aa','इ':'i','ई':'i','उ':'u','ऊ':'u','ऋ':'ri','ए':'e','ऐ':'ai','ओ':'o','औ':'au','ऑ':'o'};
+const W190={'यूट्यूब':'YouTube','युट्यूब':'YouTube','यूटयूब':'YouTube','जार्विस':'Jarvis','जारविस':'Jarvis','जार्विश':'Jarvis','जारविश':'Jarvis','व्हाट्सएप':'WhatsApp','वॉट्सऐप':'WhatsApp','वाट्सएप':'WhatsApp','ट्रेडिंगव्यू':'TradingView','बाइनेंस':'Binance','कैमरा':'camera','होम':'home','स्क्रीन':'screen','ओपन':'open','फोन':'phone','फ़ोन':'phone','एप':'app','ऐप':'app','ऍप':'app','सर':'sir','क्रोम':'Chrome','गूगल':'Google','इंस्टाग्राम':'Instagram','जीमेल':'Gmail','टेलीग्राम':'Telegram','सेटिंग':'settings','सेटिंग्स':'settings','मिनिमाइज':'minimize','मिनिमाइज़':'minimize','सेकंड':'second','वेट':'wait','स्क्रॉल':'scroll','बैक':'back','कॉल':'call','मैसेज':'message','जारविस':'Jarvis','ओके':'OK','में':'mein','है':'hai','हैं':'hain','हूँ':'hoon','हूं':'hoon','मैं':'main','कृपया':'kripya','शेयर':'share','प्रॉब्लम':'problem','रिजन':'reason','लिए':'liye','ऐसा':'aisa','एक':'ek','साथ':'saath','पहले':'pehle','कहें':'kahein','नहीं':'nahin','मदद':'madad','यहाँ':'yahaan','यहां':'yahan','क्रियाएँ':'kriyaayein','सुनने':'sunne','तैयार':'taiyaar','कुछ':'kuch','बताना':'batana','आपके':'aapke','आपको':'aapko','अगर':'agar','हेलो':'hello','थैंक्यू':'thank you','लिसनिंग':'listening','स्टॉप':'stop','लिसन':'listen'};
+function rw190(w){
+  w=w.normalize('NFC');if(W190[w])return W190[w];
+  const ch=[...w],U=[];
+  for(let i=0;i<ch.length;i++){const c=ch[i];
+    if(C190[c]!==undefined){let b=C190[c];if(ch[i+1]=='़'){if(c=='ज')b='z';i++;}U.push({c:b,v:null});}
+    else if(M190[c]!==undefined){if(U.length)U[U.length-1].v=M190[c];else U.push({c:'',v:M190[c]});}
+    else if(c=='्'){if(U.length)U[U.length-1].v='';}
+    else if(V190[c]!==undefined)U.push({c:'',v:V190[c]});
+    else if(c=='ं'||c=='ँ'){if(U.length)U[U.length-1].n=1;}
+    else if(c=='ः')U.push({c:'h',v:''});
+    else if(c=='।'||c=='॥')U.push({c:'.',v:''});
+    else if('०१२३४५६७८९'.includes(c))U.push({c:String('०१२३४५६७८९'.indexOf(c)),v:''});}
+  let o='';
+  for(let i=0;i<U.length;i++){const u=U[i];let v=u.v;
+    if(v===null){const last=i==U.length-1,n1=U[i+1],pv=i>0&&U[i-1].v!=='',nv=!!n1&&n1.v!==''&&!(n1.v===null&&i+1==U.length-1);
+      v=(last||(pv&&nv))?'':'a';}
+    o+=u.c+v+(u.n?'n':'');}
+  return o;}
+function rom(t){if(t==null||!ROMAN)return t;t=String(t);if(!/[\u0900-\u097F]/.test(t))return t;
+  const r=t.replace(/[\u0900-\u097F]+/g,rw190).replace(/(\. )([a-z])/g,(m,a,b)=>a+b.toUpperCase());return /^\s*[\u0900-\u097F]/.test(t)?r.replace(/^(\s*)([a-z])/,(m,a,b)=>a+b.toUpperCase()):r;}
 /* Part 184: a Hindi app name is matched to an installed app by its consonant skeleton (page only) */
 const P184={'क':'k','ख':'k','ग':'g','घ':'g','च':'k','छ':'k','ज':'j','झ':'j','ट':'t','ठ':'t','ड':'d','ढ':'d','त':'t','थ':'t','द':'d','ध':'d','न':'n','ण':'n','ङ':'n','ञ':'n','प':'p','फ':'p','ब':'b','भ':'b','म':'m','र':'r','ल':'l','व':'v','श':'s','ष':'s','स':'s','ं':'n'};
 function p184skel(x){let o='';for(const c of String(x||'').normalize('NFC').toLowerCase()){o+=P184[c]!==undefined?P184[c]:/[a-z]/.test(c)?c:'';}
@@ -456,7 +482,7 @@ function guestBar(on){guestOn=!!on;$('gbar').hidden=!on;}
 function guestErase(msg){lastPic=null;document.querySelectorAll('#log .gst').forEach(x=>x.remove());add('bot',msg);}  // Part 118: the guest bubbles leave the page too
 function add(role,text,ts){if(role=='err')elog('err',text);const d=ts?new Date(ts*1000):new Date(),day=d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();
   if(day!=lastDay){lastDay=day;const x=document.createElement('div');x.className='ds';x.textContent=dayName(d);$('log').appendChild(x);}
-  const m=document.createElement('div');m.className='m '+role+(guestOn?' gst':'');m.dataset.t=p2(d.getHours())+':'+p2(d.getMinutes());if(role!='user'&&role!='err'&&text&&(text.includes('```')||text.length>300))rich(m,text);else m.textContent=text;$('log').appendChild(m);m.scrollIntoView();return m;}
+  const m=document.createElement('div');m.className='m '+role+(guestOn?' gst':'');m.dataset.t=p2(d.getHours())+':'+p2(d.getMinutes());if(role!='user'&&role!='err'&&text&&(text.includes('```')||text.length>300))rich(m,text);else{m.textContent=rom(text);if(text&&m.textContent!==String(text))m.dataset.o=text;}$('log').appendChild(m);m.scrollIntoView();return m;}
 let ncAuto=false;
 function show(){if(!token&&!ncAuto){ncAuto=true;api('/newcode',{}).catch(()=>{});}  // asks Termux to print a fresh code (it is never shown in the page)
   $('pair').hidden=!!token;go(view);}
@@ -716,9 +742,9 @@ let VS={auto:true,manual:'jarvis',provider:'edge',speaker:'rahul',speakers:{tony
 const badge=t=>document.querySelectorAll('.vbadge').forEach(b=>b.textContent=t);
 async function engine(t,intent,profile){
   const r=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text:t,intent:intent||'',profile:profile||'',lang:sty()})});
-  if(!r.ok){let e={};try{e=await r.json()}catch(x){}throw new Error(e.error||'voice error');}
+  if(!r.ok){let e={};try{e=await r.json()}catch(x){}const er=new Error(e.error||'voice error');er.silent=!!e.silent;throw er;}
   const w=r.headers.get('X-Voice')||'';if(aud)aud.pause();if(window.speechSynthesis)speechSynthesis.cancel();
-  aud=new Audio(URL.createObjectURL(await r.blob()));aud.onended=aud.onerror=heardBack;const pp=aud.play();bargeStart();await pp;const en=r.headers.get('X-Engine')||'';badge('Voice: '+(w=='tony'?'TONY':'JARVIS')+(en=='sarvam'?' (Sarvam)':en=='edge-fallback'?' (Edge, Sarvam failed)':' (Edge)')+(r.headers.get('X-Distinct')=='no'?' · same Hindi voice, only depth and speed differ':''));
+  aud=new Audio(URL.createObjectURL(await r.blob()));aud.onended=aud.onerror=heardBack;const pp=aud.play();bargeStart();await pp;const en=r.headers.get('X-Engine')||'';const pc=+(r.headers.get('X-Sarvam-Pct')||0);if(pc>=80&&!window.w198){window.w198=1;add('bot',sty()=='hindi'?'सर, आपकी Sarvam limit का '+pc+'% इस्तेमाल हो चुका है।':'Sir, '+pc+'% of your Sarvam limit is used.');}badge('Voice: '+(w=='tony'?'TONY':'JARVIS')+(en=='sarvam'?' (Sarvam)':en=='sarvam-saved'?' (Sarvam, saved)':en=='edge-fallback'?' (Edge, Sarvam failed)':' (Edge)')+(r.headers.get('X-Distinct')=='no'?' · same Hindi voice, only depth and speed differ':''));
 }
 async function voiceSave(p){  // saving stops the voice that is speaking now, so a switch is heard at once
   if(aud)aud.pause();if(window.speechSynthesis)speechSynthesis.cancel();
@@ -752,9 +778,31 @@ function voiceCard(){
     try{const {d}=await api('/voice/key',{key:k});if(d.ok){await api('/voice/set',{provider:'sarvam'});ki.value='';await voiceLoad();}else{kr.className='bad';kr.textContent='Not saved: '+d.error;}}catch(e){kr.className='bad';kr.textContent='Cannot reach the server';}};
   p.append(ki,el('br'),kb);
   if(VS.sarvam_saved){const kd=el('button','g','Remove key');kd.type='button';kd.style.marginLeft='6px';kd.onclick=async()=>{try{await api('/voice/key/delete',{});}catch(e){}await voiceLoad();};p.append(kd);}
-  p.append(kr);rows.push(p);
+  p.append(kr);rows.push(p);if(VS.sarvam_saved)rows.push(sarvamBox());rows.push(romanBox());
   const b=el('p','');b.append('Now: ',el('b','vbadge','Voice: -'));rows.push(b);box.replaceChildren(...rows);
 }
+
+/* Part 197 and 198: the Sarvam card shows the credit used, your limit, the two switches and the button that saves the common lines */
+function sarvamBox(){
+  const c=el('div','dr');c.append(el('b',null,'Sarvam credit and saved voice'));
+  const info=el('small',null,'Loading...');
+  const lim=el('input');lim.type='number';lim.min=0;lim.step=1000;lim.placeholder='Characters per month you allow, 0 = no limit';lim.style.marginTop='6px';
+  const l1=el('label',null,'');const c1=el('input');c1.type='checkbox';l1.append(c1,' Sarvam voice or silence: if Sarvam fails, show the text and never speak in the Edge voice');
+  const l2=el('label',null,'');const c2=el('input');c2.type='checkbox';l2.append(c2,' Speak only the first 2 sentences of a long reply (the whole text stays on the screen)');
+  const wb=el('button','g','Save the common lines in this voice');wb.type='button';
+  let poll=null;
+  const draw=d=>{const w=d.warm||{};
+    info.textContent='Used this month: '+(d.used||0).toLocaleString()+(d.limit?' of '+d.limit.toLocaleString()+' characters ('+d.pct+'%)':' characters (no limit set)')+'. Saved sentences: '+d.files+' ('+d.mb+' MB).'+(w.running?' Saving common lines: '+w.done+' of '+w.total+'...':w.stop?' Stopped: '+w.stop:'');
+    if(document.activeElement!==lim)lim.value=d.limit||'';c1.checked=!!d.silent;c2.checked=!!d.short;
+    if(w.running&&!poll)poll=setInterval(()=>{if(!c.isConnected){clearInterval(poll);poll=null;return;}load();},2500);
+    if(!w.running&&poll){clearInterval(poll);poll=null;}};
+  const load=async b=>{try{const {d}=await api('/voice/meter',b||{});if(d&&d.ok===false){info.textContent=d.error;return;}draw(d);}catch(e){info.textContent='Cannot reach the server';}};
+  lim.onchange=()=>load({limit:+lim.value||0});c1.onchange=()=>load({silent:c1.checked});c2.onchange=()=>load({short:c2.checked});
+  wb.onclick=async()=>{info.textContent='Starting... (this uses a little Sarvam credit, one time)';try{const {d}=await api('/voice/warm',{});if(d.ok===false){info.textContent=d.error;return;}draw(d);}catch(e){info.textContent='Cannot reach the server';}};
+  c.append(info,lim,el('br'),l1,el('br'),l2,el('br'),wb);load();return c;}
+function romanBox(){const c=el('div','dr');c.append(el('b',null,'Text on the screen'));const l=el('label',null,'');const k=el('input');k.type='checkbox';k.checked=ROMAN;
+  k.onchange=()=>{ROMAN=k.checked;try{localStorage.setItem('jroman',ROMAN?'1':'0');}catch(e){}};
+  l.append(k,' Show Hindi in Roman letters (screen only; Jarvis still hears and speaks Hindi). New messages only.');c.append(l);return c;}
 async function neural(t,v){
   const r=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({text:t,voice:v,pitch:Math.round(($('pt').value-1)*100),rate:Math.round(($('rt').value-1)*100)})});
   if(!r.ok){let e={};try{e=await r.json()}catch(x){}throw new Error(e.error||'voice error');}
@@ -778,7 +826,7 @@ async function speak(t,force,intent,profile){
   const sv=scriptVoice(t);if(sv){try{await neural(t,sv);return;}catch(e){add('err','Voice for this language failed: '+e.message+'. Trying the phone voice.');}}
   const eng=localStorage.getItem('jeng')!='0';  // Part 52: Tony / JARVIS voices are ON unless you switch to the classic voice
   if(eng||v.startsWith('neural:')){
-    try{await(eng?engine(t,intent,profile):neural(t,v.slice(7)));return;}catch(e){add('err','Online voice failed: '+(e.name=='NotAllowedError'?'the browser blocked sound. Tap the page once and try again.':e.message)+'. Trying the phone voice.');}
+    try{await(eng?engine(t,intent,profile):neural(t,v.slice(7)));return;}catch(e){if(e.silent){badge('Voice: silent, Sarvam is not available');heardBack();return;}add('err','Online voice failed: '+(e.name=='NotAllowedError'?'the browser blocked sound. Tap the page once and try again.':e.message)+'. Trying the phone voice.');}
   }
   if(window.speechSynthesis&&speechSynthesis.getVoices().length)local(t);
   else{heardBack();add('err','No voice on this phone. Fix the online voice: in Termux run  pip install -U edge-tts  then restart run.sh (internet on). Or install a text-to-speech voice in Android Settings, Google Speech Services.');}
@@ -933,7 +981,7 @@ $('pic').onchange=async()=>{
     if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply,false,'INFORMATION');}else{w.className='m err';w.textContent=d.error||'error';}
   }catch(e){w.className='m err';w.textContent='Could not send the photo.';}
 };
-function bigText(on){document.body.classList.toggle('big',on);const last=[...document.querySelectorAll('#log .m.bot')].pop();add('bot',on?'Big text is on. Say "big text off" to go back.':'Big text is off.');if(on&&last&&last.textContent.length<600)speak(last.textContent,false,'INFORMATION');}  // Part 119: for elders: big letters + reads the last answer aloud
+function bigText(on){document.body.classList.toggle('big',on);const last=[...document.querySelectorAll('#log .m.bot')].pop();add('bot',on?'Big text is on. Say "big text off" to go back.':'Big text is off.');if(on&&last&&(last.dataset.o||last.textContent).length<600)speak((last.dataset.o||last.textContent),false,'INFORMATION');}  // Part 119: for elders: big letters + reads the last answer aloud
 async function led(){
   const {d}=await api('/ledger');const L=$('ll');L.textContent='';const a=d.items||[];
   if(!a.length){L.textContent='No entries. Type in chat: I owe Faisal 5000, due 15 Nov';return;}
@@ -954,7 +1002,7 @@ $('vbtn').onclick=()=>{$('vp').hidden=!$('vp').hidden;};
 $('vpclose').onclick=()=>{$('vp').hidden=true;};
 
 // Part 169: long answers with code blocks (a Copy button each) and simple markdown. Built with DOM nodes only, never innerHTML.
-function setBot(m,text){if(text&&(text.includes('```')||text.length>300))rich(m,text);else m.textContent=text;}
+function setBot(m,text){if(text&&(text.includes('```')||text.length>300))rich(m,text);else{m.textContent=rom(text);if(text&&m.textContent!==String(text))m.dataset.o=text;}}
 function spk(txt,deep){return deep&&txt&&txt.length>300?(sty()=='hindi'?'सर, पूरा जवाब स्क्रीन पर है।':'Sir, the full answer is on screen.'):txt;}
 function inl(s){const d=el('div','rt');s.split('\n').forEach((ln,i)=>{if(i)d.appendChild(document.createElement('br'));const h=ln.match(/^#{1,4}\s+(.*)$/),w=h?el('b'):d;if(h)ln=h[1];
     ln.split(/(\*\*[^*]+\*\*|`[^`]+`)/).forEach(x=>{if(!x)return;if(x.length>4&&x.startsWith('**')&&x.endsWith('**'))w.appendChild(el('b','',x.slice(2,-2)));else if(x.length>2&&x[0]=='`'&&x.endsWith('`'))w.appendChild(el('code','ic',x.slice(1,-1)));else w.appendChild(document.createTextNode(x));});
