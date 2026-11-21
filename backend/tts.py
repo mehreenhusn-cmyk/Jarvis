@@ -82,7 +82,7 @@ WARM = {"running": False, "done": 0, "total": 0, "stop": ""}  # progress of "sav
 
 def meter():
     """The numbers of this month. A new month starts again at 0 used."""
-    m = {"month": time.strftime("%Y-%m"), "used": 0, "limit": 0, "silent": False, "short": False}
+    m = {"month": time.strftime("%Y-%m"), "used": 0, "limit": 0, "silent": False, "short": False, "edge": False}  # Part 193: edge = the Edge voice may speak when Sarvam fails (off by default)
     try:
         with open(METER) as fh:
             m.update(json.load(fh))
@@ -101,7 +101,7 @@ def meter_save(m):
         pass
 
 
-def meter_set(limit=None, silent=None, short=None):
+def meter_set(limit=None, silent=None, short=None, edge=None):
     with LOCK:
         m = meter()
         if limit is not None:
@@ -110,6 +110,8 @@ def meter_set(limit=None, silent=None, short=None):
             m["silent"] = bool(silent)
         if short is not None:
             m["short"] = bool(short)
+        if edge is not None:
+            m["edge"] = bool(edge)
         meter_save(m)
         return m
 

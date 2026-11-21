@@ -39,6 +39,7 @@ public class KeepAlive extends Service {
     @Override public int onStartCommand(Intent i, int flags, int id) {
         if (i != null && STOP.equals(i.getAction())) {
             on = false;
+            Ears.always = false;  // Part 188: Stop in the notification also ends Always listening
             final Ears e = MainActivity.liveEars;
             if (e != null) {
                 new Handler(Looper.getMainLooper()).post(() -> {
@@ -74,7 +75,7 @@ public class KeepAlive extends Service {
         PendingIntent open = PendingIntent.getActivity(this, 11, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
         PendingIntent stop = PendingIntent.getService(this, 12, new Intent(this, KeepAlive.class).setAction(STOP), PendingIntent.FLAG_IMMUTABLE);
         return new Notification.Builder(this, CH).setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle("Jarvis is listening")
-            .setContentText("Voice mode keeps the mic on in the background. Tap Stop to end.").setOngoing(true).setContentIntent(open)
+            .setContentText(Ears.always ? "Always listening is on. Say Hey Jarvis. Tap Stop to end." : "Voice mode keeps the mic on in the background. Tap Stop to end.").setOngoing(true).setContentIntent(open)
             .addAction(android.R.drawable.ic_media_pause, "Stop", stop).build();
     }
 

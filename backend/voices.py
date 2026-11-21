@@ -6,6 +6,7 @@ import memory, people
 
 MATCH = 0.45  # cosine distance under this = the same voice. UNTESTED on a real phone: tune it after the first tests (README Part 144)
 UNSURE = 0.60  # between MATCH and this Jarvis says he is not sure and asks, he never guesses
+LEVELS = {1: (0.35, 0.50), 2: (0.45, 0.60), 3: (0.55, 0.70)}  # Part 192: Strict / Normal / Loose = (match, unsure). Normal is the old guess. All three are guesses until the phone tests
 MAXV = 20
 NAME = re.compile(r"^[^\W\d_][\w .'\-]{0,29}$", re.U)
 LIST = re.compile(r"^\s*(?:known voices|voices i know|kiski awaaz (?:yaad|pata) hai|kin kin ki awaaz (?:yaad|pata) hai|awaaz list)\s*\??\s*$", re.I)
@@ -15,6 +16,20 @@ FORGET_ALL = re.compile(r"^\s*(?:forget all voices|delete all voices|sab awaaz (
 
 def init(c):
     c.execute("CREATE TABLE IF NOT EXISTS voices(id INTEGER PRIMARY KEY, device INT, name TEXT, vec TEXT, owner INT, last REAL, ts REAL)")
+    c.execute("CREATE TABLE IF NOT EXISTS voice_limit(device INT PRIMARY KEY, level INT)")
+
+
+def level(c, dev):
+    """Part 192: 1 strict, 2 normal, 3 loose."""
+    row = c.execute("SELECT level FROM voice_limit WHERE device=?", (dev,)).fetchone()
+    return row[0] if row and row[0] in LEVELS else 2
+
+
+def set_level(c, dev, n):
+    if n not in LEVELS:
+        raise ValueError("level")
+    c.execute("INSERT OR REPLACE INTO voice_limit(device, level) VALUES(?,?)", (dev, n))
+    c.commit()
 
 
 def clean(v):
@@ -49,6 +64,7 @@ def match(c, dev, vec):
     if v is None:
         return {"state": "bad"}
     best = None
+    near, unsure = LEVELS[level(c, dev)]
     for i, n, o, raw, last in c.execute("SELECT id, name, owner, vec, last FROM voices WHERE device=?", (dev,)).fetchall():
         try:
             d = dist(v, json.loads(raw))
@@ -56,10 +72,10 @@ def match(c, dev, vec):
             continue
         if best is None or d < best[0]:
             best = (d, i, n, o, last)
-    if best is None or best[0] >= UNSURE:
+    if best is None or best[0] >= unsure:
         return {"state": "unknown"}
     d, i, n, o, last = best
-    if d >= MATCH:
+    if d >= near:
         return {"state": "unsure", "name": n}
     c.execute("UPDATE voices SET last=? WHERE id=?", (time.time(), i))
     c.commit()

@@ -29,6 +29,12 @@ class Ears implements RecognitionListener {
     final StringBuilder held = new StringBuilder();  // Part 161: the parts of ONE sentence heard so far (you paused in the middle)
     volatile boolean speaking;  // Part 161: true while you talk again inside the waiting time
     final Runnable flushJob = this::flush;
+    static volatile boolean always;    // Part 188: the page's "Always listening" switch is on
+    static volatile int wakeSens = 2;  // Part 191: 1 low, 2 normal, 3 high: how fast "Hey Jarvis" is taken from half-heard words (noisy room, fan)
+    private volatile long beat = System.currentTimeMillis();  // Part 188: when the speech service last did anything
+    private String lastPartial = "";   // Part 191: the half-heard words that already contain "Jarvis"
+    final Runnable partialJob = this::partialFire;
+    final Runnable dog = this::watch;
     /** Part 189: words that cannot end a sentence. If the heard text ends with one, or with a comma, Jarvis waits longer before answering. */
     private static final java.util.Set<String> OPEN = new java.util.HashSet<>(java.util.Arrays.asList(
         "जो", "कि", "और", "तो", "क्योंकि", "मतलब", "लेकिन", "पर", "या", "की", "का", "के", "को", "में", "से", "फिर", "जैसे", "अगर", "जब", "तब", "हम", "मैं", "मेरा", "मेरी", "मेरे",
@@ -102,19 +108,50 @@ class Ears implements RecognitionListener {
         hush(act, !barge);  // Part 162
         sr.startListening(listenIntent());
         Privacy.used(wake ? "wake" : "mic");
+        beat = System.currentTimeMillis();
+        arm();  // Part 188
+    }
+
+    /** Part 188: a watchdog for Always listening. If the speech service says nothing at all for 30 seconds (it sometimes hangs without any error), a fresh recognizer is started. */
+    void arm() {
+        ui.removeCallbacks(dog);
+        if (always && on) ui.postDelayed(dog, 15000L);
+    }
+
+    private void watch() {
+        if (!on || !always) return;
+        if (System.currentTimeMillis() - beat > 30000L) {
+            beat = System.currentTimeMillis();
+            retrying = true;
+            start(lang, wake, barge);  // start() arms the watchdog again
+            return;
+        }
+        ui.postDelayed(dog, 15000L);
+    }
+
+    /** Part 191: in Hey Jarvis mode the half-heard words are watched too. In a noisy room the speech service may never decide that you finished, so the final text never comes. When the half-heard words already hold "Jarvis" and stay the same for a moment, they are sent as if they were final. */
+    private long partialWait() { return wakeSens >= 3 ? 1200L : 1900L; }
+
+    private void partialFire() {
+        if (!on || !wake || barge || lastPartial.isEmpty()) return;
+        String t = lastPartial;
+        lastPartial = "";
+        try { if (sr != null) sr.cancel(); } catch (Exception x) { /* gone already */ }
+        js("onHeard", t);
+        again(400);
     }
 
     private Intent listenIntent() {
         boolean bargeMode = barge;
         return (new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            .putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang).putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1).putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, bargeMode)
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang).putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1).putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, bargeMode || (wake && wakeSens >= 2))
             .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, wake ? 1500L : quiet)  // Part 36: when you talk, Jarvis waits about 4 to 5 seconds of quiet before answering, like a person
             .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, wake ? 1500L : Math.max(1000L, quiet - 500L)));  // (some phone speech services ignore these two numbers)
     }
 
     void stop() {
-        on = false; barge = false; speaking = false; held.setLength(0);
+        on = false; barge = false; speaking = false; held.setLength(0); lastPartial = "";
         ui.removeCallbacksAndMessages(null);
         if (sr != null) { sr.destroy(); sr = null; }
         unhush();  // Part 162
@@ -129,7 +166,7 @@ class Ears implements RecognitionListener {
         ui.postDelayed(() -> {
             if (!on) return;
             if (sr == null) { retrying = true; start(lang, wake, barge); return; }
-            try { sr.cancel(); hush(act, !barge); sr.startListening(listenIntent()); Privacy.used(wake ? "wake" : "mic"); }
+            try { sr.cancel(); hush(act, !barge); sr.startListening(listenIntent()); Privacy.used(wake ? "wake" : "mic"); beat = System.currentTimeMillis(); }
             catch (Exception x) { try { sr.destroy(); } catch (Exception y) { /* gone already */ } sr = null; retrying = true; start(lang, wake, barge); }
         }, ms);
     }
@@ -147,6 +184,9 @@ class Ears implements RecognitionListener {
 
     @Override public void onResults(Bundle b) {
         boff = 0;
+        beat = System.currentTimeMillis();
+        ui.removeCallbacks(partialJob);
+        lastPartial = "";
         ArrayList<String> r = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         String t = r == null || r.isEmpty() ? "" : r.get(0).trim();
         if (wake) { js("onHeard", t); again(400); return; }
@@ -162,6 +202,9 @@ class Ears implements RecognitionListener {
     }
 
     @Override public void onError(int e) {
+        beat = System.currentTimeMillis();
+        ui.removeCallbacks(partialJob);
+        lastPartial = "";
         if (!on) return;
         boolean quiet = e == SpeechRecognizer.ERROR_NO_MATCH || e == SpeechRecognizer.ERROR_SPEECH_TIMEOUT || e == SpeechRecognizer.ERROR_RECOGNIZER_BUSY;
         if (held.length() > 0 && !wake) {  // Part 161: an error inside the waiting time must never lose the sentence you already said
@@ -191,9 +234,9 @@ class Ears implements RecognitionListener {
             : "speech error " + e);
     }
 
-    @Override public void onReadyForSpeech(Bundle p) { }
+    @Override public void onReadyForSpeech(Bundle p) { beat = System.currentTimeMillis(); }
     @Override public void onBeginningOfSpeech() {
-        fails = 0; boff = 0;
+        fails = 0; boff = 0; beat = System.currentTimeMillis();
         if (barge && !loud) voice();  // Part 160 (Part 164: not on the loudspeaker): the speech service's own start-of-speech also counts (a little slower than the level)
         if (held.length() > 0) { speaking = true; ui.removeCallbacks(flushJob); ui.postDelayed(flushJob, 12000L); }  // Part 161: you are talking again: keep the first part, add the next (12 s safety)
     }
@@ -214,9 +257,16 @@ class Ears implements RecognitionListener {
     @Override public void onBufferReceived(byte[] b) { }
     @Override public void onEndOfSpeech() { }
     @Override public void onPartialResults(Bundle b) {
-        if (!barge) return;
         ArrayList<String> r = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-        if (r != null && !r.isEmpty() && !r.get(0).trim().isEmpty()) js("onPartial", r.get(0));
+        String p = r == null || r.isEmpty() ? "" : r.get(0).trim();
+        if (p.isEmpty()) return;
+        beat = System.currentTimeMillis();
+        if (barge) { js("onPartial", p); return; }
+        if (wake && wakeSens >= 2 && ListenService.WAKE.matcher(p).find()) {  // Part 191
+            lastPartial = p;
+            ui.removeCallbacks(partialJob);
+            ui.postDelayed(partialJob, partialWait());
+        }
     }
 
     /** Part 61: true when earphones are connected (wired, USB or Bluetooth). Interrupt works only then, because the mic would hear Jarvis' own voice from the speaker. */

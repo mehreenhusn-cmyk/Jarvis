@@ -100,17 +100,31 @@ final class SpeakerId {
                 ar.startRecording();
                 short[] b = new short[2048];
                 long end = System.currentTimeMillis() + ms;
+                java.util.ArrayList<Double> lv = new java.util.ArrayList<>();  // Part 192: loudness of each short piece, to tell a noisy room (fan) from a quiet one
                 while (System.currentTimeMillis() < end && !Privacy.stopped) {
                     int n = ar.read(b, 0, b.length);
                     if (n < 0) throw new IllegalStateException("microphone read error " + n);
-                    if (n > 0) r.acceptWaveForm(b, n);
+                    if (n > 0) {
+                        r.acceptWaveForm(b, n);
+                        long sq = 0;
+                        for (int i = 0; i < n; i++) sq += (long) b[i] * b[i];
+                        lv.add(Math.sqrt(sq / (double) n));
+                    }
                 }
                 if (Privacy.stopped) throw new IllegalStateException("Jarvis is stopped");
                 JSONObject o = new JSONObject(r.getFinalResult());
                 JSONArray v = o.optJSONArray("spk");
                 int fr = o.optInt("spk_frames", 0);
+                double snr = 0;  // Part 192: loud pieces divided by quiet pieces. Near 1 = the room is as loud as you (fan, traffic); 3 or more = a quiet room
+                if (lv.size() >= 10) {
+                    java.util.Collections.sort(lv);
+                    int k = Math.max(1, lv.size() / 5);
+                    double lo = 0, hi = 0;
+                    for (int i = 0; i < k; i++) { lo += lv.get(i); hi += lv.get(lv.size() - 1 - i); }
+                    snr = (hi / k) / Math.max(1.0, lo / k);
+                }
                 if (v == null || fr < 100) res = new JSONObject().put("ok", false).put("err", "too little speech heard, try again closer to the phone").toString();
-                else res = new JSONObject().put("ok", true).put("vec", v).put("frames", fr).toString();
+                else res = new JSONObject().put("ok", true).put("vec", v).put("frames", fr).put("snr", Math.round(snr * 10) / 10.0).toString();
             } catch (Throwable e) {
                 try { res = new JSONObject().put("ok", false).put("err", "voice check: " + e.getMessage()).toString(); } catch (Exception x) { res = "{\"ok\":false}"; }
             } finally {

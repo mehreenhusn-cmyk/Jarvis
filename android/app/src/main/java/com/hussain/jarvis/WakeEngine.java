@@ -4,6 +4,8 @@ import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.media.audiofx.AcousticEchoCanceler;
+import android.media.audiofx.NoiseSuppressor;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -105,23 +107,45 @@ final class WakeEngine {
 
     void stop() { run = false; }
 
+    private static AudioRecord rec(int src, int min) {
+        try { return new AudioRecord(src, 16000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, Math.max(min, 4096) * 2); }
+        catch (Throwable e) { return null; }
+    }
+
     private void loop(Context c, Cb cb) {
         AudioRecord ar = null; Model m = null; Recognizer r = null; String bad = null;
+        AcousticEchoCanceler aec = null; NoiseSuppressor ns = null;
         try {
             m = new Model(dir(c).getAbsolutePath());
             r = new Recognizer(m, 16000f);
             int min = AudioRecord.getMinBufferSize(16000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
-            ar = new AudioRecord(MediaRecorder.AudioSource.MIC, 16000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, Math.max(min, 4096) * 2);
-            if (ar.getState() != AudioRecord.STATE_INITIALIZED) throw new IllegalStateException("microphone is busy or not allowed");
+            boolean clean = c.getSharedPreferences("j", 0).getBoolean("wk_aec", true);  // Part 191: the phone's echo and noise filter (voice-call microphone), if this phone has one
+            ar = clean ? rec(MediaRecorder.AudioSource.VOICE_COMMUNICATION, min) : null;
+            if (ar == null || ar.getState() != AudioRecord.STATE_INITIALIZED) {
+                if (ar != null) ar.release();
+                ar = rec(MediaRecorder.AudioSource.MIC, min);
+                clean = false;
+            }
+            if (ar == null || ar.getState() != AudioRecord.STATE_INITIALIZED) throw new IllegalStateException("microphone is busy or not allowed");
+            if (clean) {
+                try { if (AcousticEchoCanceler.isAvailable()) { aec = AcousticEchoCanceler.create(ar.getAudioSessionId()); if (aec != null) aec.setEnabled(true); } } catch (Throwable e) { /* this phone has none */ }
+                try { if (NoiseSuppressor.isAvailable()) { ns = NoiseSuppressor.create(ar.getAudioSessionId()); if (ns != null) ns.setEnabled(true); } } catch (Throwable e) { /* this phone has none */ }
+            }
             ar.startRecording();
             short[] b = new short[2048];
             long last = 0;
+            int seen = 0;
             while (run && !Privacy.stopped) {
                 int n = ar.read(b, 0, b.length);
                 if (n < 0) throw new IllegalStateException("microphone read error " + n);
                 if (n == 0) continue;
-                String j = r.acceptWaveForm(b, n) ? r.getResult() : r.getPartialResult();
-                if (WAKE.matcher(j).find() && System.currentTimeMillis() - last > 4000) {  // 4 s pause so one "Jarvis" is counted once
+                boolean fin = r.acceptWaveForm(b, n);
+                String j = fin ? r.getResult() : r.getPartialResult();
+                boolean m1 = WAKE.matcher(j).find();
+                seen = m1 ? seen + 1 : 0;
+                int sens = Ears.wakeSens;  // Part 191: 1 = only a finished result, 2 = a half-heard result seen twice in a row, 3 = at once (the old behaviour)
+                boolean hit = m1 && (fin || sens >= 3 || (sens == 2 && seen >= 2));
+                if (hit && System.currentTimeMillis() - last > 4000) {  // 4 s pause so one "Jarvis" is counted once
                     last = System.currentTimeMillis();
                     r.reset();
                     cb.heard();
@@ -131,6 +155,8 @@ final class WakeEngine {
         finally {
             run = false;
             try { if (ar != null) { ar.stop(); ar.release(); } } catch (Exception e) { /* already closed */ }
+            try { if (aec != null) aec.release(); } catch (Throwable e) { /* ignore */ }
+            try { if (ns != null) ns.release(); } catch (Throwable e) { /* ignore */ }
             try { if (r != null) r.close(); } catch (Throwable e) { /* ignore */ }
             try { if (m != null) m.close(); } catch (Throwable e) { /* ignore */ }
         }

@@ -36,6 +36,7 @@ public class MainActivity extends Activity {
     boolean wantListen, wantNote, wantConv;  // wantNote (Part 112): the call-note notification was tapped
     WebView web;
     Ears ears;
+    PhoneVoice phone;  // Part 193: the phone's own voice, the last backup when Sarvam (and Edge, if allowed) fail
     ValueCallback<Uri[]> picker;
 
     @Override protected void onCreate(Bundle b) {
@@ -134,6 +135,24 @@ public class MainActivity extends Activity {
                 });
             }
             @JavascriptInterface public boolean keepOn() { return KeepAlive.on; }
+            // Part 188: the page's one Always listening switch. On = the background mic service starts at once and the watchdog in Ears is armed; off = both end.
+            @JavascriptInterface public void setAlways(boolean on) {
+                Ears.always = on;
+                runOnUiThread(() -> {
+                    if (on && !KeepAlive.on && !Privacy.stopped && !AppLock.locked() && allowed(Manifest.permission.RECORD_AUDIO, 1)) KeepAlive.start(MainActivity.this);
+                    else if (!on && KeepAlive.on) KeepAlive.halt(MainActivity.this);
+                    if (ears != null) ears.arm();
+                });
+            }
+            // Part 191: how fast Hey Jarvis is taken from half-heard words (1 low, 2 normal, 3 high) and the echo / noise filter of the offline listener
+            @JavascriptInterface public void setWakeSens(int s) { Ears.wakeSens = Math.max(1, Math.min(3, s)); }
+            @JavascriptInterface public void setWakeAec(boolean b) { getSharedPreferences("j", 0).edit().putBoolean("wk_aec", b).apply(); }
+            // Part 193: the phone's own voice. The page asks only after the online voices failed. The answer comes back as window.onPhoneSpoken(ok).
+            @JavascriptInterface public void phoneSpeak(String text, String lang, double pitch, double rate) {
+                if (AppLock.locked() || Privacy.stopped) { web.post(() -> web.evaluateJavascript("window.onPhoneSpoken&&onPhoneSpoken(false)", null)); return; }
+                runOnUiThread(() -> { if (phone == null) phone = new PhoneVoice(MainActivity.this, web); phone.speak(text, (float) pitch, (float) rate); });
+            }
+            @JavascriptInterface public void phoneStop() { runOnUiThread(() -> { if (phone != null) phone.stop(); }); }
             @JavascriptInterface public void setHush(boolean b) { getSharedPreferences("j", 0).edit().putBoolean("hush", b).apply(); }  // Part 162
             @JavascriptInterface public void setLoud(boolean b) { Ears.loud = b; }  // Part 164
             @JavascriptInterface public void setQuiet(int ms) { Ears.quiet = Math.max(1000, Math.min(6000, ms)); }
@@ -547,6 +566,7 @@ public class MainActivity extends Activity {
         super.onResume();
         visible = true;
         cur = this;
+        if (Ears.always && !KeepAlive.on && !Privacy.stopped && !AppLock.locked()) KeepAlive.start(this);  // Part 188: Always listening needs the background mic service
         UsageWatch.resume(this, false);  // Parts 115, 116: brings the scroll alert back after a restart (does nothing when both switches are off)
         PlaceWatch.resume(this, false);  // Parts 113, 114: brings the watch back after a restart (does nothing when no reminder exists)
         gate();

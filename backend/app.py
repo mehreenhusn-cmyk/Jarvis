@@ -190,7 +190,7 @@ def voice_state():
     """Part 197 and 198: everything the Sarvam card shows."""
     m = tts.meter()
     n, mb = tts.cache_info()
-    return {"ok": True, "used": m["used"], "limit": m["limit"], "pct": tts.pct(m), "silent": m["silent"], "short": m["short"], "files": n, "mb": mb, "warm": dict(tts.WARM)}
+    return {"ok": True, "used": m["used"], "limit": m["limit"], "pct": tts.pct(m), "silent": m["silent"], "short": m["short"], "edge": bool(m.get("edge")), "files": n, "mb": mb, "warm": dict(tts.WARM)}
 
 
 WARM_CMDS = ["home jao", "peeche jao", "neeche scroll karo", "upar scroll karo", "scroll ruko", "minimize karo", "phone lock karo", "torch on karo"]
@@ -601,6 +601,13 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, {"voices": voices.rows(db(), dev), "guest": guest.on(dev)})
         if self.path == "/voices/match":  # Part 144: who spoke? The page sends the 128 voice numbers; nothing is saved here
             return self.send(200, {"state": "guest"} if guest.on(dev) else voices.match(db(), dev, data.get("vec")))
+        if self.path == "/voices/limit":  # Part 192: how strict the voice match is (1 strict, 2 normal, 3 loose); no level = just tell the current one
+            if data.get("level") is not None:
+                try:
+                    voices.set_level(db(), dev, int(data.get("level")))
+                except (TypeError, ValueError):
+                    return self.send(400, {"error": "bad level"})
+            return self.send(200, {"level": voices.level(db(), dev)})
         if self.path == "/voices/save":  # Part 144: only after a yes. Refused in a guest session
             if guest.on(dev):
                 return self.send(200, {"ok": False, "why": "guest session: nothing is saved"})
@@ -675,9 +682,9 @@ class H(BaseHTTPRequestHandler):
             voiceengine.save({"provider": "edge"})
             return self.send(200, {"ok": True})
         if self.path == "/voice/meter":  # Part 198: the numbers, and your limit and two switches
-            if any(k in data for k in ("limit", "silent", "short")):
+            if any(k in data for k in ("limit", "silent", "short", "edge")):
                 try:
-                    tts.meter_set(data.get("limit"), data.get("silent"), data.get("short"))
+                    tts.meter_set(data.get("limit"), data.get("silent"), data.get("short"), data.get("edge"))
                 except (TypeError, ValueError):
                     return self.send(200, {"ok": False, "error": "That is not a number"})
             return self.send(200, voice_state())
@@ -708,8 +715,10 @@ class H(BaseHTTPRequestHandler):
                         except RuntimeError as e:
                             if tts.meter()["silent"]:  # Part 198: Sarvam voice or silence, never the Edge voice
                                 return self.send(502, {"error": "Sarvam voice is not available (" + str(e) + "). Text only.", "silent": True})
-                            eng = "edge-fallback"
                             self.log_message("Sarvam failed: %s", e)
+                            if not tts.meter().get("edge"):  # Part 193: the Edge voice only if you allowed it; otherwise the phone speaks (the page asks Android for its own voice)
+                                return self.send(502, {"error": "Sarvam voice is not available (" + str(e) + ")", "phone": True})
+                            eng = "edge-fallback"
                     if audio is None:
                         audio = tts.speak(txt, v["voice"], v["pitch"], v["rate"])
             except RuntimeError as e:
