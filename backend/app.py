@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, socket, sqlite3, threading, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, appnames, ownvoice, assist, attach, autolearn, autostart, backup, brief, calls, capsule, chathist, chatsum, clock, cutoff, debate, decisions, deep, dreams, drift, events, ghost, guest, habits, handoff, learn, ledger, lens, lists, memory, modes, money, mood, notes, nudge, people, phone, phonetest, place, placenote, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, unknown, voiceengine, voices, web, whatsnew
+import actions, appnames, ownvoice, selfcheck, voicelines, assist, attach, autolearn, autostart, backup, brief, calls, capsule, chathist, chatsum, clock, cutoff, debate, decisions, deep, dreams, drift, events, ghost, guest, habits, handoff, learn, ledger, lens, lists, memory, modes, money, mood, notes, nudge, people, phone, phonetest, place, placenote, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, unknown, voiceengine, voices, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -199,6 +199,24 @@ WARM_APPS = ["YouTube", "WhatsApp", "Chrome", "Camera", "Instagram", "Gmail", "M
 WARM_FIXED = ["Good morning, sir. How can I help you?", "Good afternoon, sir. How can I help you?", "Good evening, sir. How can I help you?", "Good night, sir. How can I help you?",
               "Yes, sir?", "I am listening, sir.", "Done, sir.", "Sorry sir, I did not catch that. Could you say it again?",
               "सर, मैं आपके लिए हमेशा यहाँ हूँ।", "जी सर?", "ठीक है सर।", "सर, मैं सुन रहा हूँ।", "सर, माफ़ कीजिए, मैं समझ नहीं पाया। क्या आप फिर से कह सकते हैं?"]
+
+
+def fill_jobs():
+    """Part 203: the Hindi sentences of voicelines.py for the JARVIS voice. [] if the Sarvam voice is not the chosen one."""
+    jobs = []
+    for line in voicelines.LINES:
+        v = voiceengine.pick(line, "", "jarvis", "hindi")
+        if v["provider"] != "sarvam":
+            return []
+        jobs.append((line, v["speaker"], "hindi", v["rate"]))
+    return jobs
+
+
+def own_state(out=None):
+    jobs = fill_jobs()
+    left = sum(len(x[0]) for x in jobs if not tts.cached(*x))  # characters that would go to Sarvam
+    return dict(ownvoice.info(), **dict(ownvoice.model_info(), collect=bool(tts.meter().get("collect")), own=bool(tts.meter().get("own")),
+                                         fill=dict(ownvoice.FILL, lines=len(jobs), chars=left), result=out or {}))
 
 
 def warm_jobs():
@@ -706,7 +724,19 @@ class H(BaseHTTPRequestHandler):
                 out = ownvoice.export()
             elif data.get("action") == "clear":
                 out = {"ok": True, "deleted": ownvoice.clear()}
-            return self.send(200, dict(ownvoice.info(), **dict(ownvoice.model_info(), collect=bool(tts.meter().get("collect")), own=bool(tts.meter().get("own")), result=out)))
+            elif data.get("action") == "fill":  # Part 203: quick fill of the voice set
+                k = getkey("sarvam")
+                jobs = fill_jobs()
+                if not k:
+                    out = {"ok": False, "error": "Add your Sarvam key first"}
+                elif not jobs:
+                    out = {"ok": False, "error": "Choose the Sarvam voice first"}
+                else:
+                    ownvoice.fill_start(k, jobs)
+            return self.send(200, own_state(out))
+        if self.path == "/selfcheck":  # Part 204: what works and what to do if not (voice side)
+            n, _mb = tts.cache_info()
+            return self.send(200, {"ok": True, "items": selfcheck.run(getkey("sarvam"), tts.meter(), n, ownvoice.info(), ownvoice.ready(), ownvoice.model_info()["model_mb"])})
         if self.path == "/voice/owntest":  # Part 200c: say one test sentence with the trained copy (Piper) and report how long it took
             t0 = time.time()
             try:

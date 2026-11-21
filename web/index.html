@@ -806,7 +806,7 @@ function voiceCard(){
     try{const {d}=await api('/voice/key',{key:k});if(d.ok){await api('/voice/set',{provider:'sarvam'});ki.value='';await voiceLoad();}else{kr.className='bad';kr.textContent='Not saved: '+d.error;}}catch(e){kr.className='bad';kr.textContent='Cannot reach the server';}};
   p.append(ki,el('br'),kb);
   if(VS.sarvam_saved){const kd=el('button','g','Remove key');kd.type='button';kd.style.marginLeft='6px';kd.onclick=async()=>{try{await api('/voice/key/delete',{});}catch(e){}await voiceLoad();};p.append(kd);}
-  p.append(kr);rows.push(p);if(VS.sarvam_saved){rows.push(sarvamBox());rows.push(ownBox());}rows.push(romanBox());
+  p.append(kr);rows.push(p);if(VS.sarvam_saved){rows.push(sarvamBox());rows.push(ownBox());}rows.push(checkBox());rows.push(romanBox());
   const b=el('p','');b.append('Now: ',el('b','vbadge','Voice: -'));rows.push(b);box.replaceChildren(...rows);
 }
 
@@ -836,7 +836,8 @@ function ownBox(){
   const info=el('small',null,'Loading...'),res=el('small',null,'');
   const l=el('label',null,'');const k=el('input');k.type='checkbox';l.append(k,' Collect every NEW sentence that Sarvam speaks, with its text. Stays on this phone. It adds no Sarvam credit: only sentences that are spoken anyway. Never numbers, codes or secrets.');
   const eb=el('button','g','Export for training (zip in Downloads)');eb.type='button';const db=el('button','g','Delete the set');db.type='button';db.style.marginLeft='6px';
-  const draw=d=>{k.checked=!!d.collect;if(typeof k2!=='undefined'){k2.checked=!!d.own;inf2.textContent=d.model?'Voice file installed ('+d.model_mb+' MB).':'No voice file yet.';}info.textContent='Collected: '+d.n+' sentences, '+d.minutes+' minutes (a guess: about '+d.need+' minutes or more are needed for a good copy).';
+  const draw=d=>{k.checked=!!d.collect;const f=d.fill||{};fb.dataset.n=f.lines||0;fb.dataset.c=f.chars||0;fb.disabled=!!f.running;fi.textContent=f.running?'Filling: '+f.done+' of '+f.total+'...':f.stop?'Stopped: '+f.stop+' ('+f.done+' done)':f.total&&f.done>=f.total?'Fill finished: '+f.done+' sentences.':'About '+(f.lines||0)+' ready sentences, roughly 10 to 15 minutes of audio. More comes from normal talk.';
+    if(f.running&&!fpoll)fpoll=setInterval(()=>{if(!c.isConnected){clearInterval(fpoll);fpoll=null;return;}load();},2500);if(!f.running&&fpoll){clearInterval(fpoll);fpoll=null;}if(typeof k2!=='undefined'){k2.checked=!!d.own;inf2.textContent=d.model?'Voice file installed ('+d.model_mb+' MB).':'No voice file yet.';}info.textContent='Collected: '+d.n+' sentences, '+d.minutes+' minutes (a guess: about '+d.need+' minutes or more are needed for a good copy).';
     const r=d.result||{};if(r.ok&&r.path)res.textContent='Saved: '+r.path+' ('+r.n+' sentences, '+r.minutes+' min). Next: Part 200b (Colab).';else if(r.ok&&r.model!==undefined)res.textContent='Voice file installed ('+r.model_mb+' MB). Tap Test it.';else if(r.ok===false)res.textContent=r.error||'';else if(r.deleted!==undefined)res.textContent='Deleted '+r.deleted+' files.';};
   const load=async b=>{try{const {d}=await api('/voice/ownset',b||{});draw(d);}catch(e){info.textContent='Cannot reach the server';}};
   k.onchange=()=>load({on:k.checked});eb.onclick=()=>load({action:'export'});db.onclick=()=>{if(confirm('Delete the whole voice set?'))load({action:'clear'});};
@@ -844,11 +845,21 @@ function ownBox(){
   const l2=el('label',null,'');const k2=el('input');k2.type='checkbox';l2.append(k2,' When Sarvam is not available, speak with my own voice copy (Hindi only, needs the file below and Piper in Termux).');
   const ib=el('button','g','Install voice file from Downloads');ib.type='button';const tb=el('button','g','Test it');tb.type='button';tb.style.marginLeft='6px';
   const inf2=el('small',null,'');
+  /* Part 203: quick fill with ready Hindi sentences */
+  const fb=el('button','g','Fill the set quickly');fb.type='button';const fi=el('small',null,'');let fpoll=null;
+  fb.onclick=()=>{const n=fb.dataset.n||'?',ch=fb.dataset.c||'?';if(confirm('Sarvam will speak '+n+' ready Hindi sentences once (about '+ch+' characters of your Sarvam credit; sentences already saved cost nothing). Start?'))load({action:'fill'});};
   k2.onchange=()=>load({own:k2.checked});ib.onclick=()=>load({action:'install'});
   tb.onclick=async()=>{inf2.textContent='Speaking... (the first time can be slow)';try{const r=await fetch('/voice/owntest',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:'{}'});
     if(!r.ok){let e={};try{e=await r.json()}catch(x){}inf2.textContent=e.error||'Test failed';return;}
     inf2.textContent='It took '+r.headers.get('X-Seconds')+' seconds for one sentence.';const a=new Audio(URL.createObjectURL(await r.blob()));a.play();}catch(e){inf2.textContent='Cannot reach the server';}};
-  c.append(info,el('br'),l,el('br'),eb,db,el('br'),res,el('br'),l2,el('br'),ib,tb,el('br'),inf2);load();return c;}
+  c.append(info,el('br'),l,el('br'),fb,el('br'),fi,el('br'),eb,db,el('br'),res,el('br'),l2,el('br'),ib,tb,el('br'),inf2);load();return c;}
+/* Part 204: self-check of the voice side */
+function checkBox(){
+  const c=el('div','dr');c.append(el('b',null,'Self-check'));
+  const b=el('button','g','Check everything now');b.type='button';const out=el('div',null,'');out.style.fontSize='13px';
+  b.onclick=async()=>{out.textContent='Checking...';try{const {d}=await api('/selfcheck',{});out.textContent='';
+    (d.items||[]).forEach(i=>{const r=el('div',null,(i.ok===true?'\u2714 ':i.ok===false?'\u2718 ':'\u2022 ')+i.name+': '+i.say);if(i.ok===false)r.style.fontWeight='600';out.append(r);});}catch(e){out.textContent='Cannot reach the server';}};
+  c.append(b,out);return c;}
 function romanBox(){const c=el('div','dr');c.append(el('b',null,'Text on the screen'));const l=el('label',null,'');const k=el('input');k.type='checkbox';k.checked=ROMAN;
   k.onchange=()=>{ROMAN=k.checked;try{localStorage.setItem('jroman',ROMAN?'1':'0');}catch(e){}};
   l.append(k,' Show Hindi in Roman letters (screen only; Jarvis still hears and speaks Hindi). New messages only.');c.append(l);return c;}

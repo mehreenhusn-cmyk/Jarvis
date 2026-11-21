@@ -172,3 +172,36 @@ def speak(text):
             os.remove(out)
         except OSError:
             pass
+
+
+# ---- Part 203: quick fill. The sentences of voicelines.py are spoken once by Sarvam and saved WITH their text (a sentence that is already saved is only paired with its text, no credit) ----
+FILL = {"running": False, "done": 0, "total": 0, "stop": ""}
+
+
+def fill_start(key, jobs):
+    """jobs: [(text, speaker, lang, rate)]. Runs in the background, one after the other. Stops at the first limit or key error."""
+    import tts
+    if FILL["running"]:
+        return
+    tts.meter_set(collect=True)  # the set is filled by sarvam_cached, so the switch must be ON
+    FILL.update(running=True, done=0, total=len(jobs), stop="")
+
+    def run():
+        try:
+            for text, speaker, lang, rate in jobs:
+                audio = tts.cached(text, speaker, lang, rate)
+                try:
+                    if audio:
+                        add(text, speaker, audio)
+                    else:
+                        tts.sarvam_cached(text, key, speaker, lang, rate)
+                except RuntimeError as e:
+                    FILL["stop"] = str(e)
+                    break
+                FILL["done"] += 1
+                if not audio:
+                    time.sleep(0.4)
+        finally:
+            FILL["running"] = False
+
+    threading.Thread(target=run, daemon=True).start()
