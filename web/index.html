@@ -458,6 +458,9 @@ function appResolve(said){let L=[];try{L=JSON.parse(JarvisApp.nsAppList()||'[]')
   const q=p184skel(said);if(q.length<3)return '';let best=9,hit=[];
   L.forEach(x=>{const k=p184skel(x.l);if(k.length<3)return;const d=p184ed(q,k),tol=Math.max(1,Math.floor(Math.min(q.length,k.length)/4));if(d<=tol){if(d<best){best=d;hit=[x.l];}else if(d==best&&!hit.includes(x.l))hit.push(x.l);}});
   return hit.length==1?hit[0]:'';}
+// Part 201: after install and whenever the list of apps changes, the NAMES of the launcher apps go to the phone server (names only, no package names). Jarvis uses them to understand spoken app names.
+async function appSync(){try{if(!window.JarvisApp||!JarvisApp.nsAppList)return;const L=JSON.parse(JarvisApp.nsAppList()||'[]'),nm=L.map(x=>x.l).filter(Boolean);if(!nm.length)return;const h=nm.length+':'+nm.join('|').length+':'+nm.slice(0,40).join('|');if(localStorage.getItem('japph')===h)return;const r=await api('/appnames',{names:nm});if(r&&r.d&&r.d.ok)localStorage.setItem('japph',h);}catch(e){}}
+setTimeout(appSync,4000);
 // Part 176: the last 50 page errors stay in this page's storage only; the search panel > Error log copies them
 const ELOG=[];try{JSON.parse(localStorage.getItem('jelog')||'[]').forEach(x=>ELOG.push(String(x).slice(0,300)));}catch(e){}
 function elog(k,m){try{ELOG.push(new Date().toLocaleString('en-GB')+' '+k+': '+String(m).slice(0,300));while(ELOG.length>50)ELOG.shift();localStorage.setItem('jelog',JSON.stringify(ELOG));}catch(e){}}
@@ -688,7 +691,7 @@ const bgKeep=()=>{try{return appEars()&&(alwaysOn||(localStorage.getItem('jbgmic
 function bgSync(){try{if(!appEars())return;if(JarvisApp.setQuiet)JarvisApp.setQuiet(parseInt(localStorage.getItem('jquiet')||'2500',10));if(JarvisApp.setHush)JarvisApp.setHush(localStorage.getItem('jbeep')!='0');if(JarvisApp.setWakeSens)JarvisApp.setWakeSens(wsens());if(JarvisApp.setWakeAec)JarvisApp.setWakeAec(localStorage.getItem('jaec')!='0');if(JarvisApp.keepAlive)JarvisApp.keepAlive(alwaysOn||(localStorage.getItem('jbgmic')!='0'&&(convOn||wakeOn)));}catch(e){}}
 window.onAppAway=()=>{if(convOn&&!bgKeep())convPauseNow();};
 window.bgStopped=()=>{try{modeSave('');if(alwaysOn){alwaysOff();wakeBtn();vmSync();add('bot','Always listening was stopped from the notification.');return;}if(convOn)convEnd('Background listening was stopped from the notification.');else if(wakeOn)$('wake').click();}catch(e){}};
-window.onAppBack=()=>{netTry=0;setTimeout(()=>convResume(true),600);setTimeout(()=>{if(alwaysOn&&wakeOn&&!appListening&&!busy&&!priv&&appEars()&&!(JarvisApp.keepOn&&JarvisApp.keepOn())&&!talkNow())wakeBack();},900);};  // Part 188: if the background mic service was not running, Hey Jarvis starts again when you come back
+window.onAppBack=()=>{netTry=0;setTimeout(appSync,2500);setTimeout(()=>convResume(true),600);setTimeout(()=>{if(alwaysOn&&wakeOn&&!appListening&&!busy&&!priv&&appEars()&&!(JarvisApp.keepOn&&JarvisApp.keepOn())&&!talkNow())wakeBack();},900);};  // Part 188: if the background mic service was not running, Hey Jarvis starts again when you come back
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(!bgKeep())window.onAppAway();}else window.onAppBack();});
 // Part 140: one Voice mode instead of three switches
 window.startConv=()=>{go('home');if(priv)return;if(convOn){convResume();return;}$('conv').click();};  // Part 135: the "Jarvis heard you" notification was tapped

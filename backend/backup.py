@@ -164,7 +164,7 @@ def restore(c, dev, name, pw):
 
 
 def wipe(c, dev):
-    for t in ("nudges", "chatsum", "autofacts", "memories", "notes", "people", "reminders", "ledger", "routines", "messages", "tasks", "listitems", "habits", "dayreport", "spend", "decisions", "moods", "touch", "contracts", "capsules", "dreams", "signs", "flags", "money", "ghost", "places", "pwatch", "pcfg", "learned", "learnset", "unknown", "unkset", "voices"):
+    for t in ("appnames", "nudges", "chatsum", "autofacts", "memories", "notes", "people", "reminders", "ledger", "routines", "messages", "tasks", "listitems", "habits", "dayreport", "spend", "decisions", "moods", "touch", "contracts", "capsules", "dreams", "signs", "flags", "money", "ghost", "places", "pwatch", "pcfg", "learned", "learnset", "unknown", "unkset", "voices"):
         c.execute(f"DELETE FROM {t} WHERE device=?", (dev,))
     c.commit()
 

@@ -3,6 +3,7 @@
 import json, re
 from difflib import get_close_matches
 import lang
+import appnames
 
 ACTIONS = {"open_app"}  # what the AI fallback may return. Only open_app, nothing else.
 SCREEN = {"click", "click_nth", "scroll", "swipe", "type", "back", "home", "current_app", "lock", "settings", "torch", "volume", "look", "tap"}  # Part 129 adds look and tap. Part 34: only the user's own words can make these; the AI fallback never can.
@@ -24,6 +25,14 @@ CANON = {
     "Spotify": "स्पॉटिफाई", "Termux": "टर्मक्स", "Play Store": "प्लेस्टोर playstore", "Calendar": "कैलेंडर", "Contacts": "कॉन्टैक्ट्स", "Files": "फाइल्स",
     "Netflix": "नेटफ्लिक्स", "Amazon": "अमेज़न अमेजन", "Flipkart": "फ्लिपकार्ट", "Snapchat": "स्नैपचैट", "Twitter": "ट्विटर"}
 ALIAS = {_key(a): c for c, v in CANON.items() for a in v.split() + [c]}
+
+
+APPS = []  # Part 201: the app names of the phone that is talking now; app.py sets them before each message (names only)
+
+
+def set_apps(names):
+    global APPS
+    APPS = list(names or [])
 
 
 def canon(name):
@@ -730,6 +739,10 @@ def handle(msg, hindi, control, in_app, ask):
         return say("ठीक है सर, front camera खोल रहा हूँ। अगर पीछे वाला खुले तो flip बटन दबा दीजिए।",
                    "Opening the front camera, sir. If the back one opens, tap the flip button."), {"type": "open_app", "name": "Camera", "front": True}
     label = canon(name)
+    if APPS and _key(label) not in {_key(x) for x in APPS}:  # Part 201: not an installed name as it is, so look in the list of this phone
+        hit = appnames.resolve(APPS, name)
+        if hit:
+            label = hit
     act = {"type": "open_app", "name": label}
     if not lang.is_latin(label):  # Part 62: not one of the known names, so search the phone's app list with a Latin spelling (Java also matches by consonants)
         act = {"type": "open_app", "name": lang.romanize(label) or label, "said": label}

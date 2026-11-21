@@ -2,7 +2,7 @@
 import hashlib, json, os, re, secrets, socket, sqlite3, threading, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import actions, assist, attach, autolearn, autostart, backup, brief, calls, capsule, chathist, chatsum, clock, cutoff, debate, decisions, deep, dreams, drift, events, ghost, guest, habits, handoff, learn, ledger, lens, lists, memory, modes, money, mood, notes, nudge, people, phone, phonetest, place, placenote, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, unknown, voiceengine, voices, web, whatsnew
+import actions, appnames, assist, attach, autolearn, autostart, backup, brief, calls, capsule, chathist, chatsum, clock, cutoff, debate, decisions, deep, dreams, drift, events, ghost, guest, habits, handoff, learn, ledger, lens, lists, memory, modes, money, mood, notes, nudge, people, phone, phonetest, place, placenote, progress, redteam, remind, replyideas, screen, search, see, signs, spend, sysinfo, tasks, touch, tts, unknown, voiceengine, voices, web, whatsnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("JARVIS_DB") or os.path.join(HERE, "jarvis.db")
@@ -92,6 +92,7 @@ def db():
     notes.init(c)  # Part 71/72: voice notes (same database, one table)
     people.init(c)
     voices.init(c)  # Part 144: voice prints (numbers only)
+    appnames.init(c)  # Part 201: app names of the phone (names only)
     remind.init(c)
     ledger.init(c)
     lists.init(c)  # Part 83: shopping and packing lists
@@ -597,6 +598,11 @@ class H(BaseHTTPRequestHandler):
             except (TypeError, ValueError):
                 return self.send(400, {"error": "bad id"})
             return self.send(200, {"ok": True})
+        if self.path == "/appnames":  # Part 201: the page sends the launcher app names when the list changed (names only, never sent to the AI)
+            if data.get("names") is not None:
+                n = appnames.save(db(), dev, data.get("names"))
+                return self.send(200, {"ok": n is not None, "n": n or 0})
+            return self.send(200, {"n": len(appnames.load(db(), dev))})
         if self.path == "/voices":  # Part 144: names of the voices Jarvis knows (never the numbers)
             return self.send(200, {"voices": voices.rows(db(), dev), "guest": guest.on(dev)})
         if self.path == "/voices/match":  # Part 144: who spoke? The page sends the 128 voice numbers; nothing is saved here
@@ -905,6 +911,7 @@ class H(BaseHTTPRequestHandler):
             action = None
             teach_off = None  # Part 165
             if mem is None:  # Part 30: "WhatsApp kholo" (only proposes; the app checks the switch and Stop)
+                actions.set_apps(appnames.load(c, dev))  # Part 201
                 got = tasks.routine(c, dev, msg, style == "hindi", data.get("control") is True, data.get("app") is True) or tasks.make(c, dev, msg, style == "hindi", data.get("control") is True, data.get("app") is True) or actions.handle(msg, style == "hindi", data.get("control") is True, data.get("app") is True, ask_cmd)  # Part 41: several steps in one sentence become one task
                 if got:
                     mem, action = got
