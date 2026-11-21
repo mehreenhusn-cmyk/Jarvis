@@ -83,7 +83,7 @@ def match(c, dev, vec):
     return {"state": "match", "name": n, "owner": bool(o), "ago": days_ago(last), "note": pn[-1] if pn else ""}
 
 
-def save(c, dev, name, vec, owner):
+def save(c, dev, name, vec, owner, note=""):
     """Only called after a yes. Same name again = the new numbers are averaged in. Returns True or a short reason."""
     v = clean(vec)
     name = (name or "").strip()
@@ -107,6 +107,9 @@ def save(c, dev, name, vec, owner):
             return "too many voices saved (20)"
         c.execute("INSERT INTO voices(device, name, vec, owner, last, ts) VALUES(?,?,?,?,?,?)", (dev, name, json.dumps(v), 1 if owner else 0, time.time(), time.time()))
     c.commit()
+    note = (note or "").strip()[:60]  # Part 199: "ye Faisal hai, UP ka": the words after the name are kept as a People note, in the person's own words (only after the yes)
+    if note and not owner:
+        people.add(c, dev, name, note)
     return True
 
 

@@ -611,7 +611,7 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/voices/save":  # Part 144: only after a yes. Refused in a guest session
             if guest.on(dev):
                 return self.send(200, {"ok": False, "why": "guest session: nothing is saved"})
-            ok = voices.save(db(), dev, str(data.get("name", "")), data.get("vec"), data.get("owner") is True)
+            ok = voices.save(db(), dev, str(data.get("name", "")), data.get("vec"), data.get("owner") is True, str(data.get("note", "")))
             return self.send(200, {"ok": ok is True, "why": "" if ok is True else ok})
         if self.path == "/hist":  # Part 174: all saved messages by day, or a word search over them (reading only)
             return self.send(200, chathist.query(db(), dev, data))

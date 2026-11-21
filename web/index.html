@@ -538,7 +538,7 @@ $('f').onsubmit=async e=>{
     try{const {s,d}=await api('/see',{image:lastPic,question:pm[1],style:sty()});if(s==200){w.textContent=d.reply;w.title='via '+d.via;speak(d.reply,false,'INFORMATION');}else{w.className='m err';w.textContent=d.error||'error';}}catch(e){w.className='m err';w.textContent='Could not send the photo.';}return;}
   if(BTDEV.test(t)){add('user',t);add('bot',btPaired());return;}
   if(CNOTE.test(t)){add('user',t);add('bot',callNoteCmd(t));return;}  // Part 112
-  {const sk=spkParse(t);if(sk){add('user',t);spkRun(sk[0],sk[1]);return;}}  // Part 144: voice check words (the microphone starts only after these words)
+  {const sk=spkParse(t);if(sk){add('user',t);spkRun(sk[0],sk[1],sk[2]);return;}}  // Part 144: voice check words (the microphone starts only after these words)
   if(GLQ.test(t)){add('user',t);add('bot',glassCmd(t));return;}  // Part 121
   if(HLQ.test(t)){add('user',t);add('bot',holoCmd(t));return;}  // Part 151
   if(THQ.test(t)){add('user',t);add('bot',skinCmd(t));return;}  // Part 153
@@ -1601,13 +1601,18 @@ function coolAct(d,w){  // Part 102: your text, a 20 second wait, then Continue.
     iv=setInterval(()=>{n--;w.firstChild.textContent=n>0?t0+'\nWait '+n+' seconds and read it once more.':t0+'\nYou can continue now.';if(n<=0){clearInterval(iv);go.disabled=false;}},1000);});}
 // Part 144: who is speaking. Only 128 voice numbers are used (no recording is kept). Nothing is saved without your tap on Yes; guests are never saved.
 const SPK_OWN=/^\s*(?:meri awaaz yaad rakho|mera voice yaad rakho|remember my voice)\s*[.!]?\s*$/i,SPK_PER=/^\s*(?:(.{1,30}?)\s+ki awaaz yaad rakho|remember\s+(.{1,30}?)(?:'s|’s)?\s+voice)\s*[.!]?\s*$/i,SPK_WHO=/^\s*(?:ye kaun (?:hai|bol raha hai)|yeh kaun hai|kaun bol raha hai|who is (?:this|speaking|talking)|who am i talking to)\s*\??\s*$/i;
-function spkParse(t){if(SPK_OWN.test(t))return['owner',''];const m=t.match(SPK_PER);if(m&&!/^(?:meri|mera|my)$/i.test((m[1]||m[2]).trim()))return['person',(m[1]||m[2]).trim()];return SPK_WHO.test(t)?['who','']:null;}
+let lastUnk=null;  // Part 199: the voice numbers of the last unknown voice (kept only in this page, 10 minutes, never saved without Yes)
+const SPK_NAME=/^\s*(?:ye|yeh|this is)\s+([^\s,.]{2,30}?)\s+(?:hai|hain|is)\s*(?:[,.]\s*(.{1,60}?))?\s*[.!]?\s*$/i,SPK_NOT=/^(?:kaun|kya|kaise|kahan|kab|kyun|kyon|kitna|kuch|sahi|galat|wahi|bhi|nahi|who|what|how)$/i;
+function spkParse(t){if(SPK_OWN.test(t))return['owner',''];
+  {const m=t.match(SPK_NAME);if(m&&lastUnk&&Date.now()-lastUnk.t<600000&&!SPK_NOT.test(m[1]))return['named',m[1],(m[2]||'').trim()];}  // Part 199: "ye Faisal hai, UP ka" right after an unknown voice: name + a note in your own words, saved only after Yes
+const m=t.match(SPK_PER);if(m&&!/^(?:meri|mera|my)$/i.test((m[1]||m[2]).trim()))return['person',(m[1]||m[2]).trim()];return SPK_WHO.test(t)?['who','']:null;}
 const T2=(hi,en)=>sty()=='hindi'?hi:en;
 function spkJ(f){try{return JSON.parse(JarvisApp[f]());}catch(e){return null;}}
 function spkGet(sec){return new Promise(res=>{window.onSpk=res;let r=null;try{r=JSON.parse(JarvisApp.spkCapture(sec));}catch(e){}
   if(!r||!r.ok)res({ok:false,err:!r?'the app did not answer':r.err=='perm'?'allow the microphone first':r.err=='stopped'?'Jarvis is stopped. Tap Turn mic on first':r.err=='locked'?'the app is locked':'could not start ('+r.err+')'});setTimeout(()=>res({ok:false,err:'no answer from the phone'}),sec*1000+15000);});}
 async function spkQuiet(){await new Promise(r=>setTimeout(r,300));for(let i=0;i<60&&$('stsp')&&!$('stsp').hidden;i++)await new Promise(r=>setTimeout(r,250));await new Promise(r=>setTimeout(r,400));}  // waits until Jarvis has stopped talking, so his own voice is not measured
-async function spkRun(kind,name){
+async function spkRun(kind,name,note){
+  if(kind=='named'){if(!lastUnk){add('bot',T2('पहले "ye kaun hai" बोलिए।','Say "ye kaun hai" first.'));return;}spkOffer(lastUnk.vec,name,false,'',note);return;}  // Part 199
   if(!window.JarvisApp||!JarvisApp.spkInfo){add('err',T2('आवाज़ पहचान सिर्फ़ Jarvis ऐप में चलती है।','Voice check works only in the Jarvis app.'));return;}
   const i=spkJ('spkInfo');if(!i||i.locked){add('err',T2('ऐप लॉक है।','The app is locked.'));return;}
   if(!i.en){add('bot',T2('पहले Settings > Voice & Listening में ऑफ़लाइन Hey Jarvis मॉडल डाउनलोड करें, फिर यह दोबारा बोलें।','First download the offline Hey Jarvis model (Settings > Voice & Listening), then say this again.'));return;}
@@ -1636,15 +1641,16 @@ async function spkRun(kind,name){
       const x=r.owner?T2('जी सर, आप ही हैं।','Yes sir, it is you.'):T2('हाँ '+r.name+', पहचान गया।','Yes '+r.name+', I recognised you.')+ago+(r.note?T2(' आपने लिखा था: ',' You noted: ')+r.note:'');add('bot',x);speak(x,true,'INFORMATION');return;}
     if(r.state=='guest'){add('bot',T2('गेस्ट सेशन में आवाज़ नहीं पहचानता।','Voice check is off in a guest session.'));return;}
     if(r.state=='bad'||!r.state){add('err',T2('आवाज़ के नंबर ठीक नहीं आए, दोबारा कोशिश करें।','The voice numbers were not usable, try again.'));return;}
-    spkOffer(vec,'',false,r.state=='unsure'?T2('पक्का नहीं हूँ, शायद '+r.name+'। ','I am not sure, maybe '+r.name+'. '):'');return;}
+    lastUnk={vec:vec,t:Date.now()};  // Part 199
+    spkOffer(vec,'',false,r.state=='unsure'?T2('पक्का नहीं हूँ, शायद '+r.name+'। ','I am not sure, maybe '+r.name+'. '):T2('आप कौन? ','Aap kaun? '));return;}
   spkOffer(vec,name,kind=='owner');
 }
-function spkOffer(vec,name,owner,pre){
-  const q=(pre||'')+(owner?T2('अपनी आवाज़ मालिक की तरह याद रखूँ?','Remember your voice as the owner?'):T2('यह आवाज़ याद रखूँ?','Remember this voice?'))+'\n'+T2('मैं सिर्फ़ नाम, आवाज़ के 128 नंबर और आख़िरी बात की तारीख़ रखूँगा। रिकॉर्डिंग नहीं। "हाँ" दबाने से पहले कुछ सेव नहीं होता। यह पासवर्ड या सिक्योरिटी के लिए नहीं है।','I keep only a name, 128 voice numbers and the date of the last talk. No recording. Nothing is saved before you tap Yes. It is never a password or security.');
+function spkOffer(vec,name,owner,pre,note){
+  const q=(pre||'')+(owner?T2('अपनी आवाज़ मालिक की तरह याद रखूँ?','Remember your voice as the owner?'):name?T2(name+' की आवाज़ याद रखूँ?','Remember this voice as '+name+'?'):T2('नाम लिखिए, या कहिए: ye NAAM hai','Write the name, or say: ye NAME hai'))+(note?'\n'+T2('नोट: ','Note: ')+note:'')+'\n'+T2('मैं सिर्फ़ नाम, आवाज़ के 128 नंबर और आख़िरी बात की तारीख़ रखूँगा। रिकॉर्डिंग नहीं। "हाँ" दबाने से पहले कुछ सेव नहीं होता। यह पासवर्ड या सिक्योरिटी के लिए नहीं है।','I keep only a name, 128 voice numbers and the date of the last talk. No recording. Nothing is saved before you tap Yes. It is never a password or security.');
   const w=add('bot',q);speak(pre||q.split('\n')[0],true,'INFORMATION');let inp=null;
   if(!owner&&!name){inp=el('input');inp.placeholder=T2('नाम','Name');inp.maxLength=30;w.appendChild(inp);}
   btns(w,[[T2('हाँ, याद रखो','Yes, remember'),async()=>{const nm=owner?'':(name||(inp?inp.value:'')).trim();if(!owner&&!nm){add('err',T2('पहले नाम लिखें।','Write the name first.'));return;}
-      let r={};try{r=(await api('/voices/save',{name:nm,vec:vec,owner:owner})).d||{};}catch(e){}
+      let r={};try{r=(await api('/voices/save',{name:nm,vec:vec,owner:owner,note:note||''})).d||{};}catch(e){}
       w.textContent=r.ok?'✅ '+T2('आवाज़ याद कर ली।','Voice saved.')+' '+T2('मिटाने के लिए: awaaz bhoolo '+(owner?'meri':nm),'To delete: awaaz bhoolo '+(owner?'my':nm)):'❌ '+(r.why||T2('सेव नहीं हुई।','Not saved.'));}],
     [T2('नहीं, गेस्ट','No, guest'),()=>{w.textContent=T2('ठीक है, कुछ सेव नहीं किया।','Okay. Nothing was saved.');}]]);
 }

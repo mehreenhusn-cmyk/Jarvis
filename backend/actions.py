@@ -726,9 +726,9 @@ def handle(msg, hindi, control, in_app, ask):
     if not name:
         return say("कौन सा ऐप खोलूँ सर?", "Which app should I open, sir?"), None
     ws = set(_words(msg))
-    if ws & FRONTW and ws & CAMW:  # Part 186: "front camera", "selfie camera": Camera opens; the front side by itself needs Java (planned, Part 202)
-        return say("ठीक है सर, Camera खोल रहा हूँ। Front camera सीधे खुलना अभी नहीं आता, flip बटन आप दबा दीजिए।",
-                   "Opening Camera, sir. Opening the front side by itself is not built yet, please tap the flip button."), {"type": "open_app", "name": "Camera"}
+    if ws & FRONTW and ws & CAMW:  # Part 186 + 202: "front camera", "selfie camera" opens the camera already on the front side (Java; a camera app that ignores it opens on the back)
+        return say("ठीक है सर, front camera खोल रहा हूँ। अगर पीछे वाला खुले तो flip बटन दबा दीजिए।",
+                   "Opening the front camera, sir. If the back one opens, tap the flip button."), {"type": "open_app", "name": "Camera", "front": True}
     label = canon(name)
     act = {"type": "open_app", "name": label}
     if not lang.is_latin(label):  # Part 62: not one of the known names, so search the phone's app list with a Latin spelling (Java also matches by consonants)

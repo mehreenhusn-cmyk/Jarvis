@@ -51,6 +51,22 @@ final class Apps {
         return a;
     }
 
+    /** Part 202: opens the camera app already on the front side. Android has no fixed rule for this: the extras below are the ones camera apps know; an app that ignores them opens on the back (then the flip button). */
+    static JSONObject openFront(Context c) {
+        JSONObject o = new JSONObject();
+        try {
+            Intent go = new Intent(android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)
+                .putExtra("android.intent.extras.CAMERA_FACING", 1)
+                .putExtra("android.intent.extras.LENS_FACING_FRONT", 1)
+                .putExtra("android.intent.extra.USE_FRONT_CAMERA", true)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            c.startActivity(go);
+            return o.put("ok", true).put("app", "Camera (front)").put("front", true);
+        } catch (Exception e) {  // no camera app answers this: open Camera by name like Part 186
+            return open(c, "Camera", false);
+        }
+    }
+
     /** Result: {ok,app} opened | {ask:[names]} two or more fit, the page shows buttons | {err:not_found|launch_failed}. exact=true when Hussain tapped a name from our own list. */
     static JSONObject open(Context c, String name, boolean exact) {
         JSONObject o = new JSONObject();

@@ -247,7 +247,7 @@ public class MainActivity extends Activity {
                         return r.toString();
                     }
                     if ("open_app".equals(a.optString("type"))) {
-                        JSONObject r = Apps.open(MainActivity.this, a.optString("name"), a.optBoolean("exact"));
+                        JSONObject r = a.optBoolean("front") ? Apps.openFront(MainActivity.this) : Apps.open(MainActivity.this, a.optString("name"), a.optBoolean("exact"));  // Part 202: front=true opens the front camera
                         if (r.optBoolean("ok")) Privacy.used("apps");
                         return r.toString();
                     }
