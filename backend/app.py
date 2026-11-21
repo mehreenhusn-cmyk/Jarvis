@@ -724,6 +724,11 @@ class H(BaseHTTPRequestHandler):
                 out = ownvoice.export()
             elif data.get("action") == "clear":
                 out = {"ok": True, "deleted": ownvoice.clear()}
+            elif data.get("action") == "review":  # Part 206: clips that look bad (nothing is deleted here)
+                bad = ownvoice.review()
+                out = {"ok": True, "review": True, "n_bad": len(bad), "bad": bad[:25]}
+            elif data.get("action") == "prune":  # Part 206: delete the clips that the review lists
+                out = {"ok": True, "removed": ownvoice.prune()}
             elif data.get("action") == "fill":  # Part 203: quick fill of the voice set
                 k = getkey("sarvam")
                 jobs = fill_jobs()
@@ -740,7 +745,7 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/voice/owntest":  # Part 200c: say one test sentence with the trained copy (Piper) and report how long it took
             t0 = time.time()
             try:
-                audio = ownvoice.speak("नमस्ते, मैं जार्विस हूँ। आज मैं आपकी क्या मदद करूँ?")
+                audio = ownvoice.speak("नमस्ते, मैं जार्विस हूँ। आज मैं आपकी क्या मदद करूँ?", guard=False)
             except RuntimeError as e:
                 return self.send(502, {"error": str(e)})
             self.send_response(200)

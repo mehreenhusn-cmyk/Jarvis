@@ -114,12 +114,22 @@ MODEL_DIR = os.path.expanduser("~/.jarvis_ownvoice")
 MODEL = os.path.join(MODEL_DIR, "jarvis_voice.onnx")  # the .onnx.json file must sit next to it
 
 
+MAX_SECONDS = 8  # Part 205: a reply that the own voice would need longer than this for goes to the next backup instead
+SPC = {"v": 0.0}  # Part 205: seconds per character measured on this phone (smoothed), 0 = not measured yet
+BLIND_MAX = 160  # characters allowed before the first measurement
+
+
+def too_long(t):
+    """True if this text would take longer than MAX_SECONDS (measured speed), or is long and the speed is not known yet."""
+    return len(t) * SPC["v"] > MAX_SECONDS if SPC["v"] else len(t) > BLIND_MAX
+
+
 def ready():
     return os.path.exists(MODEL) and os.path.exists(MODEL + ".json")
 
 
 def model_info():
-    return {"model": ready(), "model_mb": round(os.path.getsize(MODEL) / 1048576, 1) if ready() else 0}
+    return {"model": ready(), "model_mb": round(os.path.getsize(MODEL) / 1048576, 1) if ready() else 0, "sec_per_char": round(SPC["v"], 3), "max_seconds": MAX_SECONDS}
 
 
 def install():
@@ -145,15 +155,18 @@ def install():
     return dict(model_info(), ok=True)
 
 
-def speak(text):
-    """wav bytes from the trained voice. RuntimeError if anything is missing or slow (the caller then goes on to the next backup)."""
+def speak(text, guard=True):
+    """wav bytes from the trained voice. guard=False (the Test button) skips the length check. RuntimeError if anything is missing or slow (the caller then goes on to the next backup)."""
     if not ready():
         raise RuntimeError("own voice file is not installed")
     t = re.sub(r"[*_`#\r\n]+", " ", text or "").strip()[:400]
     if not t:
         raise RuntimeError("no text to speak")
+    if guard and too_long(t):
+        raise RuntimeError("reply is too long for the own voice on this phone")
     fd, out = tempfile.mkstemp(suffix=".wav")
     os.close(fd)
+    t0 = time.time()
     try:
         r = subprocess.run([sys.executable, "-m", "piper", "-m", MODEL, "-f", out], input=t.encode("utf-8"), capture_output=True, timeout=60)
         err = r.stderr.decode(errors="ignore")
@@ -161,6 +174,8 @@ def speak(text):
             raise RuntimeError("Piper is not installed. In Termux run: pip install piper-tts")
         if r.returncode != 0 or os.path.getsize(out) < 200:
             raise RuntimeError("own voice failed: " + err.strip()[-120:])
+        spc = (time.time() - t0) / max(1, len(t))  # Part 205: remember how fast this phone is
+        SPC["v"] = spc if not SPC["v"] else 0.5 * SPC["v"] + 0.5 * spc
         with open(out, "rb") as fh:
             return fh.read()
     except subprocess.TimeoutExpired:
@@ -205,3 +220,60 @@ def fill_start(key, jobs):
             FILL["running"] = False
 
     threading.Thread(target=run, daemon=True).start()
+
+
+# ---- Part 206: find clips that would make the copy worse, and remove them on your tap ----
+def review():
+    """[{id, speaker, sec, text, why}] for clips that look bad: very short or long, speech too fast or too slow for its text, no Hindi letters, same text twice."""
+    bad, seen = [], {}
+    for i, sp, sec, t in _rows():
+        try:
+            sec = float(sec)
+        except ValueError:
+            continue
+        why = ""
+        cps = len(t) / sec if sec else 0
+        if sec < 1.5:
+            why = "very short"
+        elif sec > 25:
+            why = "very long"
+        elif cps < 5:
+            why = "too slow or long silence for its text"
+        elif cps > 25:
+            why = "too fast or text does not match"
+        elif not re.search("[\u0900-\u097F]", t):
+            why = "no Hindi letters"
+        elif (sp, t) in seen:
+            why = "same text again"
+        seen[(sp, t)] = i
+        if why:
+            bad.append({"id": i, "speaker": sp, "sec": round(sec, 1), "text": t[:60], "why": why})
+    return bad
+
+
+def prune():
+    """Delete every clip that review() lists (wav and index line). Returns how many."""
+    bad = {(b["speaker"], b["id"]) for b in review()}
+    if not bad:
+        return 0
+    with LOCK:
+        keep = []
+        try:
+            with open(INDEX, encoding="utf-8") as fh:
+                lines = fh.readlines()
+        except OSError:
+            return 0
+        n = 0
+        for l in lines:
+            f = l.rstrip("\n").split("\t", 3)
+            if len(f) == 4 and (f[1], f[0]) in bad:
+                try:
+                    os.remove(os.path.join(SET, f[1], f[0] + ".wav"))
+                except OSError:
+                    pass
+                n += 1
+            else:
+                keep.append(l)
+        with open(INDEX, "w", encoding="utf-8") as fh:
+            fh.writelines(keep)
+    return n
